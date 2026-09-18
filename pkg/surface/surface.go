@@ -174,20 +174,6 @@ func (s *Surface) toolchainFloor() (majorMinor, bool) {
 	return best, true
 }
 
-// GreaterVersion reports whether version a exceeds version b as a
-// major.minor floor. Versions that do not parse never exceed anything.
-func GreaterVersion(a, b string) bool {
-	aParsed, err := parseMajorMinor(a)
-	if err != nil {
-		return false
-	}
-	bParsed, err := parseMajorMinor(b)
-	if err != nil {
-		return false
-	}
-	return aParsed.greaterThan(bParsed)
-}
-
 // Issue is one policy violation on the version surface.
 type Issue struct {
 	// Rule is one of the Rule* constants.

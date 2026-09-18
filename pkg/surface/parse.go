@@ -41,6 +41,58 @@ func hasPatch(v string) bool {
 	return len(strings.Split(v, ".")) > 2
 }
 
+// GreaterVersion reports whether version a is a strictly higher Go version
+// than b, comparing every dotted component (missing components are zero):
+// "1.26.7" exceeds "1.26", and "1.27" exceeds "1.26.7". Unlike
+// parseMajorMinor the patch component matters here, because the go tool
+// lifts a directive to a dependency's exact patch floor. Versions that do
+// not parse never exceed anything.
+func GreaterVersion(a, b string) bool {
+	aParts, aOK := versionParts(a)
+	bParts, bOK := versionParts(b)
+
+	if !aOK || !bOK {
+		return false
+	}
+
+	for i := range max(len(aParts), len(bParts)) {
+		ai, bi := partAt(aParts, i), partAt(bParts, i)
+
+		if ai != bi {
+			return ai > bi
+		}
+	}
+
+	return false
+}
+
+// versionParts parses a Go version into its dotted numeric components,
+// ignoring the "go" prefix. ok is false for non-numeric versions.
+func versionParts(v string) ([]int, bool) {
+	fields := strings.Split(strings.TrimPrefix(v, "go"), ".")
+	parts := make([]int, 0, len(fields))
+
+	for _, field := range fields {
+		n, err := strconv.Atoi(field)
+
+		if err != nil || n < 0 {
+			return nil, false
+		}
+
+		parts = append(parts, n)
+	}
+
+	return parts, true
+}
+
+// partAt returns the version component at index i, zero past the end.
+func partAt(parts []int, i int) int {
+	if i >= len(parts) {
+		return 0
+	}
+	return parts[i]
+}
+
 // greaterThan orders by major, then minor.
 func (m majorMinor) greaterThan(o majorMinor) bool {
 	if m.Major != o.Major {

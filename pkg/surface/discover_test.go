@@ -211,3 +211,85 @@ func TestAnalyze_GoWorkTargetIsDirectiveWhenAboveFloor(t *testing.T) {
 		}
 	}
 }
+
+func TestDiscover_ToolchainDirectives(t *testing.T) {
+	t.Parallel()
+
+	root := writeRepo(t, map[string]string{
+		"go.mod":        "module example.com/root\n\ngo 1.26\n\ntoolchain go1.26.7\n",
+		"go.work":       "go 1.26\n\ntoolchain go1.25.2\n\nuse .\n",
+		"plain/go.mod":  "module example.com/plain\n\ngo 1.26\n",
+	})
+
+	s, discoverIssues, err := Discover(root)
+	require.NoError(t, err)
+	assert.Empty(t, discoverIssues)
+
+	require.Len(t, s.Toolchains, 2, "only files declaring a toolchain are recorded")
+	byPath := map[string]ToolchainDirective{}
+
+	for _, tc := range s.Toolchains {
+		byPath[tc.Path] = tc
+	}
+
+	assert.Equal(t, "go1.26.7", byPath["go.mod"].Version, "Version keeps the go prefix")
+	assert.Equal(t, KindGoMod, byPath["go.mod"].Kind)
+	assert.Equal(t, "go1.25.2", byPath["go.work"].Version)
+	assert.Equal(t, KindGoWork, byPath["go.work"].Kind)
+}
+
+func TestAnalyze_ToolchainRaisesPinFloor(t *testing.T) {
+	t.Parallel()
+
+	// The go floor is 1.26, but toolchain go1.27.1 makes builds switch
+	// toolchains: the flake pin go_1_26 now trails the effective floor.
+	root := writeRepo(t, map[string]string{
+		"go.mod":    "module example.com/root\n\ngo 1.26\n\ntoolchain go1.27.1\n",
+		"flake.nix": "{ buildGoModule = pkgs.go_1_26; }\n",
+	})
+
+	s, discoverIssues, err := Discover(root)
+	require.NoError(t, err)
+	assert.Empty(t, discoverIssues)
+
+	issues := Analyze(s)
+	require.Len(t, issues, 1)
+	assert.Equal(t, RuleNixPinBelowFloor, issues[0].Rule)
+	assert.Nil(t, issues[0].Fix, "alignment issues are suggest-only")
+	assert.Contains(t, issues[0].Message, "toolchain go1.27.1")
+	assert.Contains(t, issues[0].Message, "1.27")
+	assert.Contains(t, issues[0].Suggestion, "go_1_27")
+}
+
+func TestAnalyze_ToolchainBelowDirectiveIsStale(t *testing.T) {
+	t.Parallel()
+
+	root := writeRepo(t, map[string]string{
+		"go.mod": "module example.com/root\n\ngo 1.27\n\ntoolchain go1.25.0\n",
+	})
+
+	s, discoverIssues, err := Discover(root)
+	require.NoError(t, err)
+	assert.Empty(t, discoverIssues)
+
+	issues := Analyze(s)
+	require.Len(t, issues, 1)
+	assert.Equal(t, RuleToolchainBelowDirective, issues[0].Rule)
+	assert.Equal(t, 5, issues[0].Line, "toolchain is on line 5")
+	assert.Contains(t, issues[0].Suggestion, "go mod edit -toolchain=none")
+}
+
+func TestAnalyze_CurrentToolchainNotFlagged(t *testing.T) {
+	t.Parallel()
+
+	// toolchain go1.26.7 above go 1.26 is the normal post-`go get` shape:
+	// it pins a patch within the same minor and must stay silent.
+	root := writeRepo(t, map[string]string{
+		"go.mod": "module example.com/root\n\ngo 1.26\n\ntoolchain go1.26.7\n",
+	})
+
+	s, discoverIssues, err := Discover(root)
+	require.NoError(t, err)
+	assert.Empty(t, discoverIssues)
+	assert.Empty(t, Analyze(s))
+}

@@ -36,6 +36,66 @@ func TestParseMajorMinor(t *testing.T) {
 	}
 }
 
+func TestParseToolchain(t *testing.T) {
+	tests := []struct {
+		name    string
+		kind    DirectiveKind
+		content string
+		want    string
+		wantErr bool
+	}{
+		{
+			name:    "go.mod toolchain",
+			kind:    KindGoMod,
+			content: "module example.com/m\n\ngo 1.26\n\ntoolchain go1.26.7\n",
+			want:    "go1.26.7",
+		},
+		{
+			name:    "absent is normal",
+			kind:    KindGoMod,
+			content: "module example.com/m\n\ngo 1.26\n",
+			want:    "",
+		},
+		{
+			name:    "go.work toolchain",
+			kind:    KindGoWork,
+			content: "go 1.26\n\ntoolchain go1.25.2\n\nuse .\n",
+			want:    "go1.25.2",
+		},
+		{name: "unparseable", kind: KindGoMod, content: "{{{", wantErr: true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, _, err := ParseToolchain(tt.kind, []byte(tt.content))
+			if tt.wantErr {
+				require.Error(t, err)
+				return
+			}
+			require.NoError(t, err)
+			assert.Equal(t, tt.want, got)
+		})
+	}
+}
+
+func TestParseModulePath(t *testing.T) {
+	path, err := ParseModulePath(KindGoMod, []byte("module example.com/sub/api\n\ngo 1.26\n"))
+	require.NoError(t, err)
+	assert.Equal(t, "example.com/sub/api", path)
+
+	workPath, err := ParseModulePath(KindGoWork, []byte("go 1.26\n\nuse .\n"))
+	require.NoError(t, err)
+	assert.Empty(t, workPath, "go.work declares no module")
+}
+
+func TestGreaterVersion(t *testing.T) {
+	assert.True(t, GreaterVersion("1.26.7", "1.26"))
+	assert.True(t, GreaterVersion("1.27", "1.26.7"))
+	assert.False(t, GreaterVersion("1.26", "1.26.7"))
+	assert.False(t, GreaterVersion("1.26", "1.26"))
+	assert.False(t, GreaterVersion("garbage", "1.26"), "unparseable never exceeds")
+	assert.False(t, GreaterVersion("1.26", "garbage"), "unparseable is never exceeded")
+}
+
 func TestMajorMinorOrdering(t *testing.T) {
 	a := majorMinor{Major: 1, Minor: 26}
 	b := majorMinor{Major: 1, Minor: 27}
