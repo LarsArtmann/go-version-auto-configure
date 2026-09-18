@@ -1,6 +1,7 @@
 package surface
 
 import (
+	"errors"
 	"fmt"
 	"strconv"
 	"strings"
@@ -12,27 +13,44 @@ type majorMinor struct {
 	Minor int
 }
 
+// Version-shape constants: a major.minor version has two dot-separated
+// parts (a patch-form one has more) and the buildGoNNNModule encoding
+// carries a three-digit minor.
+const (
+	majorMinorParts = 2
+	builderDigits   = 3
+)
+
+// parseMajorMinor sentinel errors, wrapped with the offending value.
+var (
+	errNoMinorComponent = errors.New("version has no minor component")
+	errNonNumericMajor  = errors.New("version has non-numeric major")
+	errNonNumericMinor  = errors.New("version has non-numeric minor")
+	errNotPositive      = errors.New("version is not a positive major.minor")
+)
+
 // parseMajorMinor parses "1.26", "1.26.7", or "1.26.0" into its major.minor
 // components. Patch components are accepted and ignored: policy treats the
 // directive floor as major.minor only.
 func parseMajorMinor(v string) (majorMinor, error) {
 	parts := strings.Split(strings.TrimPrefix(v, "go"), ".")
-	if len(parts) < 2 {
-		return majorMinor{}, fmt.Errorf("version %q has no minor component", v)
+
+	if len(parts) < majorMinorParts {
+		return majorMinor{}, fmt.Errorf("%w: %q", errNoMinorComponent, v)
 	}
 
 	major, err := strconv.Atoi(parts[0])
 	if err != nil {
-		return majorMinor{}, fmt.Errorf("version %q has non-numeric major: %w", v, err)
+		return majorMinor{}, fmt.Errorf("%w: %q", errNonNumericMajor, v)
 	}
 
 	minor, err := strconv.Atoi(parts[1])
 	if err != nil {
-		return majorMinor{}, fmt.Errorf("version %q has non-numeric minor: %w", v, err)
+		return majorMinor{}, fmt.Errorf("%w: %q", errNonNumericMinor, v)
 	}
 
 	if major <= 0 || minor < 0 {
-		return majorMinor{}, fmt.Errorf("version %q is not a positive major.minor", v)
+		return majorMinor{}, fmt.Errorf("%w: %q", errNotPositive, v)
 	}
 
 	return majorMinor{Major: major, Minor: minor}, nil
@@ -42,7 +60,7 @@ func parseMajorMinor(v string) (majorMinor, error) {
 // (three or more dot-separated numeric parts). RC and expression forms are
 // rejected: callers only pass module-parsed versions.
 func hasPatch(v string) bool {
-	return len(strings.Split(v, ".")) > 2
+	return len(strings.Split(v, ".")) > majorMinorParts
 }
 
 // GreaterVersion reports whether version a is a strictly higher Go version
@@ -143,7 +161,8 @@ func parseCIPin(raw string) (majorMinor, bool) {
 func parseNixPin(token string) (majorMinor, bool) {
 	if digits, ok := strings.CutPrefix(token, "buildGo"); ok {
 		digits = strings.TrimSuffix(digits, "Module")
-		if len(digits) != 3 {
+
+		if len(digits) != builderDigits {
 			return majorMinor{}, false
 		}
 
@@ -152,7 +171,8 @@ func parseNixPin(token string) (majorMinor, bool) {
 
 	if rest, ok := strings.CutPrefix(token, "go_"); ok {
 		parts := strings.Split(rest, "_")
-		if len(parts) != 2 {
+
+		if len(parts) != majorMinorParts {
 			return majorMinor{}, false
 		}
 

@@ -176,8 +176,8 @@ func editVerb(kind DirectiveKind) string {
 // (the go command would switch toolchains). toolDriver names that directive
 // when it drives the floor; ok is false when the repo declares no floor at
 // all.
-func pinAlignment(s *Surface) (floor majorMinor, toolDriver *ToolchainDirective, ok bool) {
-	floor, ok = s.Floor()
+func pinAlignment(s *Surface) (majorMinor, *ToolchainDirective, bool) {
+	floor, ok := s.Floor()
 	toolFloor, hasTool := s.toolchainFloor()
 
 	if !hasTool || (ok && !toolFloor.greaterThan(floor)) {

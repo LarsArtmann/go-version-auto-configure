@@ -13,12 +13,17 @@ import (
 
 // skippedDirs are never walked: vendored and generated trees do not declare
 // this repository's own toolchain floor.
+//
+//nolint:gochecknoglobals // policy table, read-only
 var skippedDirs = map[string]bool{
 	"vendor":       true,
 	"node_modules": true,
 	".git":         true,
 	"result":       true,
 }
+
+// errNotDirectory is wrapped with the root path by Discover.
+var errNotDirectory = errors.New("surface: root is not a directory")
 
 // Discover walks root and returns the repository's Go version surface:
 // every go.mod `go` directive, go.work `go` directive, flake.nix nixpkgs Go
@@ -37,10 +42,10 @@ func Discover(root string) (*Surface, []Issue, error) {
 	}
 
 	if !info.IsDir() {
-		return nil, nil, fmt.Errorf("surface: root %q is not a directory", root)
+		return nil, nil, fmt.Errorf("%w: %q", errNotDirectory, root)
 	}
 
-	s := &Surface{Root: absRoot}
+	surf := &Surface{Root: absRoot}
 
 	var issues []Issue
 
@@ -49,9 +54,8 @@ func Discover(root string) (*Surface, []Issue, error) {
 			return err
 		}
 
-		name := d.Name()
 		if d.IsDir() {
-			if skippedDirs[name] {
+			if skippedDirs[d.Name()] {
 				return filepath.SkipDir
 			}
 
@@ -63,38 +67,7 @@ func Discover(root string) (*Surface, []Issue, error) {
 			return relErr
 		}
 
-		switch {
-		case name == "go.mod":
-			module, toolchain, issue := parseGoMod(path, rel)
-			if issue != nil {
-				issues = append(issues, *issue)
-
-				return nil
-			}
-
-			if module != nil {
-				s.Modules = append(s.Modules, *module)
-			}
-
-			if toolchain != nil {
-				s.Toolchains = append(s.Toolchains, *toolchain)
-			}
-		case name == "go.work":
-			workspace, toolchain := parseGoWork(path, rel)
-			if workspace != nil {
-				s.Modules = append(s.Modules, *workspace)
-			}
-
-			if toolchain != nil {
-				s.Toolchains = append(s.Toolchains, *toolchain)
-			}
-		case name == "flake.nix":
-			s.NixPins = append(s.NixPins, scanNixPins(path, rel)...)
-		case name == "flake.lock":
-			return nil
-		case isCIWorkflow(rel):
-			s.CIPins = append(s.CIPins, scanCIPins(path, rel)...)
-		}
+		issues = append(issues, surf.absorbFile(path, rel, d.Name())...)
 
 		return nil
 	})
@@ -102,7 +75,47 @@ func Discover(root string) (*Surface, []Issue, error) {
 		return nil, issues, fmt.Errorf("surface: walk %q: %w", root, walkErr)
 	}
 
-	return s, issues, nil
+	return surf, issues, nil
+}
+
+// absorbFile folds one discovered file into the surface and returns any
+// discovery issues it raised. It is Discover's per-file dispatch.
+func (s *Surface) absorbFile(path, rel, name string) []Issue {
+	switch {
+	case name == "go.mod":
+		module, toolchain, issue := parseGoMod(path, rel)
+
+		if issue != nil {
+			return []Issue{*issue}
+		}
+
+		if module != nil {
+			s.Modules = append(s.Modules, *module)
+		}
+
+		if toolchain != nil {
+			s.Toolchains = append(s.Toolchains, *toolchain)
+		}
+	case name == "go.work":
+		workspace, toolchain := parseGoWork(path, rel)
+
+		if workspace != nil {
+			s.Modules = append(s.Modules, *workspace)
+		}
+
+		if toolchain != nil {
+			s.Toolchains = append(s.Toolchains, *toolchain)
+		}
+	case name == "flake.nix":
+		s.NixPins = append(s.NixPins, scanNixPins(path, rel)...)
+	case name == "flake.lock":
+		// deliberately unmodeled: the lock alone does not name a Go version
+		// (resolving it needs an impure nix eval, see TODO_LIST.md T9)
+	case isCIWorkflow(rel):
+		s.CIPins = append(s.CIPins, scanCIPins(path, rel)...)
+	}
+
+	return nil
 }
 
 // parseGoMod extracts the module path, the `go` directive, and the
