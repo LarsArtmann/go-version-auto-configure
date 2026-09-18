@@ -1,27 +1,27 @@
 # Features
 
-Status legend: DONE / PARTIALLY DONE / PLANNED / WORTH CONSIDERING
+Status legend: FULLY_FUNCTIONAL / PARTIALLY_FUNCTIONAL / BROKEN / DISABLED / PLANNED. Zero BROKEN and zero DISABLED rows as of the 2026-09-18 sweep (build + full test suite green, dogfooded on this repo).
 
-## DONE
+## FULLY_FUNCTIONAL
 
-- **Surface discovery** — walks a repo and models every Go version declaration: go.mod `go` directives (all modules), go.work, flake.nix nixpkgs pins (attribute + builder forms), CI `go-version:` pins (workflow YAML, expression/range pins skipped as non-comparable)
-- **Policy analysis** — patch-form violations on go.mod/go.work directives; go.work below workspace floor; Nix pins below module floor; CI pins below floor; CI patch-form pins
-- **Mechanical auto-fix** — directive form normalization via `go mod edit` / `go work edit`; go.work target never below workspace floor; every fix verified by re-parsing AND by surviving `go mod tidy`; dry-run mode
-- **Dep-forced floor detection** — when tidy reverts a strip, the tool resolves the dependencies whose own floors force the value (`go list -m`) and names them as the supply-side re-tag targets, instead of reporting a fix that silently reverts
-- **Suggestion engine** — alignment issues (pin vs floor) carry actionable suggestions; downgrades never auto-applied
-- **BuildFlow provider** — self-registering `toolsdk.Spec` via linter-autoconfigure-sdk's `ProviderFromSpec`; Detect + Repair; honors BuildFlow dry-run context; HealthCheck verifies the go binary
-- **CLI** — `check` (exit 1 on drift), `fix` (+`--dry-run`), `version`
-- **Test suite** — surface (parse/discover/analyze incl. workspace-floor regression), fix (edit verification, subdirectory modules, failure reporting), provider (registration, detect/repair/dry-run), CLI end-to-end
+| Feature | What it does | Evidence |
+| --- | --- | --- |
+| Surface discovery | Walks a repo and models every Go version declaration: go.mod `go` directives (all modules), go.work, flake.nix nixpkgs pins (attribute + builder forms), CI `go-version:` pins. Skips vendor/node_modules/.git/result; skips flake.lock. Expression/range CI pins are skipped as non-comparable | `pkg/surface/discover.go:28`, `pkg/surface/discover.go:16`, `pkg/surface/discover.go:75` |
+| Policy analysis | Five rules: patch-form go.mod directive, patch-form go.work directive, Nix pin below module floor, CI pin below floor, CI patch-form pin. Unparseable go.mod files surface as a sixth discovery finding instead of aborting the walk | `pkg/surface/rules.go:22`, `pkg/surface/surface.go:15-42` |
+| Mechanical auto-fix | Directive form normalization via `go mod edit` / `go work edit`, never text rewriting; a fix counts as applied only when re-parsing the file shows the target directive | `pkg/fix/fix.go:132`, `pkg/fix/fix.go:182` |
+| Tidy-stability + dep-forced classification | go.mod fixes must survive `go mod tidy`; when tidy re-raises the directive, the fix is classified dep-forced and the poisoning dependencies are resolved via `go list -m` and named as supply-side re-tag targets | `pkg/fix/fix.go:203`, `pkg/fix/fix.go:225`; dogfooded: this repo's fix reports go-finding, go-finding/toolsdk, linter-autoconfigure-sdk |
+| go.work workspace-floor targeting | A go.work below the workspace floor is rewritten to the floor (not the stripped directive), so the workspace can still resolve its own modules | `pkg/surface/rules.go:40`, regression `pkg/surface/discover_test.go:167` |
+| Suggestion engine | Alignment issues (pin vs floor) carry actionable suggestions; downgrades are never auto-applied — which side moves is a maintainer decision | `pkg/surface/rules.go:69`, `pkg/surface/rules.go:95` |
+| BuildFlow provider | Self-registering `toolsdk.Spec` via linter-autoconfigure-sdk's `ProviderFromSpec`; Detect + Repair; triggers on go/go.mod/go.work; honors BuildFlow dry-run context; HealthCheck verifies the go binary | `pkg/provider/provider.go:38`, `pkg/provider/provider.go:50` |
+| CLI | `check` (exit 1 on drift), `fix` (+`--dry-run`), `version` | `cmd/go-version-auto-configure/main.go:37` |
+| Test suite | surface (parse/discover/analyze incl. workspace-floor regression), fix (edit verification, dep-forced naming, subdirectory modules, failure reporting), provider (registration, detect/repair/dry-run), CLI end-to-end | `GOEXPERIMENT=jsonv2 go test ./...` — 4 packages ok |
 
 ## PLANNED
 
-- Supply-side convergence campaign (see TODO_LIST.md)
-- BuildFlow blank-import wiring (BuildFlow dev task)
-- JSON output for CI/machines
+- Supply-side convergence campaign — re-tag published libraries with major.minor-only floors (TODO_LIST.md T1)
+- BuildFlow blank-import wiring — one-line SDK import in BuildFlow (TODO_LIST.md T2)
+- First tag + publish — v0.1.0, CI workflow, GoReleaser (TODO_LIST.md T3)
+- Fleet minor decision: 1.26 vs 1.27 (TODO_LIST.md T4)
+- JSON output for CI/machines (TODO_LIST.md T7)
 
-## WORTH CONSIDERING
-
-- Promote `pkg/surface` to its own submodule when a second repo imports it (mirrors go-finding/toolsdk)
-- gomod-checker upstream rule: detect when `go mod tidy` re-poisons a directive after a form fix (the "tidy revert" class)
-- Read version pins from `.tool-versions`/`mise.toml`/Dockerfiles (Tier-2 surface per version-surface.md)
-- VERSION/CHANGELOG/git-tag release-authority drift detection (Layer-B versioning; project-dependency-graph has partial analysis)
+Longer-term raw ideas live in [ROADMAP.md](ROADMAP.md); domain vocabulary in [docs/DOMAIN_LANGUAGE.md](docs/DOMAIN_LANGUAGE.md).

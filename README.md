@@ -20,9 +20,15 @@ Worse: the drift **propagates**. `go mod tidy` copies a dependency's `go` floor 
 
 ## Install
 
+The module is not yet tagged (TODO_LIST.md T3), so build from source:
+
 ```bash
-go get github.com/larsartmann/go-version-auto-configure
+git clone https://github.com/larsartmann/go-version-auto-configure
+cd go-version-auto-configure
+GOEXPERIMENT=jsonv2 go build -o go-version-auto-configure ./cmd/go-version-auto-configure
 ```
+
+Once the first version is tagged, Go consumers can instead `go get github.com/larsartmann/go-version-auto-configure`.
 
 ## Usage
 
@@ -49,8 +55,9 @@ The provider self-registers via `toolsdk.Register` (go-finding), built on `linte
 `pkg/surface` is the reusable half: it discovers and models the version surface (module directives, workspace, Nix pins, CI pins) and evaluates the policy rules, writing nothing. Consumers that want fleet versioning intelligence without the fixer import it directly:
 
 ```go
-s, issues, err := surface.Discover(repoRoot)
-for _, issue := range surface.Analyze(s) { ... }
+s, discoveryIssues, err := surface.Discover(repoRoot)
+// discoveryIssues: unparseable files; reported as findings, never auto-fixed
+issues := surface.Analyze(s) // policy violations; mechanical ones carry issue.Fix
 ```
 
 ## Relationship to the rest of the fleet
@@ -66,8 +73,8 @@ for _, issue := range surface.Analyze(s) { ... }
 ## Development
 
 ```bash
-go build ./...
-go test ./...
+GOEXPERIMENT=jsonv2 go build ./...
+GOEXPERIMENT=jsonv2 go test ./...
 ```
 
-Requires Go 1.26+ with `GOEXPERIMENT=jsonv2` (inherited from go-finding).
+Requires Go 1.26 or newer with `GOEXPERIMENT=jsonv2` (inherited from go-finding; dependencies currently force a 1.26.7 floor — see TODO_LIST.md T1).
