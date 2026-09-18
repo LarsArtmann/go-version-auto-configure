@@ -20,11 +20,12 @@ go build -o /tmp/gvac ./cmd/go-version-auto-configure
 
 `GOEXPERIMENT=jsonv2` is required by the go-finding dependency (as in linter-autoconfigure-sdk and the other auto-configurers).
 
-## Architecture (3 pkg packages + cmd/)
+## Architecture (4 pkg packages + cmd/)
 
 - `pkg/surface` — the **mini SDK**: `Discover(root) → Surface` (walks go.mod/go.work/flake.nix/.github/workflows, skips vendor/node_modules/.git/result) + `Analyze(Surface) → []Issue`. Pure: reads files, writes nothing. `ParseDirective` is the single go.mod/go.work parsing entry point shared by discovery AND fix verification, so a fix is checked with exactly the code that detected it.
 - `pkg/fix` — applies `Issue.Fix` entries via `go mod edit` / `go work edit` (never sed). Every fix is verified by re-parsing the file; a fix counts as applied only when the directive actually changed AND — for go.mod — survives `go mod tidy`. Tidy-reverted fixes are classified dep-forced and name the poisoning dependencies via `go list -m`. `Options.DryRun` holds fixes back.
 - `pkg/provider` — BuildFlow wiring: `linter-autoconfigure-sdk.ProviderFromSpec` → `toolsdk.Register`, package-level `var Provider` (blank-import contract, same as oxlint's).
+- `pkg/version` — fleet version-stamp kit (copied from file-and-image-renamer): `Version` resolves `ldflags injection > toolchain VCS stamp > "dev"`. The `version` command prints it; plain `go build` binaries self-identify as `<7-char-shortrev>[-dirty]`.
 
 ## Policy decisions encoded here (do not regress)
 
