@@ -64,13 +64,13 @@ issues := surface.Analyze(s) // policy violations; mechanical ones carry issue.F
 
 ## Relationship to the rest of the fleet
 
-| Concern | Owner |
-| --- | --- |
-| Toolchain surface drift (this repo) | detect + mechanical fix + suggestions |
-| go.mod hygiene (tidy, replaces, floors) | BuildFlow `gomod-check` |
-| Publishing clean library versions | `go-release` protocol (supply-side root cause of floor poisoning) |
-| Propagating releases to consumers | `go-ecosystem-upgrade` protocol + BuildFlow `update` |
-| Fleet graph, conflicts, release planning | `project-dependency-graph` |
+| Concern                                  | Owner                                                             |
+| ---------------------------------------- | ----------------------------------------------------------------- |
+| Toolchain surface drift (this repo)      | detect + mechanical fix + suggestions                             |
+| go.mod hygiene (tidy, replaces, floors)  | BuildFlow `gomod-check`                                           |
+| Publishing clean library versions        | `go-release` protocol (supply-side root cause of floor poisoning) |
+| Propagating releases to consumers        | `go-ecosystem-upgrade` protocol + BuildFlow `update`              |
+| Fleet graph, conflicts, release planning | `project-dependency-graph`                                        |
 
 ## Development
 

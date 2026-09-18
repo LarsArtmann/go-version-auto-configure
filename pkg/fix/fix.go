@@ -140,8 +140,7 @@ func Apply(ctx context.Context, root string, fixes []surface.Fix, opts Options, 
 			continue
 		}
 		if err := applyOne(ctx, root, f, run); err != nil {
-			var depForced *DepForcedError
-			if errors.As(err, &depForced) {
+			if depForced, ok := errors.AsType[*DepForcedError](err); ok {
 				res.DepForced = append(res.DepForced, DepForced{
 					Fix:       f,
 					Floor:     depForced.Floor,
@@ -228,7 +227,7 @@ func resolvePoisoners(ctx context.Context, dir string, run GoCommandRunner, floo
 		return nil, err
 	}
 	var poisoners []string
-	for _, line := range strings.Split(out, "\n") {
+	for line := range strings.SplitSeq(out, "\n") {
 		fields := strings.Fields(strings.TrimSpace(line))
 		if len(fields) != 3 || fields[2] != floor {
 			continue

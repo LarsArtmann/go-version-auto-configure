@@ -8,19 +8,19 @@
 
 ## a) FULLY DONE
 
-| # | Work | Evidence |
-|---|------|----------|
-| 1 | **Fleet versioning audit** — 383 `go.mod` modules across ~260 repos enumerated; drift distributions measured per surface location | Numbers in this report; reproducible via `/tmp/gvac check <repo>` per repo |
-| 2 | **Root cause proven: floor poisoning.** `go mod tidy`/get-style passes copy a dependency's `go` floor verbatim. Published `go-finding@v1.10.0`/`v1.12.0` = `go 1.26.7`, `linter-autoconfigure-sdk@v0.2.0` = `go 1.26.7`, `go-atomic-write@v0.5.x` = `go 1.27.1` (accidental: its deps' floors are xxhash 1.11 / flock 1.25.0) | Pilot reproduction: golangci-lint-auto-configure + linter-autoconfigure-sdk directives reverted to 1.26.7 after tidy; `go list -m` poisoner output |
-| 3 | **New repo `~/projects/go-version-auto-configure`** — single-module Go CLI + BuildFlow provider; 4 packages, all tests green; `go vet` clean; golangci-lint **0 issues**; BuildFlow fast gate **exit 0** | `GOEXPERIMENT=jsonv2 go test ./...` → 4 ok; `BUILDFLOW_NO_RESULT_CACHE=1 buildflow --build-mode fast` → exit 0 |
-| 4 | **`pkg/surface` mini SDK** — `Discover` (walks go.mod/go.work/flake.nix/.github/workflows; skips vendor/node_modules/.git/result), `Analyze` (5 policy rules), `ParseDirective` single parsing entry point shared by detection AND fix verification | Table-driven tests incl. real-fleet-shape regression (go-finding workspace case) |
-| 5 | **`pkg/fix`** — directive fixes via `go mod edit`/`go work edit` (never sed); GOWORK=off only for `mod` (its misuse broke `go work edit`); go.work target = max(stripped, workspace floor); every fix verified by re-parse AND by surviving `go mod tidy`; `DepForcedError` names poisoning dependencies via `go list -m` | fix_test.go: verification-catches-no-op, dep-forced naming, workspace-floor, subdirectory modules |
-| 6 | **`pkg/provider`** — `linter-autoconfigure-sdk.ProviderFromSpec` → `toolsdk.Register`, package-level `var Provider` blank-import contract, honors BuildFlow dry-run context, HealthCheck verifies go binary | provider_test.go: registration, detect, repair, dry-run-leaves-file |
-| 7 | **CLI** `check` (exit 1 on drift) / `fix --dry-run` / `version` + e2e tests | main_test.go; manual runs against linter-autoconfigure-sdk, go-finding, own repo |
-| 8 | **Pilot fixes in 7 real repos** — linter-autoconfigure-sdk, go-finding (4 modules + go.work), go-atomic-write, go-error-family (6 fixes, build+test **green**), oxlint-auto-configure, golangci-lint-auto-configure, dependabot-auto-configure | tool output captured in session; go-error-family: build=0 test=0 |
-| 9 | **Fleet-wide dry-run report** — 260 repos scanned: **700 findings in 152 repos** (462 go-directive-patch-form, 126 ci-pin-below-floor, 38 ci-pin-patch-form, 37 nix-pin-below-floor, 37 go-work-patch-form); top: go-cqrs-lite 88, project-discovery-sdk 36, cqrs-htmx 35 | /tmp/fleet_report.txt, /tmp/fleet_rules.txt (persisted in /tmp — see e-8) |
-| 10 | **Full docs + scaffolding** — README (sales), AGENTS.md (policy + poisoning section), FEATURES, TODO_LIST (T1–T6), CHANGELOG, LICENSE, .gitignore, .github/dependabot.yml, .golangci.yml (via golangci-lint-auto-configure + gosec G304/G204 exclusions with rationale), .buildflow.yml (go-mod-update + go-structure-linter skips with rationale) | files in repo |
-| 11 | **Dogfooding loop** — tool detects its own repo's drift and names its own dependencies as poisoners | `/tmp/gvac fix .` → "dep-forced: floor go 1.26.7 forced by: go-finding, go-finding/toolsdk, linter-autoconfigure-sdk" |
+| #  | Work                                                                                                                                                                                                                                                                                                                                               | Evidence                                                                                                                                           |
+| -- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1  | **Fleet versioning audit** — 383 `go.mod` modules across ~260 repos enumerated; drift distributions measured per surface location                                                                                                                                                                                                                  | Numbers in this report; reproducible via `/tmp/gvac check <repo>` per repo                                                                         |
+| 2  | **Root cause proven: floor poisoning.** `go mod tidy`/get-style passes copy a dependency's `go` floor verbatim. Published `go-finding@v1.10.0`/`v1.12.0` = `go 1.26.7`, `linter-autoconfigure-sdk@v0.2.0` = `go 1.26.7`, `go-atomic-write@v0.5.x` = `go 1.27.1` (accidental: its deps' floors are xxhash 1.11 / flock 1.25.0)                      | Pilot reproduction: golangci-lint-auto-configure + linter-autoconfigure-sdk directives reverted to 1.26.7 after tidy; `go list -m` poisoner output |
+| 3  | **New repo `~/projects/go-version-auto-configure`** — single-module Go CLI + BuildFlow provider; 4 packages, all tests green; `go vet` clean; golangci-lint **0 issues**; BuildFlow fast gate **exit 0**                                                                                                                                           | `GOEXPERIMENT=jsonv2 go test ./...` → 4 ok; `BUILDFLOW_NO_RESULT_CACHE=1 buildflow --build-mode fast` → exit 0                                     |
+| 4  | **`pkg/surface` mini SDK** — `Discover` (walks go.mod/go.work/flake.nix/.github/workflows; skips vendor/node_modules/.git/result), `Analyze` (5 policy rules), `ParseDirective` single parsing entry point shared by detection AND fix verification                                                                                                | Table-driven tests incl. real-fleet-shape regression (go-finding workspace case)                                                                   |
+| 5  | **`pkg/fix`** — directive fixes via `go mod edit`/`go work edit` (never sed); GOWORK=off only for `mod` (its misuse broke `go work edit`); go.work target = max(stripped, workspace floor); every fix verified by re-parse AND by surviving `go mod tidy`; `DepForcedError` names poisoning dependencies via `go list -m`                          | fix_test.go: verification-catches-no-op, dep-forced naming, workspace-floor, subdirectory modules                                                  |
+| 6  | **`pkg/provider`** — `linter-autoconfigure-sdk.ProviderFromSpec` → `toolsdk.Register`, package-level `var Provider` blank-import contract, honors BuildFlow dry-run context, HealthCheck verifies go binary                                                                                                                                        | provider_test.go: registration, detect, repair, dry-run-leaves-file                                                                                |
+| 7  | **CLI** `check` (exit 1 on drift) / `fix --dry-run` / `version` + e2e tests                                                                                                                                                                                                                                                                        | main_test.go; manual runs against linter-autoconfigure-sdk, go-finding, own repo                                                                   |
+| 8  | **Pilot fixes in 7 real repos** — linter-autoconfigure-sdk, go-finding (4 modules + go.work), go-atomic-write, go-error-family (6 fixes, build+test **green**), oxlint-auto-configure, golangci-lint-auto-configure, dependabot-auto-configure                                                                                                     | tool output captured in session; go-error-family: build=0 test=0                                                                                   |
+| 9  | **Fleet-wide dry-run report** — 260 repos scanned: **700 findings in 152 repos** (462 go-directive-patch-form, 126 ci-pin-below-floor, 38 ci-pin-patch-form, 37 nix-pin-below-floor, 37 go-work-patch-form); top: go-cqrs-lite 88, project-discovery-sdk 36, cqrs-htmx 35                                                                          | /tmp/fleet_report.txt, /tmp/fleet_rules.txt (persisted in /tmp — see e-8)                                                                          |
+| 10 | **Full docs + scaffolding** — README (sales), AGENTS.md (policy + poisoning section), FEATURES, TODO_LIST (T1–T6), CHANGELOG, LICENSE, .gitignore, .github/dependabot.yml, .golangci.yml (via golangci-lint-auto-configure + gosec G304/G204 exclusions with rationale), .buildflow.yml (go-mod-update + go-structure-linter skips with rationale) | files in repo                                                                                                                                      |
+| 11 | **Dogfooding loop** — tool detects its own repo's drift and names its own dependencies as poisoners                                                                                                                                                                                                                                                | `/tmp/gvac fix .` → "dep-forced: floor go 1.26.7 forced by: go-finding, go-finding/toolsdk, linter-autoconfigure-sdk"                              |
 
 ## b) PARTIALLY DONE
 
@@ -66,58 +66,58 @@
 
 ## f) 50 THINGS TO GET DONE NEXT
 
-| # | Task | Impact | Effort | Category |
-|---|------|--------|--------|----------|
-| 1 | T1: re-tag go-atomic-write with major.minor-only floor (downgrade 1.27.1→1.26, owner-confirmed) | Critical | M | Release |
-| 2 | T1: re-tag go-finding root + modules after minor decision | Critical | M | Release |
-| 3 | T1: re-tag linter-autoconfigure-sdk v0.3.0 with clean floor | Critical | S | Release |
-| 4 | Build poisoner matrix: `go list -m -f '{{.Path}} {{.GoVersion}}' all` across fleet caches; every published lib with patch floor listed | Critical | M | Feature |
-| 5 | T4 decision doc (ADR): fleet canonical minor 1.26 vs 1.27 | Critical | S | Documentation |
-| 6 | Execute T4 outcome (downgrade 62 modules to 1.26 OR bump 241 flakes + CI to 1.27) | Critical | L | Feature |
-| 7 | Owner go/no-go for proxy publishing (T1 gate) | Critical | S | Decision |
-| 8 | T2: blank-import provider in BuildFlow + confirm discovery via `buildflow --dry-run` | High | S | Feature |
-| 9 | T5: gomod-checker upstream rule "directive re-poisoned after tidy" | High | M | Feature |
-| 10 | Fleet sweep: gvac fix + tidy + build+test across 152 finding repos | High | L | Feature |
-| 11 | gvac: parallel repo execution + skip-if-clean fast path | High | M | Feature |
-| 12 | gvac: JSON output for CI/machines | High | S | Feature |
-| 13 | gvac: `who-forces` command — per-repo dep-floor matrix | Medium | M | Feature |
-| 14 | gvac: `--expect-minor` flag encoding the T4 decision | Medium | S | Feature |
-| 15 | CI pin normalization campaign (126 ci-pin-below-floor findings) | High | L | Cleanup |
-| 16 | CI patch-pin cleanup (38 ci-pin-patch-form findings) | Medium | M | Cleanup |
-| 17 | Nix pin alignment (37 nix-pin-below-floor) paired with `buildflow -s nix-hash-fix --fix` | High | M | Cleanup |
-| 18 | Fix flake typos found in scan (`go_256`, `go_1_`) | Medium | S | Bug |
-| 19 | Post-T1 consumer bumps: autoconfigure family + templ-components, go-cqrs-lite (88 findings), cqrs-htmx (35) | High | L | Feature |
-| 20 | T3: v0.1.0 tag + GitHub release + pkg.go.dev verification | High | S | Release |
-| 21 | CI workflow for the new repo (lint + test matrix + dogfood `gvac check .` gate) | High | S | Quality |
-| 22 | GoReleaser setup for the new repo | Medium | M | Feature |
-| 23 | T6: VERSION/CHANGELOG/tag authority drift detection (start: project-dependency-graph 0.7.0-vs-v0.2.0) | Medium | M | Feature |
-| 24 | Update go-ecosystem-upgrade skill version-surface.md: floor-poisoning section + gvac check command | High | S | Documentation |
-| 25 | Update global AGENTS.md: daemon floor re-raise + exit-code-after-pipe recurrence | Medium | S | Documentation |
-| 26 | Document directive state in the 7 pilot repos' AGENTS.md files | Medium | M | Documentation |
-| 27 | Root-cause the re-raise force: which daemon pass runs `go get`-style floor bumps | High | M | Bug |
-| 28 | Full-mode BuildFlow run on new repo (race + coverage) | Medium | S | Quality |
-| 29 | .editorconfig + .gitattributes for new repo | Low | S | Cleanup |
-| 30 | dependabot.yml refinement (groups + open-pull-requests-limit per auto-fixer suggestion) | Low | S | Cleanup |
-| 31 | project-dependency-graph: consume pkg/surface for release-overview alignment | Medium | M | Feature |
-| 32 | gvac: go.work `toolchain` directive coverage | Medium | S | Feature |
-| 33 | gvac: flake.lock effective-go-rev parsing | Medium | M | Feature |
-| 34 | gvac: Dockerfile/.tool-versions/mise pin coverage | Low | M | Feature |
-| 35 | gvac: per-repo config file (.goversionrc) for floor expectations | Low | M | Feature |
-| 36 | Promote pkg/surface to its own submodule once a second consumer exists | Low | S | Cleanup |
-| 37 | Cross-check gvac rules vs BuildFlow gomod-checker for overlap/dedupe | Medium | S | Quality |
-| 38 | Benchmark Discover on go-cqrs-lite (largest monorepo) | Low | S | Quality |
-| 39 | website-launch for go-version-auto-configure (sibling pattern) | Low | L | Feature |
-| 40 | docs-health HARVEST: pull section (f) into TODO_LIST.md / ROADMAP.md | Medium | S | Documentation |
-| 41 | Annotate project-dependency-graph status Q3 (version authority) with link to T6 | Low | S | Documentation |
-| 42 | Refresh go-cqrs-lite-ecosystem-update-plan.md using gvac fleet data | Low | S | Documentation |
-| 43 | oxlint-auto-configure: drop vendored/replace SDK pin after SDK v0.3.0 | Low | S | Cleanup |
-| 44 | Verify no `replace` directives leak into any re-tagged go.mod (go-release Phase 3) | High | S | Quality |
-| 45 | Post-release: `go get @vX.Y.Z` clean-module verification per re-tag (proxy check) | High | M | Quality |
-| 46 | Add `gvac version` ldflags stamping in release pipeline | Low | S | Feature |
-| 47 | Decide go-finding root minor as part of T1 (its flake/CI must follow) | Critical | S | Decision |
-| 48 | Split-brain check: structure-linter's "1.27.1 available" rule vs fleet policy — tune upstream or document exception per repo | Medium | M | Quality |
-| 49 | Add go.work presence detection to provider Trigger (currently triggers on go.mod files only) | Low | S | Bug |
-| 50 | Retire /tmp/gvac + /tmp/fleet_report.txt into committed artifacts (bin/ + docs/) | Low | S | Cleanup |
+| #  | Task                                                                                                                                   | Impact   | Effort | Category      |
+| -- | -------------------------------------------------------------------------------------------------------------------------------------- | -------- | ------ | ------------- |
+| 1  | T1: re-tag go-atomic-write with major.minor-only floor (downgrade 1.27.1→1.26, owner-confirmed)                                        | Critical | M      | Release       |
+| 2  | T1: re-tag go-finding root + modules after minor decision                                                                              | Critical | M      | Release       |
+| 3  | T1: re-tag linter-autoconfigure-sdk v0.3.0 with clean floor                                                                            | Critical | S      | Release       |
+| 4  | Build poisoner matrix: `go list -m -f '{{.Path}} {{.GoVersion}}' all` across fleet caches; every published lib with patch floor listed | Critical | M      | Feature       |
+| 5  | T4 decision doc (ADR): fleet canonical minor 1.26 vs 1.27                                                                              | Critical | S      | Documentation |
+| 6  | Execute T4 outcome (downgrade 62 modules to 1.26 OR bump 241 flakes + CI to 1.27)                                                      | Critical | L      | Feature       |
+| 7  | Owner go/no-go for proxy publishing (T1 gate)                                                                                          | Critical | S      | Decision      |
+| 8  | T2: blank-import provider in BuildFlow + confirm discovery via `buildflow --dry-run`                                                   | High     | S      | Feature       |
+| 9  | T5: gomod-checker upstream rule "directive re-poisoned after tidy"                                                                     | High     | M      | Feature       |
+| 10 | Fleet sweep: gvac fix + tidy + build+test across 152 finding repos                                                                     | High     | L      | Feature       |
+| 11 | gvac: parallel repo execution + skip-if-clean fast path                                                                                | High     | M      | Feature       |
+| 12 | gvac: JSON output for CI/machines                                                                                                      | High     | S      | Feature       |
+| 13 | gvac: `who-forces` command — per-repo dep-floor matrix                                                                                 | Medium   | M      | Feature       |
+| 14 | gvac: `--expect-minor` flag encoding the T4 decision                                                                                   | Medium   | S      | Feature       |
+| 15 | CI pin normalization campaign (126 ci-pin-below-floor findings)                                                                        | High     | L      | Cleanup       |
+| 16 | CI patch-pin cleanup (38 ci-pin-patch-form findings)                                                                                   | Medium   | M      | Cleanup       |
+| 17 | Nix pin alignment (37 nix-pin-below-floor) paired with `buildflow -s nix-hash-fix --fix`                                               | High     | M      | Cleanup       |
+| 18 | Fix flake typos found in scan (`go_256`, `go_1_`)                                                                                      | Medium   | S      | Bug           |
+| 19 | Post-T1 consumer bumps: autoconfigure family + templ-components, go-cqrs-lite (88 findings), cqrs-htmx (35)                            | High     | L      | Feature       |
+| 20 | T3: v0.1.0 tag + GitHub release + pkg.go.dev verification                                                                              | High     | S      | Release       |
+| 21 | CI workflow for the new repo (lint + test matrix + dogfood `gvac check .` gate)                                                        | High     | S      | Quality       |
+| 22 | GoReleaser setup for the new repo                                                                                                      | Medium   | M      | Feature       |
+| 23 | T6: VERSION/CHANGELOG/tag authority drift detection (start: project-dependency-graph 0.7.0-vs-v0.2.0)                                  | Medium   | M      | Feature       |
+| 24 | Update go-ecosystem-upgrade skill version-surface.md: floor-poisoning section + gvac check command                                     | High     | S      | Documentation |
+| 25 | Update global AGENTS.md: daemon floor re-raise + exit-code-after-pipe recurrence                                                       | Medium   | S      | Documentation |
+| 26 | Document directive state in the 7 pilot repos' AGENTS.md files                                                                         | Medium   | M      | Documentation |
+| 27 | Root-cause the re-raise force: which daemon pass runs `go get`-style floor bumps                                                       | High     | M      | Bug           |
+| 28 | Full-mode BuildFlow run on new repo (race + coverage)                                                                                  | Medium   | S      | Quality       |
+| 29 | .editorconfig + .gitattributes for new repo                                                                                            | Low      | S      | Cleanup       |
+| 30 | dependabot.yml refinement (groups + open-pull-requests-limit per auto-fixer suggestion)                                                | Low      | S      | Cleanup       |
+| 31 | project-dependency-graph: consume pkg/surface for release-overview alignment                                                           | Medium   | M      | Feature       |
+| 32 | gvac: go.work `toolchain` directive coverage                                                                                           | Medium   | S      | Feature       |
+| 33 | gvac: flake.lock effective-go-rev parsing                                                                                              | Medium   | M      | Feature       |
+| 34 | gvac: Dockerfile/.tool-versions/mise pin coverage                                                                                      | Low      | M      | Feature       |
+| 35 | gvac: per-repo config file (.goversionrc) for floor expectations                                                                       | Low      | M      | Feature       |
+| 36 | Promote pkg/surface to its own submodule once a second consumer exists                                                                 | Low      | S      | Cleanup       |
+| 37 | Cross-check gvac rules vs BuildFlow gomod-checker for overlap/dedupe                                                                   | Medium   | S      | Quality       |
+| 38 | Benchmark Discover on go-cqrs-lite (largest monorepo)                                                                                  | Low      | S      | Quality       |
+| 39 | website-launch for go-version-auto-configure (sibling pattern)                                                                         | Low      | L      | Feature       |
+| 40 | docs-health HARVEST: pull section (f) into TODO_LIST.md / ROADMAP.md                                                                   | Medium   | S      | Documentation |
+| 41 | Annotate project-dependency-graph status Q3 (version authority) with link to T6                                                        | Low      | S      | Documentation |
+| 42 | Refresh go-cqrs-lite-ecosystem-update-plan.md using gvac fleet data                                                                    | Low      | S      | Documentation |
+| 43 | oxlint-auto-configure: drop vendored/replace SDK pin after SDK v0.3.0                                                                  | Low      | S      | Cleanup       |
+| 44 | Verify no `replace` directives leak into any re-tagged go.mod (go-release Phase 3)                                                     | High     | S      | Quality       |
+| 45 | Post-release: `go get @vX.Y.Z` clean-module verification per re-tag (proxy check)                                                      | High     | M      | Quality       |
+| 46 | Add `gvac version` ldflags stamping in release pipeline                                                                                | Low      | S      | Feature       |
+| 47 | Decide go-finding root minor as part of T1 (its flake/CI must follow)                                                                  | Critical | S      | Decision      |
+| 48 | Split-brain check: structure-linter's "1.27.1 available" rule vs fleet policy — tune upstream or document exception per repo           | Medium   | M      | Quality       |
+| 49 | Add go.work presence detection to provider Trigger (currently triggers on go.mod files only)                                           | Low      | S      | Bug           |
+| 50 | Retire /tmp/gvac + /tmp/fleet_report.txt into committed artifacts (bin/ + docs/)                                                       | Low      | S      | Cleanup       |
 
 ## g) QUESTIONS ONLY YOU CAN ANSWER
 
@@ -127,4 +127,4 @@
 
 ---
 
-*Point-in-time snapshot. Section (f) is HARVEST input for TODO_LIST.md/ROADMAP.md (T1–T6 already seeded there). Note: report written as Markdown per explicit user instruction, overriding the skill's HTML default.*
+_Point-in-time snapshot. Section (f) is HARVEST input for TODO_LIST.md/ROADMAP.md (T1–T6 already seeded there). Note: report written as Markdown per explicit user instruction, overriding the skill's HTML default._

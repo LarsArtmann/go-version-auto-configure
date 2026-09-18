@@ -41,7 +41,7 @@ go build -o /tmp/gvac ./cmd/go-version-auto-configure
 
 ## Environment reality
 
-- Installed toolchain: go1.26.7 with `GOTOOLCHAIN=local` — modules with a 1.27 floor do NOT build in this shell (go-finding, go-atomic-write, oxlint-auto-configure at head). That predates this tool; the tool *surfaces* it as nix-pin/ci-pin alignment findings.
+- Installed toolchain: go1.26.7 with `GOTOOLCHAIN=local` — modules with a 1.27 floor do NOT build in this shell (go-finding, go-atomic-write, oxlint-auto-configure at head). That predates this tool; the tool _surfaces_ it as nix-pin/ci-pin alignment findings.
 - The auto-commit daemon commits changes in fleet repos quickly (heuristic messages). Verify with `git log`, don't assume.
 
 ## Known limitations (v0.1)
