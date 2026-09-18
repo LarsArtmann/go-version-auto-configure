@@ -45,14 +45,14 @@ func TestDiscoverAndAnalyze_PatchFormAcrossModules(t *testing.T) {
 			"      - uses: actions/setup-go@v5\n        with:\n          go-version: 1.26.7\n",
 	})
 
-	s, discoverIssues, err := Discover(root)
+	surf, discoverIssues, err := Discover(root)
 	require.NoError(t, err)
 	assert.Empty(t, discoverIssues)
 
-	require.Len(t, s.Modules, 3, "vendor must be skipped, go.work counted")
+	require.Len(t, surf.Modules, 3, "vendor must be skipped, go.work counted")
 
 	byPath := map[string]ModuleDirective{}
-	for _, m := range s.Modules {
+	for _, m := range surf.Modules {
 		byPath[m.Path] = m
 	}
 
@@ -62,11 +62,11 @@ func TestDiscoverAndAnalyze_PatchFormAcrossModules(t *testing.T) {
 	assert.Equal(t, "1.26.5", byPath["go.work"].Version)
 	assert.Equal(t, KindGoWork, byPath["go.work"].Kind)
 
-	require.Len(t, s.CIPins, 1)
-	assert.Equal(t, "1.26", s.CIPins[0].Version, "Version is the normalized floor")
-	assert.Equal(t, "1.26.7", s.CIPins[0].Raw, "Raw preserves the patch component")
+	require.Len(t, surf.CIPins, 1)
+	assert.Equal(t, "1.26", surf.CIPins[0].Version, "Version is the normalized floor")
+	assert.Equal(t, "1.26.7", surf.CIPins[0].Raw, "Raw preserves the patch component")
 
-	issues := Analyze(s)
+	issues := Analyze(surf)
 	rules := issueRules(issues)
 	assert.Contains(t, rules, RuleGoDirectivePatchForm)
 	assert.Contains(t, rules, RuleWorkDirectivePatchForm)
