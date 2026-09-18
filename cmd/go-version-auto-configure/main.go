@@ -1,28 +1,52 @@
 // Command go-version-auto-configure detects and repairs Go toolchain
-// version-surface drift in a repository: patch components in go.mod/go.work
-// `go` directives (auto-fixed via go mod edit / go work edit) and Nix/CI
-// pins that trail the module floor (reported with suggestions).
+// version-surface drift across one or more repositories: patch components
+// in go.mod/go.work `go` directives (auto-fixed via go mod edit / go work
+// edit), Nix/CI pins that trail the effective floor (reported with
+// suggestions), and the dependencies that force a module's floor
+// (`who-forces`). Repositories are analyzed in parallel; --json emits a
+// machine-readable report for CI and fleet sweeps.
 package main
 
 import (
 	"context"
+	"encoding/json"
+	"encoding/json/jsontext"
 	"flag"
 	"fmt"
 	"os"
+	"path/filepath"
+	"runtime"
+	"slices"
+	"strings"
+	"sync"
 
 	"github.com/larsartmann/go-version-auto-configure/pkg/fix"
 	"github.com/larsartmann/go-version-auto-configure/pkg/surface"
 	"github.com/larsartmann/go-version-auto-configure/pkg/version"
 )
 
+// Process exit codes.
+const (
+	exitOK       = 0
+	exitFindings = 1
+	exitError    = 2
+)
+
 const usage = `go-version-auto-configure — unify the Go toolchain version surface
 
 Usage:
-  go-version-auto-configure check [root]         detect drift, exit 1 when found
-  go-version-auto-configure fix [--dry-run] [root]
+  go-version-auto-configure check [--json] [root ...]
+                                                 detect drift, exit 1 when found
+  go-version-auto-configure fix [--dry-run] [--json] [root ...]
                                                  auto-fix directive form,
                                                  suggest the rest
+  go-version-auto-configure who-forces [--json] [root ...]
+                                                 name the dependencies forcing
+                                                 each go directive
   go-version-auto-configure version              print the tool version
+
+Roots default to the working directory; multiple roots are analyzed in
+parallel and reported sorted by path.
 `
 
 func main() {
@@ -32,20 +56,25 @@ func main() {
 func run(args []string) int {
 	if len(args) == 0 {
 		fmt.Fprint(os.Stderr, usage)
-		return 2
+
+		return exitError
 	}
 
 	switch args[0] {
 	case "version":
 		fmt.Printf("go-version-auto-configure %s\n", version.Version)
-		return 0
+
+		return exitOK
 	case "check":
 		return cmdCheck(args[1:])
 	case "fix":
 		return cmdFix(args[1:])
+	case "who-forces":
+		return cmdWhoForces(args[1:])
 	default:
 		fmt.Fprint(os.Stderr, usage)
-		return 2
+
+		return exitError
 	}
 }
 
@@ -62,14 +91,19 @@ func analyzeAt(root string) (*report, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	r := &report{discovery: discovery}
+
 	for _, issue := range surface.Analyze(s) {
 		if issue.Fix != nil {
 			r.mechanical = append(r.mechanical, issue)
+
 			continue
 		}
+
 		r.suggested = append(r.suggested, issue)
 	}
+
 	return r, nil
 }
 
@@ -80,85 +114,472 @@ func (r *report) all() []surface.Issue {
 	out = append(out, r.discovery...)
 	out = append(out, r.mechanical...)
 	out = append(out, r.suggested...)
+
 	return out
 }
 
-func rootFrom(args []string) string {
-	if len(args) > 0 {
-		return args[0]
+// repoAnalysis pairs one root with its analysis or failure.
+type repoAnalysis struct {
+	root   string
+	report *report
+	err    error
+}
+
+// analyzeAll analyzes every root with a bounded worker pool and returns the
+// results sorted by root for deterministic output.
+func analyzeAll(roots []string) []repoAnalysis {
+	analyses := make([]repoAnalysis, len(roots))
+	sem := make(chan struct{}, workersFor(len(roots)))
+
+	var wg sync.WaitGroup
+
+	for i, root := range roots {
+		wg.Add(1)
+
+		go func() {
+			defer wg.Done()
+
+			sem <- struct{}{}
+
+			defer func() { <-sem }()
+
+			analyzed, err := analyzeAt(root)
+			analyses[i] = repoAnalysis{root: root, report: analyzed, err: err}
+		}()
 	}
-	return "."
+
+	wg.Wait()
+
+	slices.SortFunc(analyses, func(a, b repoAnalysis) int {
+		return strings.Compare(a.root, b.root)
+	})
+
+	return analyses
+}
+
+// rootsFrom normalizes positional roots to absolute paths, defaulting to
+// the working directory, so reports and sweeps name the repo unambiguously.
+func rootsFrom(args []string) []string {
+	if len(args) == 0 {
+		args = []string{"."}
+	}
+
+	roots := make([]string, 0, len(args))
+
+	for _, arg := range args {
+		abs, err := filepath.Abs(arg)
+		if err != nil {
+			abs = arg
+		}
+
+		roots = append(roots, abs)
+	}
+
+	return roots
+}
+
+// workersFor bounds the pool by both the CPU count and the work size.
+func workersFor(work int) int {
+	n := runtime.GOMAXPROCS(0)
+
+	if n > work {
+		n = work
+	}
+
+	if n < 1 {
+		n = 1
+	}
+
+	return n
 }
 
 func cmdCheck(args []string) int {
 	fs := flag.NewFlagSet("check", flag.ContinueOnError)
+	asJSON := fs.Bool("json", false, "emit machine-readable JSON")
+
 	if err := fs.Parse(args); err != nil {
-		return 2
+		return exitError
 	}
 
-	r, err := analyzeAt(rootFrom(fs.Args()))
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "check: %v\n", err)
-		return 2
+	analyses := analyzeAll(rootsFrom(fs.Args()))
+
+	if *asJSON {
+		return emitCheckJSON(analyses)
 	}
 
-	all := r.all()
+	printCheckReports(analyses)
+
+	return exitFromAnalyses(analyses)
+}
+
+// printCheckReports renders every repository's findings for humans.
+func printCheckReports(analyses []repoAnalysis) {
+	for _, a := range analyses {
+		if a.err != nil {
+			fmt.Fprintf(os.Stderr, "check: %s: %v\n", a.root, a.err)
+
+			continue
+		}
+
+		if len(analyses) > 1 {
+			fmt.Printf("== %s ==\n", a.root)
+		}
+
+		printCheckReport(a)
+	}
+
+	if len(analyses) > 1 {
+		clean, findings, failed := summarize(analyses)
+		fmt.Printf("\n%d repos: %d clean, %d with findings, %d failed analysis\n", len(analyses), clean, findings, failed)
+	}
+}
+
+// printCheckReport renders one repository's findings.
+func printCheckReport(a repoAnalysis) {
+	all := a.report.all()
+
 	for _, issue := range all {
 		fmt.Printf("FOUND  %-26s %s:%d\n       %s\n", issue.Rule, issue.File, issue.Line, issue.Message)
+
 		if issue.Suggestion != "" {
 			fmt.Printf("       fix: %s\n", issue.Suggestion)
 		}
 	}
+
 	switch {
 	case len(all) == 0:
-		fmt.Println("version surface clean: go directives are major.minor, pins align with the module floor")
-	case len(r.suggested) == 0:
-		fmt.Printf("\n%d finding(s), all auto-fixable with 'fix'\n", len(all))
+		fmt.Printf("%s: version surface clean: go directives are major.minor, pins align with the module floor\n", a.root)
+	case len(a.report.suggested) == 0:
+		fmt.Printf("%s: %d finding(s), all auto-fixable with 'fix'\n", a.root, len(all))
 	default:
-		fmt.Printf("\n%d finding(s): %d auto-fixable with 'fix', %d need a maintainer decision\n", len(all), len(r.mechanical), len(r.suggested))
+		fmt.Printf("%s: %d finding(s): %d auto-fixable with 'fix', %d need a maintainer decision\n", a.root, len(all), len(a.report.mechanical), len(a.report.suggested))
 	}
-	if len(all) > 0 {
-		return 1
+}
+
+// summarize counts clean, finding-carrying, and failed repositories.
+func summarize(analyses []repoAnalysis) (clean, findings, failed int) {
+	for _, a := range analyses {
+		switch {
+		case a.err != nil:
+			failed++
+		case len(a.report.all()) == 0:
+			clean++
+		default:
+			findings++
+		}
 	}
-	return 0
+
+	return clean, findings, failed
+}
+
+// exitFromAnalyses maps results onto the exit contract: hard errors
+// dominate, then findings, then clean.
+func exitFromAnalyses(analyses []repoAnalysis) int {
+	clean, findings, failed := summarize(analyses)
+
+	switch {
+	case failed > 0:
+		return exitError
+	case findings > 0:
+		return exitFindings
+	default:
+		_ = clean
+
+		return exitOK
+	}
+}
+
+// fixOutcome pairs one root with its fix application or failure.
+type fixOutcome struct {
+	root      string
+	result    *fix.Result
+	suggested []surface.Issue
+	err       error
 }
 
 func cmdFix(args []string) int {
 	fs := flag.NewFlagSet("fix", flag.ContinueOnError)
 	dryRun := fs.Bool("dry-run", false, "report what would change without touching files")
+	asJSON := fs.Bool("json", false, "emit machine-readable JSON")
+
 	if err := fs.Parse(args); err != nil {
-		return 2
+		return exitError
 	}
 
-	r, err := analyzeAt(rootFrom(fs.Args()))
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "fix: %v\n", err)
-		return 2
+	analyses := analyzeAll(rootsFrom(fs.Args()))
+
+	outcomes := applyAll(context.Background(), analyses, fix.Options{DryRun: *dryRun})
+
+	if *asJSON {
+		return emitFixJSON(outcomes)
 	}
 
-	if len(r.all()) == 0 {
-		fmt.Println("version surface clean: nothing to fix")
-		return 0
+	printFixReports(outcomes, len(analyses) > 1)
+
+	return exitFromOutcomes(outcomes)
+}
+
+// applyAll applies every repository's mechanical fixes in parallel. Clean
+// and suggest-only repositories skip the go tool entirely — the fast path
+// that keeps fleet sweeps linear in the drifted-repo count, not the repo
+// count.
+func applyAll(ctx context.Context, analyses []repoAnalysis, opts fix.Options) []fixOutcome {
+	outcomes := make([]fixOutcome, len(analyses))
+	sem := make(chan struct{}, workersFor(len(analyses)))
+
+	var wg sync.WaitGroup
+
+	for i, a := range analyses {
+		wg.Add(1)
+
+		go func() {
+			defer wg.Done()
+
+			sem <- struct{}{}
+
+			defer func() { <-sem }()
+
+			outcomes[i] = fixOne(ctx, a, opts)
+		}()
 	}
 
-	fixes := make([]surface.Fix, 0, len(r.mechanical))
-	for _, issue := range r.mechanical {
+	wg.Wait()
+
+	slices.SortFunc(outcomes, func(a, b fixOutcome) int {
+		return strings.Compare(a.root, b.root)
+	})
+
+	return outcomes
+}
+
+// fixOne applies one repository's mechanical fixes.
+func fixOne(ctx context.Context, a repoAnalysis, opts fix.Options) fixOutcome {
+	out := fixOutcome{root: a.root}
+
+	if a.err != nil {
+		out.err = a.err
+
+		return out
+	}
+
+	out.suggested = a.report.suggested
+
+	fixes := make([]surface.Fix, 0, len(a.report.mechanical))
+
+	for _, issue := range a.report.mechanical {
 		fixes = append(fixes, *issue.Fix)
 	}
 
-	res, err := fix.Apply(context.Background(), rootFrom(fs.Args()), fixes, fix.Options{DryRun: *dryRun}, nil)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "fix: %v\n", err)
-		return 2
+	if len(fixes) == 0 {
+		return out
 	}
 
-	fmt.Println(res.Report())
-	for _, issue := range r.suggested {
+	res, err := fix.Apply(ctx, a.root, fixes, opts, nil)
+	if err != nil {
+		out.err = err
+
+		return out
+	}
+
+	out.result = res
+
+	return out
+}
+
+// printFixReports renders every repository's fix outcome for humans.
+func printFixReports(outcomes []fixOutcome, header bool) {
+	for _, o := range outcomes {
+		if o.err != nil {
+			fmt.Fprintf(os.Stderr, "fix: %s: %v\n", o.root, o.err)
+
+			continue
+		}
+
+		if header {
+			fmt.Printf("== %s ==\n", o.root)
+		}
+
+		printFixReport(o)
+	}
+}
+
+// printFixReport renders one repository's fix outcome.
+func printFixReport(o fixOutcome) {
+	switch {
+	case o.result != nil:
+		fmt.Println(o.result.Report())
+	case len(o.suggested) > 0:
+		fmt.Printf("%s: %d finding(s) need a maintainer decision; nothing mechanical to fix\n", o.root, len(o.suggested))
+	default:
+		fmt.Printf("%s: version surface clean: nothing to fix\n", o.root)
+	}
+
+	for _, issue := range o.suggested {
 		fmt.Printf("SUGGEST  %-24s %s:%d\n         %s\n", issue.Rule, issue.File, issue.Line, issue.Suggestion)
 	}
+}
 
-	if len(res.Failures) > 0 {
-		return 1
+// exitFromOutcomes maps fix results onto the exit contract: hard errors
+// dominate, then failed repairs, then success.
+func exitFromOutcomes(outcomes []fixOutcome) int {
+	errored, failed := false, false
+
+	for _, o := range outcomes {
+		if o.err != nil {
+			errored = true
+
+			continue
+		}
+
+		if o.result != nil && len(o.result.Failures) > 0 {
+			failed = true
+		}
 	}
-	return 0
+
+	switch {
+	case errored:
+		return exitError
+	case failed:
+		return exitFindings
+	default:
+		return exitOK
+	}
+}
+
+func cmdWhoForces(args []string) int {
+	fs := flag.NewFlagSet("who-forces", flag.ContinueOnError)
+	asJSON := fs.Bool("json", false, "emit machine-readable JSON")
+
+	if err := fs.Parse(args); err != nil {
+		return exitError
+	}
+
+	roots := rootsFrom(fs.Args())
+
+	results := make([]floorsResult, len(roots))
+	sem := make(chan struct{}, workersFor(len(roots)))
+
+	var wg sync.WaitGroup
+
+	for i, root := range roots {
+		wg.Add(1)
+
+		go func() {
+			defer wg.Done()
+
+			sem <- struct{}{}
+
+			defer func() { <-sem }()
+
+			rows, err := fix.AnalyzeFloors(context.Background(), root, nil)
+			results[i] = floorsResult{root: root, rows: rows, err: err}
+		}()
+	}
+
+	wg.Wait()
+
+	slices.SortFunc(results, func(a, b floorsResult) int {
+		return strings.Compare(a.root, b.root)
+	})
+
+	if *asJSON {
+		return emitFloorsJSON(results)
+	}
+
+	printFloorsReports(results)
+
+	return exitFromFloors(results)
+}
+
+// floorsResult pairs one root with its dependency-floor matrix or failure.
+type floorsResult struct {
+	root string
+	rows []fix.ModuleFloors
+	err  error
+}
+
+// printFloorsReports renders every repository's floor matrix for humans.
+func printFloorsReports(results []floorsResult) {
+	for _, r := range results {
+		if r.err != nil {
+			fmt.Fprintf(os.Stderr, "who-forces: %s: %v\n", r.root, r.err)
+
+			continue
+		}
+
+		if len(results) > 1 {
+			fmt.Printf("== %s ==\n", r.root)
+		}
+
+		printFloors(r.rows)
+	}
+}
+
+// printFloors renders one repository's floor matrix rows.
+func printFloors(rows []fix.ModuleFloors) {
+	for _, row := range rows {
+		fmt.Printf("%s  %s\n", row.Path, row.Module)
+
+		if row.Error != "" {
+			fmt.Printf("  analysis failed: %s\n", row.Error)
+
+			continue
+		}
+
+		fmt.Printf("  directive: %s   max dep floor: %s\n", goVersionOrNone(row.Directive), goVersionOrNone(row.MaxDepFloor))
+
+		if !row.Poisoned {
+			fmt.Println("  clean: no dependency forces a higher floor")
+
+			continue
+		}
+
+		fmt.Printf("  POISONED: tidy re-raises the directive to %s, forced by:\n", goVersionOrNone(row.MaxDepFloor))
+
+		for _, poisoner := range row.Poisoners {
+			fmt.Printf("    %s\n", poisoner)
+		}
+	}
+}
+
+// goVersionOrNone prefixes a bare version with "go", or reports none.
+func goVersionOrNone(v string) string {
+	if v == "" {
+		return "(none)"
+	}
+
+	return "go " + v
+}
+
+// exitFromFloors maps floor matrices onto the exit contract: hard errors —
+// including a module whose graph could not be listed — dominate, then
+// poisoned directives, then clean.
+func exitFromFloors(results []floorsResult) int {
+	errored, poisoned := false, false
+
+	for _, r := range results {
+		if r.err != nil {
+			errored = true
+
+			continue
+		}
+
+		for _, row := range r.rows {
+			switch {
+			case row.Error != "":
+				errored = true
+			case row.Poisoned:
+				poisoned = true
+			}
+		}
+	}
+
+	switch {
+	case errored:
+		return exitError
+	case poisoned:
+		return exitFindings
+	default:
+		return exitOK
+	}
 }

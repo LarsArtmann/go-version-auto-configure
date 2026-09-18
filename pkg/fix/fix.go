@@ -105,27 +105,38 @@ func SelfCheck() error {
 }
 
 // EditRunner returns the production runner: `go <args…>` executed in dir.
-// Module edits run with GOWORK=off so a workspace file cannot redirect the
-// edit to a different module; workspace edits need the opposite — they edit
-// the go.work next to dir and GOWORK=off makes `go work edit` fail with
-// "no go.work file found".
+// Module edits and module-graph listings run with GOWORK=off so a workspace
+// file cannot redirect them to a different module; workspace edits need the
+// opposite — they edit the go.work next to dir and GOWORK=off makes
+// `go work edit` fail with "no go.work file found".
 func EditRunner() GoCommandRunner {
 	return func(ctx context.Context, dir string, args ...string) (string, error) {
 		goBin, err := exec.LookPath("go")
 		if err != nil {
 			return "", fmt.Errorf("find go binary: %w", err)
 		}
+
 		cmd := exec.CommandContext(ctx, goBin, args...)
 		cmd.Dir = dir
-		if len(args) > 0 && args[0] == "mod" {
+
+		if moduleScoped(args) {
 			cmd.Env = append(os.Environ(), "GOWORK=off")
 		}
+
 		out, err := cmd.CombinedOutput()
 		if err != nil {
 			return string(out), fmt.Errorf("go %s: %s: %w", strings.Join(args, " "), strings.TrimSpace(string(out)), err)
 		}
+
 		return string(out), nil
 	}
+}
+
+// moduleScoped reports whether a go invocation must ignore any enclosing
+// workspace: module edits and module listings resolve the module under dir,
+// never the workspace above it.
+func moduleScoped(args []string) bool {
+	return len(args) > 0 && (args[0] == "mod" || args[0] == "list")
 }
 
 // Apply executes every mechanical fix under root.

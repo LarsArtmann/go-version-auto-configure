@@ -11,26 +11,27 @@ import (
 )
 
 // ModuleFloors is one module's dependency-floor matrix row: the floor the
-// dependencies collectively force, and which of them carry it.
+// dependencies collectively force, and which of them carry it. The json
+// tags are the stable machine contract for the who-forces --json output.
 type ModuleFloors struct {
 	// Path is the go.mod path relative to the repository root.
-	Path string
+	Path string `json:"path"`
 	// Module is the module path declared in the go.mod.
-	Module string
+	Module string `json:"module"`
 	// Directive is the declared `go` directive ("" when none).
-	Directive string
+	Directive string `json:"directive,omitempty"`
 	// MaxDepFloor is the highest `go` floor any dependency declares
 	// ("" when no dependency declares one).
-	MaxDepFloor string
+	MaxDepFloor string `json:"max_dep_floor,omitempty"`
 	// Poisoners names the dependencies carrying MaxDepFloor when that floor
 	// exceeds the directive (Poisoned); empty otherwise.
-	Poisoners []string
+	Poisoners []string `json:"poisoners,omitempty"`
 	// Poisoned reports whether `go mod tidy` would re-raise the directive:
 	// the dependency floor exceeds the declared directive.
-	Poisoned bool
+	Poisoned bool `json:"poisoned"`
 	// Error is non-empty when the module's dependency graph could not be
 	// listed; the other fields except Path and Module are unreliable then.
-	Error string
+	Error string `json:"error,omitempty"`
 }
 
 // AnalyzeFloors resolves, for every go.mod under root, the highest `go`
