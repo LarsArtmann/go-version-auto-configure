@@ -41,7 +41,8 @@ func TestDiscoverAndAnalyze_PatchFormAcrossModules(t *testing.T) {
 		"sub/api/go.mod":              "module example.com/sub/api\n\ngo 1.26\n",
 		"vendor/example.com/x/go.mod": "module x\n\ngo 1.21\n",
 		"go.work":                     "go 1.26.5\n\nuse .\n\tuse ./sub/api\n",
-		".github/workflows/ci.yml":    "jobs:\n  lint:\n    steps:\n      - uses: actions/setup-go@v5\n        with:\n          go-version: 1.26.7\n",
+		".github/workflows/ci.yml": "jobs:\n  lint:\n    steps:\n" +
+			"      - uses: actions/setup-go@v5\n        with:\n          go-version: 1.26.7\n",
 	})
 
 	s, discoverIssues, err := Discover(root)

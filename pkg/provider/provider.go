@@ -59,7 +59,7 @@ func mustProvider() toolsdk.Spec {
 func analyze(ctx context.Context) ([]autoconfigure.ConfigIssue, error) {
 	root := workingDir(ctx)
 
-	s, discoverIssues, err := surface.Discover(root)
+	surf, discoverIssues, err := surface.Discover(root)
 	if err != nil {
 		return nil, fmt.Errorf("%s analyze: %w", toolName, err)
 	}
@@ -75,7 +75,7 @@ func analyze(ctx context.Context) ([]autoconfigure.ConfigIssue, error) {
 		})
 	}
 
-	for _, issue := range surface.Analyze(s) {
+	for _, issue := range surface.Analyze(surf) {
 		issues = append(issues, toConfigIssue(issue))
 	}
 

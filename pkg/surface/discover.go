@@ -49,13 +49,13 @@ func Discover(root string) (*Surface, []Issue, error) {
 
 	var issues []Issue
 
-	walkErr := filepath.WalkDir(absRoot, func(path string, d fs.DirEntry, err error) error {
+	walkErr := filepath.WalkDir(absRoot, func(path string, entry fs.DirEntry, err error) error {
 		if err != nil {
 			return err
 		}
 
-		if d.IsDir() {
-			if skippedDirs[d.Name()] {
+		if entry.IsDir() {
+			if skippedDirs[entry.Name()] {
 				return filepath.SkipDir
 			}
 
@@ -67,7 +67,7 @@ func Discover(root string) (*Surface, []Issue, error) {
 			return relErr
 		}
 
-		issues = append(issues, surf.absorbFile(path, rel, d.Name())...)
+		issues = append(issues, surf.absorbFile(path, rel, entry.Name())...)
 
 		return nil
 	})

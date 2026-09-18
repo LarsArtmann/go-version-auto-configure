@@ -137,10 +137,12 @@ func TestApply_DepForcedFloorIsNamed(t *testing.T) {
 	)
 
 	run := &scriptRunner{
-		dir:     root,
-		onEdit:  func(dir string) { rewriteGoMod(dir, "1.26") },
-		tidy:    func(dir string) { rewriteGoMod(dir, "1.26.7") }, // tidy re-poisons
-		listOut: "example.com/m (devel) 1.26.7\ngithub.com/larsartmann/go-finding v1.10.0 1.26.7\ngithub.com/x/other v1.0.0 1.25\n",
+		dir:    root,
+		onEdit: func(dir string) { rewriteGoMod(dir, "1.26") },
+		tidy:   func(dir string) { rewriteGoMod(dir, "1.26.7") }, // tidy re-poisons
+		listOut: "example.com/m (devel) 1.26.7\n" +
+			"github.com/larsartmann/go-finding v1.10.0 1.26.7\n" +
+			"github.com/x/other v1.0.0 1.25\n",
 	}
 
 	res, err := Apply(

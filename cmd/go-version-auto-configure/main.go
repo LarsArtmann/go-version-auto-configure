@@ -86,14 +86,14 @@ type report struct {
 
 // analyzeAt discovers and analyzes one repository root.
 func analyzeAt(root string) (*report, error) {
-	s, discovery, err := surface.Discover(root)
+	surf, discovery, err := surface.Discover(root)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("analyze %q: %w", root, err)
 	}
 
 	r := &report{discovery: discovery}
 
-	for _, issue := range surface.Analyze(s) {
+	for _, issue := range surface.Analyze(surf) {
 		if issue.Fix != nil {
 			r.mechanical = append(r.mechanical, issue)
 
@@ -122,7 +122,7 @@ type repoAnalysis struct {
 // analyzeAll analyzes every root with a bounded worker pool and returns the
 // results sorted by root for deterministic output.
 func analyzeAll(roots []string) []repoAnalysis {
-	analyses := make([]repoAnalysis, len(roots))
+	analyses := make([]repoAnalysis, len(roots)) //nolint:makezero // pre-sized for index assignment
 	sem := make(chan struct{}, workersFor(len(roots)))
 
 	var wg sync.WaitGroup
@@ -337,7 +337,7 @@ func cmdFix(args []string, out io.Writer) int {
 // that keeps fleet sweeps linear in the drifted-repo count, not the repo
 // count.
 func applyAll(ctx context.Context, analyses []repoAnalysis, opts fix.Options) []fixOutcome {
-	outcomes := make([]fixOutcome, len(analyses))
+	outcomes := make([]fixOutcome, len(analyses)) //nolint:makezero // pre-sized for index assignment
 	sem := make(chan struct{}, workersFor(len(analyses)))
 
 	var wg sync.WaitGroup
@@ -470,7 +470,7 @@ func cmdWhoForces(args []string, out io.Writer) int {
 
 	roots := rootsFrom(fs.Args())
 
-	results := make([]floorsResult, len(roots))
+	results := make([]floorsResult, len(roots)) //nolint:makezero // pre-sized for index assignment
 	sem := make(chan struct{}, workersFor(len(roots)))
 
 	var wg sync.WaitGroup

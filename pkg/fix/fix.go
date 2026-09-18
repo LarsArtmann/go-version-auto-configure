@@ -290,7 +290,7 @@ func ensureTidyStable(ctx context.Context, dir string, fx surface.Fix, run GoCom
 func resolvePoisoners(ctx context.Context, dir string, run GoCommandRunner, floor string) ([]string, error) {
 	out, err := run(ctx, dir, "list", "-m", "-f", "{{.Path}} {{.Version}} {{.GoVersion}}", "all")
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("list dependency floors: %w", err)
 	}
 
 	var poisoners []string
@@ -331,7 +331,8 @@ func (e *DepForcedError) Error() string {
 	}
 
 	return fmt.Sprintf(
-		"go mod tidy re-raises the directive to go %s: dependency floor forced by %s — fix supply-side by re-tagging with a major.minor-only go directive, then bump",
+		"go mod tidy re-raises the directive to go %s: dependency floor forced by %s — "+
+			"fix supply-side by re-tagging with a major.minor-only go directive, then bump",
 		e.Floor,
 		strings.Join(e.Poisoners, ", "),
 	)
@@ -344,7 +345,10 @@ func currentDirective(abs string, kind surface.DirectiveKind) (string, error) {
 		return "", fmt.Errorf("read %s: %w", abs, err)
 	}
 
-	version, _, err := surface.ParseDirective(kind, data)
+	parsed, _, err := surface.ParseDirective(kind, data)
+	if err != nil {
+		return "", fmt.Errorf("parse directive: %w", err)
+	}
 
-	return version, err
+	return parsed, nil
 }
