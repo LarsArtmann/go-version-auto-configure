@@ -42,16 +42,19 @@ type Result struct {
 type DepForced struct {
 	Fix surface.Fix
 	// Floor is the directive value tidy enforced (the highest dep floor).
-	Floor string
+	Floor surface.GoVersion
 	// Poisoners names the dependencies carrying that floor; nil when they
 	// could not be resolved.
 	Poisoners []string
 }
 
+// FailureCause explains why one fix could not be applied or verified.
+type FailureCause string
+
 // Failure is one fix that could not be applied or verified.
 type Failure struct {
 	Fix   surface.Fix
-	Cause string
+	Cause FailureCause
 }
 
 // Report renders the human-readable run summary.
@@ -198,7 +201,7 @@ func Apply(ctx context.Context, root string, fixes []surface.Fix, opts Options, 
 				continue
 			}
 
-			res.Failures = append(res.Failures, Failure{Fix: fx, Cause: err.Error()})
+			res.Failures = append(res.Failures, Failure{Fix: fx, Cause: FailureCause(err.Error())})
 
 			continue
 		}
@@ -220,11 +223,11 @@ func applyOne(ctx context.Context, root string, fx surface.Fix, run GoCommandRun
 
 	switch fx.Kind {
 	case surface.KindGoMod:
-		if _, err := run(ctx, dir, "mod", "edit", "-go="+fx.To); err != nil {
+		if _, err := run(ctx, dir, "mod", "edit", "-go="+string(fx.To)); err != nil {
 			return err
 		}
 	case surface.KindGoWork:
-		if _, err := run(ctx, dir, "work", "edit", "-go="+fx.To); err != nil {
+		if _, err := run(ctx, dir, "work", "edit", "-go="+string(fx.To)); err != nil {
 			return err
 		}
 	default:
@@ -268,7 +271,7 @@ func ensureTidyStable(ctx context.Context, dir string, fx surface.Fix, run GoCom
 		return nil
 	}
 
-	poisoners, err := resolvePoisoners(ctx, dir, run, got)
+	poisoners, err := resolvePoisoners(ctx, dir, run, string(got))
 	if err != nil {
 		return &DepForcedError{
 			Fix:       fx,
@@ -316,7 +319,7 @@ func resolvePoisoners(ctx context.Context, dir string, run GoCommandRunner, floo
 // floor (nil when resolution failed; Floor still names the forced value).
 type DepForcedError struct {
 	Fix       surface.Fix
-	Floor     string
+	Floor     surface.GoVersion
 	Poisoners []string
 	Cause     string
 }
@@ -339,7 +342,7 @@ func (e *DepForcedError) Error() string {
 }
 
 // currentDirective re-parses the file and returns the current `go` directive.
-func currentDirective(abs string, kind surface.DirectiveKind) (string, error) {
+func currentDirective(abs string, kind surface.DirectiveKind) (surface.GoVersion, error) {
 	data, err := os.ReadFile(abs)
 	if err != nil {
 		return "", fmt.Errorf("read %s: %w", abs, err)

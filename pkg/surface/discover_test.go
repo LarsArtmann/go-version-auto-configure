@@ -84,7 +84,7 @@ func TestDiscoverAndAnalyze_PatchFormAcrossModules(t *testing.T) {
 
 	require.NotNil(t, goModFix)
 	assert.Equal(t, "go.mod", goModFix.File)
-	assert.Equal(t, "1.26.7", goModFix.From)
+	assert.Equal(t, GoVersion("1.26.7"), goModFix.From)
 	assert.Equal(t, "1.26", goModFix.To)
 }
 
@@ -216,7 +216,7 @@ func TestAnalyze_GoWorkTargetRespectsWorkspaceFloor(t *testing.T) {
 	}
 
 	require.NotNil(t, workFix)
-	assert.Equal(t, "1.26.7", workFix.From)
+	assert.Equal(t, GoVersion("1.26.7"), workFix.From)
 	assert.Equal(t, "1.27", workFix.To, "go.work must cover the workspace floor")
 }
 

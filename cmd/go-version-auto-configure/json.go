@@ -102,7 +102,7 @@ func toFixJSON(f *surface.Fix) *jsonFix {
 		return nil
 	}
 
-	return &jsonFix{File: f.File, Kind: string(f.Kind), From: f.From, To: f.To, Line: f.Line}
+	return &jsonFix{File: f.File, Kind: string(f.Kind), From: string(f.From), To: string(f.To), Line: f.Line}
 }
 
 func toIssuesJSON(issues []surface.Issue) []jsonIssue {
@@ -110,7 +110,7 @@ func toIssuesJSON(issues []surface.Issue) []jsonIssue {
 
 	for _, issue := range issues {
 		out = append(out, jsonIssue{
-			Rule:       issue.Rule,
+			Rule:       string(issue.Rule),
 			Message:    issue.Message,
 			File:       issue.File,
 			Line:       issue.Line,
@@ -126,7 +126,7 @@ func toFixesJSON(fixes []surface.Fix) []jsonFix {
 	out := make([]jsonFix, 0, len(fixes))
 
 	for _, f := range fixes {
-		out = append(out, jsonFix{File: f.File, Kind: string(f.Kind), From: f.From, To: f.To, Line: f.Line})
+		out = append(out, jsonFix{File: f.File, Kind: string(f.Kind), From: string(f.From), To: string(f.To), Line: f.Line})
 	}
 
 	return out
@@ -201,13 +201,13 @@ func toJSONFixRepo(outcome fixOutcome) jsonFixRepo {
 	for _, d := range outcome.result.DepForced {
 		repo.DepForced = append(repo.DepForced, jsonDepForced{
 			Fix:       *toFixJSON(&d.Fix),
-			Floor:     d.Floor,
+			Floor:     string(d.Floor),
 			Poisoners: d.Poisoners,
 		})
 	}
 
 	for _, f := range outcome.result.Failures {
-		repo.Failures = append(repo.Failures, jsonFailure{Fix: *toFixJSON(&f.Fix), Cause: f.Cause})
+		repo.Failures = append(repo.Failures, jsonFailure{Fix: *toFixJSON(&f.Fix), Cause: string(f.Cause)})
 	}
 
 	return repo

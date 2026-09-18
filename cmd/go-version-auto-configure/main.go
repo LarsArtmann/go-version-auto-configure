@@ -539,8 +539,8 @@ func printFloors(out io.Writer, rows []fix.ModuleFloors) {
 		fmt.Fprintf(
 			out,
 			"  directive: %s   max dep floor: %s\n",
-			goVersionOrNone(row.Directive),
-			goVersionOrNone(row.MaxDepFloor),
+			goVersionOrNone(string(row.Directive)),
+			goVersionOrNone(string(row.MaxDepFloor)),
 		)
 
 		if !row.Poisoned {
@@ -552,7 +552,7 @@ func printFloors(out io.Writer, rows []fix.ModuleFloors) {
 		fmt.Fprintf(
 			out,
 			"  POISONED: tidy re-raises the directive to %s, forced by:\n",
-			goVersionOrNone(row.MaxDepFloor),
+			goVersionOrNone(string(row.MaxDepFloor)),
 		)
 
 		for _, poisoner := range row.Poisoners {

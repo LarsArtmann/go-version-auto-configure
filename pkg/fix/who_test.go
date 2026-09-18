@@ -50,8 +50,8 @@ func TestAnalyzeFloors_NamesPoisoners(t *testing.T) {
 	row := rows[0]
 	assert.Equal(t, "go.mod", row.Path)
 	assert.Equal(t, "example.com/m", row.Module)
-	assert.Equal(t, "1.26", row.Directive)
-	assert.Equal(t, "1.26.7", row.MaxDepFloor)
+	assert.Equal(t, surface.GoVersion("1.26"), row.Directive)
+	assert.Equal(t, surface.GoVersion("1.26.7"), row.MaxDepFloor)
 	assert.Equal(t, []string{"github.com/larsartmann/go-finding@v1.12.0"}, row.Poisoners)
 	assert.True(t, row.Poisoned, "tidy re-raises go 1.26 to the 1.26.7 dependency floor")
 	assert.Empty(t, row.Error)
@@ -72,7 +72,7 @@ func TestAnalyzeFloors_DirectiveAboveFloorsIsClean(t *testing.T) {
 	require.NoError(t, err)
 	require.Len(t, rows, 1)
 
-	assert.Equal(t, "1.26.7", rows[0].MaxDepFloor)
+	assert.Equal(t, surface.GoVersion("1.26.7"), rows[0].MaxDepFloor)
 	assert.False(t, rows[0].Poisoned, "the 1.26.7 floor is below the 1.27 directive")
 	assert.Empty(t, rows[0].Poisoners, "only floor-carrying modules are poisoners")
 }

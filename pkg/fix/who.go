@@ -17,12 +17,12 @@ type ModuleFloors struct {
 	// Path is the go.mod path relative to the repository root.
 	Path string `json:"path"`
 	// Module is the module path declared in the go.mod.
-	Module string `json:"module"`
+	Module surface.ModulePath `json:"module"`
 	// Directive is the declared `go` directive ("" when none).
-	Directive string `json:"directive,omitempty"`
+	Directive surface.GoVersion `json:"directive,omitempty"`
 	// MaxDepFloor is the highest `go` floor any dependency declares
 	// ("" when no dependency declares one).
-	MaxDepFloor string `json:"maxDepFloor,omitempty"`
+	MaxDepFloor surface.GoVersion `json:"maxDepFloor,omitempty"`
 	// Poisoners names the dependencies carrying MaxDepFloor when that floor
 	// exceeds the directive (Poisoned); empty otherwise.
 	Poisoners []string `json:"poisoners,omitempty"`
@@ -31,7 +31,7 @@ type ModuleFloors struct {
 	Poisoned bool `json:"poisoned"`
 	// Error is non-empty when the module's dependency graph could not be
 	// listed; the other fields except Path and Module are unreliable then.
-	Error string `json:"error,omitempty"`
+	Error FailureCause `json:"error,omitempty"`
 }
 
 // AnalyzeFloors resolves, for every go.mod under root, the highest `go`
@@ -71,7 +71,7 @@ func floorsForModule(ctx context.Context, root string, m surface.ModuleDirective
 
 	out, err := run(ctx, dir, "list", "-m", "-f", "{{.GoVersion}}\t{{.Path}}\t{{.Version}}", "all")
 	if err != nil {
-		row.Error = err.Error()
+		row.Error = FailureCause(err.Error())
 
 		return row
 	}
@@ -79,7 +79,7 @@ func floorsForModule(ctx context.Context, root string, m surface.ModuleDirective
 	floors := map[string][]string{}
 
 	for line := range strings.SplitSeq(strings.TrimSuffix(out, "\n"), "\n") {
-		floor, _, entry, ok := parseFloorLine(line, m.Module)
+		floor, _, entry, ok := parseFloorLine(line, string(m.Module))
 
 		if !ok {
 			continue
@@ -87,15 +87,15 @@ func floorsForModule(ctx context.Context, root string, m surface.ModuleDirective
 
 		floors[floor] = append(floors[floor], entry)
 
-		if row.MaxDepFloor == "" || surface.GreaterVersion(floor, row.MaxDepFloor) {
-			row.MaxDepFloor = floor
+		if row.MaxDepFloor == "" || surface.GreaterVersion(floor, string(row.MaxDepFloor)) {
+			row.MaxDepFloor = surface.GoVersion(floor)
 		}
 	}
 
-	row.Poisoned = surface.GreaterVersion(row.MaxDepFloor, row.Directive)
+	row.Poisoned = surface.GreaterVersion(string(row.MaxDepFloor), string(row.Directive))
 
 	if row.Poisoned {
-		row.Poisoners = floors[row.MaxDepFloor]
+		row.Poisoners = floors[string(row.MaxDepFloor)]
 		slices.Sort(row.Poisoners)
 	}
 
