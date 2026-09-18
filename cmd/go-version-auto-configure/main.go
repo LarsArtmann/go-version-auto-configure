@@ -9,8 +9,6 @@ package main
 
 import (
 	"context"
-	"encoding/json"
-	"encoding/json/jsontext"
 	"flag"
 	"fmt"
 	"os"
@@ -275,16 +273,26 @@ func summarize(analyses []repoAnalysis) (clean, findings, failed int) {
 // exitFromAnalyses maps results onto the exit contract: hard errors
 // dominate, then findings, then clean.
 func exitFromAnalyses(analyses []repoAnalysis) int {
-	clean, findings, failed := summarize(analyses)
+	findings, failed := false, false
+
+	for _, a := range analyses {
+		if a.err != nil {
+			failed = true
+
+			continue
+		}
+
+		if len(a.report.all()) > 0 {
+			findings = true
+		}
+	}
 
 	switch {
-	case failed > 0:
+	case failed:
 		return exitError
-	case findings > 0:
+	case findings:
 		return exitFindings
 	default:
-		_ = clean
-
 		return exitOK
 	}
 }
