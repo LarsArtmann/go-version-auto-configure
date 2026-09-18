@@ -20,15 +20,17 @@ Worse: the drift **propagates**. `go mod tidy` copies a dependency's `go` floor 
 
 ## Install
 
-The module is not yet tagged (TODO_LIST.md T3), so build from source:
+```bash
+go get github.com/larsartmann/go-version-auto-configure@v0.1.0
+```
+
+Or build from source:
 
 ```bash
 git clone https://github.com/larsartmann/go-version-auto-configure
 cd go-version-auto-configure
 GOEXPERIMENT=jsonv2 go build -o go-version-auto-configure ./cmd/go-version-auto-configure
 ```
-
-Once the first version is tagged, Go consumers can instead `go get github.com/larsartmann/go-version-auto-configure`.
 
 ## Usage
 
