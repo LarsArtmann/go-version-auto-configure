@@ -40,10 +40,11 @@ func writeFile(t *testing.T, root, rel, content string) {
 	require.NoError(t, os.WriteFile(path, []byte(content), 0o644))
 }
 
-func readFile(t *testing.T, root, rel string) string {
+// readGoMod returns a repo's go.mod content.
+func readGoMod(t *testing.T, root string) string {
 	t.Helper()
 
-	data, err := os.ReadFile(filepath.Join(root, rel))
+	data, err := os.ReadFile(filepath.Join(root, "go.mod"))
 	require.NoError(t, err)
 
 	return string(data)
@@ -66,7 +67,7 @@ func TestRun_CheckFindsDriftAndFixClears(t *testing.T) {
 
 	require.Equal(t, exitFindings, run([]string{"check", root}, &out))
 	require.Equal(t, exitOK, run([]string{"fix", root}, &out))
-	assert.Contains(t, readFile(t, root, "go.mod"), "go 1.26\n", "fix normalizes the directive")
+	assert.Contains(t, readGoMod(t, root), "go 1.26\n", "fix normalizes the directive")
 	assert.Equal(t, exitOK, run([]string{"check", root}, &out), "check is clean after fix")
 }
 
@@ -78,7 +79,7 @@ func TestRun_FixDryRunLeavesFiles(t *testing.T) {
 	var out strings.Builder
 
 	require.Equal(t, exitOK, run([]string{"fix", "--dry-run", root}, &out))
-	assert.Contains(t, readFile(t, root, "go.mod"), "go 1.26.7\n", "dry-run must not touch the file")
+	assert.Contains(t, readGoMod(t, root), "go 1.26.7\n", "dry-run must not touch the file")
 }
 
 // checkDoc mirrors the check --json contract the tests rely on.
@@ -183,15 +184,15 @@ func TestRun_FixMultiRootSkipsCleanRepos(t *testing.T) {
 	t.Parallel()
 
 	drifted, clean := seedRepo(t), seedCleanRepo(t)
-	before := readFile(t, clean, "go.mod")
+	before := readGoMod(t, clean)
 
 	var out strings.Builder
 
 	code := run([]string{"fix", drifted, clean}, &out)
 	require.Equal(t, exitOK, code)
 
-	assert.Contains(t, readFile(t, drifted, "go.mod"), "go 1.26\n", "drifted repo is normalized")
-	assert.Equal(t, before, readFile(t, clean, "go.mod"), "clean repo is not touched (fast path)")
+	assert.Contains(t, readGoMod(t, drifted), "go 1.26\n", "drifted repo is normalized")
+	assert.Equal(t, before, readGoMod(t, clean), "clean repo is not touched (fast path)")
 }
 
 func TestRun_FixDryRunJSONHoldsBack(t *testing.T) {
@@ -209,7 +210,7 @@ func TestRun_FixDryRunJSONHoldsBack(t *testing.T) {
 	require.Len(t, doc.Repos[0].HeldBack, 1)
 	assert.Equal(t, "1.26.7", doc.Repos[0].HeldBack[0].From)
 	assert.Empty(t, doc.Repos[0].Applied)
-	assert.Contains(t, readFile(t, root, "go.mod"), "go 1.26.7\n")
+	assert.Contains(t, readGoMod(t, root), "go 1.26.7\n")
 }
 
 func TestRun_WhoForcesCleanModule(t *testing.T) {

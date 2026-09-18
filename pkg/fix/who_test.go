@@ -12,11 +12,14 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// seedGoMod writes one go.mod with the given module path and directive.
-func seedGoMod(t *testing.T, dir, module, directive string) {
+// errFakeList is the canned go list failure used in runner fakes.
+var errFakeList = errors.New("go: exit 1: missing go.sum entry")
+
+// seedGoMod writes one go.mod for example.com/m with the given directive.
+func seedGoMod(t *testing.T, dir, directive string) {
 	t.Helper()
 
-	content := "module " + module + "\n\ngo " + directive + "\n"
+	content := "module example.com/m\n\ngo " + directive + "\n"
 	require.NoError(t, os.WriteFile(filepath.Join(dir, "go.mod"), []byte(content), 0o644))
 }
 
@@ -32,7 +35,7 @@ func TestAnalyzeFloors_NamesPoisoners(t *testing.T) {
 	t.Parallel()
 
 	root := t.TempDir()
-	seedGoMod(t, root, "example.com/m", "1.26")
+	seedGoMod(t, root, "1.26")
 
 	run := fakeList(strings.Join([]string{
 		"1.26\texample.com/m\t(devel)",
@@ -58,7 +61,7 @@ func TestAnalyzeFloors_DirectiveAboveFloorsIsClean(t *testing.T) {
 	t.Parallel()
 
 	root := t.TempDir()
-	seedGoMod(t, root, "example.com/m", "1.27")
+	seedGoMod(t, root, "1.27")
 
 	run := fakeList(strings.Join([]string{
 		"1.27\texample.com/m\t(devel)",
@@ -78,7 +81,7 @@ func TestAnalyzeFloors_NoDependencies(t *testing.T) {
 	t.Parallel()
 
 	root := t.TempDir()
-	seedGoMod(t, root, "example.com/m", "1.26")
+	seedGoMod(t, root, "1.26")
 
 	run := fakeList("1.26\texample.com/m\t(devel)\n")
 
@@ -95,7 +98,7 @@ func TestAnalyzeFloors_SkipsWorkspaceAndMainModule(t *testing.T) {
 	t.Parallel()
 
 	root := t.TempDir()
-	seedGoMod(t, root, "example.com/m", "1.26")
+	seedGoMod(t, root, "1.26")
 	require.NoError(t, os.WriteFile(filepath.Join(root, "go.work"), []byte("go 1.26\n\nuse .\n"), 0o644))
 
 	// The main-module record and a local (devel) replacement carry no floor.
@@ -114,10 +117,10 @@ func TestAnalyzeFloors_ListFailureRecordedPerModule(t *testing.T) {
 	t.Parallel()
 
 	root := t.TempDir()
-	seedGoMod(t, root, "example.com/m", "1.26")
+	seedGoMod(t, root, "1.26")
 
 	run := fakeRunner(func(_ string, _ []string) (string, error) {
-		return "", errors.New("go: exit 1: missing go.sum entry")
+		return "", errFakeList
 	})
 
 	rows, err := AnalyzeFloors(context.Background(), root, run)

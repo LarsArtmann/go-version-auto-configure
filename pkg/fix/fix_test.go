@@ -232,10 +232,13 @@ func TestApply_SubdirectoryModuleRunsInItsDirectory(t *testing.T) {
 	assert.Equal(t, filepath.Join(root, "sub", "api"), gotDir)
 }
 
+// errFakeGo is the canned go failure used in runner fakes.
+var errFakeGo = errors.New("go: exit 1")
+
 func TestApply_RunnerErrorBecomesFailure(t *testing.T) {
 	t.Parallel()
 
-	run := fakeRunner(func(_ string, _ []string) (string, error) { return "", errors.New("go: exit 1") })
+	run := fakeRunner(func(_ string, _ []string) (string, error) { return "", errFakeGo })
 
 	res, err := Apply(
 		context.Background(),

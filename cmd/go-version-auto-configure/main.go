@@ -170,11 +170,7 @@ func rootsFrom(args []string) []string {
 
 // workersFor bounds the pool by both the CPU count and the work size.
 func workersFor(work int) int {
-	n := min(runtime.GOMAXPROCS(0), work)
-
-	if n < 1 {
-		n = 1
-	}
+	n := max(min(runtime.GOMAXPROCS(0), work), 1)
 
 	return n
 }
@@ -264,6 +260,7 @@ func printCheckReport(out io.Writer, a repoAnalysis) {
 // clean, findings, failed.
 func summarize(analyses []repoAnalysis) (int, int, int) {
 	var clean, findings, failed int
+
 	for _, a := range analyses {
 		switch {
 		case a.err != nil:
@@ -345,7 +342,6 @@ func applyAll(ctx context.Context, analyses []repoAnalysis, opts fix.Options) []
 
 	var wg sync.WaitGroup
 
-	//nolint:makezero // pre-sized for index assignment in the worker pool
 	for i, a := range analyses {
 		wg.Go(func() {
 			sem <- struct{}{}
@@ -479,7 +475,6 @@ func cmdWhoForces(args []string, out io.Writer) int {
 
 	var wg sync.WaitGroup
 
-	//nolint:makezero // pre-sized for index assignment in the worker pool
 	for i, root := range roots {
 		wg.Go(func() {
 			sem <- struct{}{}
