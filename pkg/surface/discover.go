@@ -215,7 +215,7 @@ func scanNixPins(path, rel string) []Pin {
 
 			pins = append(pins, Pin{
 				Path:    rel,
-				Version: parsed.String(),
+				Version: GoVersion(parsed.String()),
 				Line:    lineNo + 1,
 				Source:  PinNixFlake,
 			})
@@ -256,8 +256,8 @@ func scanCIPins(path, rel string) []Pin {
 
 		pins = append(pins, Pin{
 			Path:    rel,
-			Version: parsed.String(),
-			Raw:     raw,
+			Version: GoVersion(parsed.String()),
+			Raw:     GoVersion(raw),
 			Line:    lineNo + 1,
 			Source:  PinCI,
 		})

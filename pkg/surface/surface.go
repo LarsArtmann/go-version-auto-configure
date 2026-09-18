@@ -10,41 +10,52 @@ package surface
 
 import "fmt"
 
-// Rule names reported by Analyze. Each maps 1:1 to a go-finding RuleName at
-// the provider boundary.
+// Rule identifies one policy violation kind reported by Analyze. Each maps
+// 1:1 to a go-finding RuleName at the provider boundary.
+type Rule string
+
+// GoVersion is a Go version as written on the version surface: "1.26",
+// "1.26.7", or the toolchain form "go1.26.7". A named type keeps
+// version-shaped strings from flowing into arbitrary text and back.
+type GoVersion string
+
+// ModulePath is a Go module path, e.g. "github.com/larsartmann/go-finding".
+type ModulePath string
+
+// Policy rules reported by Analyze.
 const (
 	// RuleGoDirectivePatchForm fires when a go.mod `go` directive carries a
 	// patch component (e.g. `go 1.26.7`). Fleet policy: major.minor only.
-	RuleGoDirectivePatchForm = "go-directive-patch-form"
+	RuleGoDirectivePatchForm Rule = "go-directive-patch-form"
 
 	// RuleWorkDirectivePatchForm fires when a go.work `go` directive carries
 	// a patch component.
-	RuleWorkDirectivePatchForm = "go-work-patch-form"
+	RuleWorkDirectivePatchForm Rule = "go-work-patch-form"
 
 	// RuleNixPinBelowFloor fires when the flake's nixpkgs Go pin is older
 	// than the newest module floor (e.g. flake pins go_1_26, a module
 	// declares go 1.27). Not auto-fixed: raising the pin is a flake +
 	// lockfile decision.
-	RuleNixPinBelowFloor = "nix-pin-below-floor"
+	RuleNixPinBelowFloor Rule = "nix-pin-below-floor"
 
 	// RuleCIPinBelowFloor fires when a CI `go-version:` pin is older than
 	// the newest module floor.
-	RuleCIPinBelowFloor = "ci-pin-below-floor"
+	RuleCIPinBelowFloor Rule = "ci-pin-below-floor"
 
 	// RuleCIPinPatchForm fires when a CI `go-version:` pin hardcodes a patch
 	// version (e.g. 1.26.7). CI should track the same major.minor the flake
 	// and go.mod floors use, so patch pins silently diverge from local
 	// toolchains as nixpkgs moves.
-	RuleCIPinPatchForm = "ci-pin-patch-form"
+	RuleCIPinPatchForm Rule = "ci-pin-patch-form"
 
 	// RuleGoModUnparseable fires when a discovered go.mod cannot be parsed.
-	RuleGoModUnparseable = "go-mod-unparseable"
+	RuleGoModUnparseable Rule = "go-mod-unparseable"
 
 	// RuleToolchainBelowDirective fires when a `toolchain` directive names a
 	// toolchain older than the same file's `go` directive: the go command
 	// ignores such a line, so it is dead weight (usually stale after the go
 	// directive was raised).
-	RuleToolchainBelowDirective = "toolchain-below-directive"
+	RuleToolchainBelowDirective Rule = "toolchain-below-directive"
 )
 
 // DirectiveKind distinguishes which file declares a Go version.
@@ -65,9 +76,9 @@ type ModuleDirective struct {
 	Kind DirectiveKind
 	// Module is the module path declared in the file; empty for go.work,
 	// which declares no module.
-	Module string
+	Module ModulePath
 	// Version is the declared version string, e.g. "1.26.7".
-	Version string
+	Version GoVersion
 	// Line is the 1-based line of the directive in the file.
 	Line int
 }
@@ -82,7 +93,7 @@ type ToolchainDirective struct {
 	// Kind is KindGoMod or KindGoWork.
 	Kind DirectiveKind
 	// Version is the toolchain as written, e.g. "go1.26.7".
-	Version string
+	Version GoVersion
 	// Line is the 1-based line of the directive in the file.
 	Line int
 }
@@ -95,11 +106,11 @@ type Pin struct {
 	// Version is the parsed major.minor string, e.g. "1.26". Range or
 	// expression pins (1.26.x, ${{ … }}, stable) are not recorded at all:
 	// they carry no comparable floor.
-	Version string
+	Version GoVersion
 	// Raw is the pin text as written in the file, preserving patch
 	// components and formatting for form rules. Equals Version when the
 	// source only ever states major.minor.
-	Raw string
+	Raw GoVersion
 	// Line is the 1-based line of the pin.
 	Line int
 	// Source records where the pin came from, for messages.
@@ -140,7 +151,7 @@ func (s *Surface) Floor() (majorMinor, bool) {
 	found := false
 
 	for _, m := range s.Modules {
-		parsed, err := parseMajorMinor(m.Version)
+		parsed, err := parseMajorMinor(string(m.Version))
 		if err != nil {
 			continue
 		}
@@ -166,7 +177,7 @@ func (s *Surface) toolchainFloor() (majorMinor, bool) {
 	found := false
 
 	for _, tc := range s.Toolchains {
-		parsed, err := parseMajorMinor(tc.Version)
+		parsed, err := parseMajorMinor(string(tc.Version))
 		if err != nil {
 			continue
 		}
@@ -187,7 +198,7 @@ func (s *Surface) toolchainFloor() (majorMinor, bool) {
 // Issue is one policy violation on the version surface.
 type Issue struct {
 	// Rule is one of the Rule* constants.
-	Rule string
+	Rule Rule
 	// Message describes the violation for the user.
 	Message string
 	// File is the path relative to the repository root.
@@ -208,9 +219,9 @@ type Fix struct {
 	// Kind is the file kind the fix applies to.
 	Kind DirectiveKind
 	// From is the current directive version, e.g. "1.26.7".
-	From string
+	From GoVersion
 	// To is the replacement version, e.g. "1.26".
-	To string
+	To GoVersion
 	// Line is the 1-based line of the directive.
 	Line int
 }

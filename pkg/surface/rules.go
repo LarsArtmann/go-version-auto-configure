@@ -46,11 +46,11 @@ func formIssues(s *Surface, workspaceFloor majorMinor, hasFloor bool) []Issue {
 	var issues []Issue
 
 	for _, m := range s.Modules {
-		if !hasPatch(m.Version) {
+		if !hasPatch(string(m.Version)) {
 			continue
 		}
 
-		parsed, err := parseMajorMinor(m.Version)
+		parsed, err := parseMajorMinor(string(m.Version))
 		if err != nil {
 			continue
 		}
@@ -75,7 +75,7 @@ func formIssues(s *Surface, workspaceFloor majorMinor, hasFloor bool) []Issue {
 				File: m.Path,
 				Kind: m.Kind,
 				From: m.Version,
-				To:   target.String(),
+				To:   GoVersion(target.String()),
 				Line: m.Line,
 			},
 		})
@@ -85,7 +85,7 @@ func formIssues(s *Surface, workspaceFloor majorMinor, hasFloor bool) []Issue {
 }
 
 // formRule names the patch-form rule for a directive kind.
-func formRule(kind DirectiveKind) string {
+func formRule(kind DirectiveKind) Rule {
 	if kind == KindGoWork {
 		return RuleWorkDirectivePatchForm
 	}
@@ -114,12 +114,12 @@ func staleToolchains(s *Surface) []Issue {
 			continue
 		}
 
-		toolParsed, err := parseMajorMinor(tc.Version)
+		toolParsed, err := parseMajorMinor(string(tc.Version))
 		if err != nil {
 			continue
 		}
 
-		goParsed, err := parseMajorMinor(goVersion)
+		goParsed, err := parseMajorMinor(string(goVersion))
 		if err != nil {
 			continue
 		}
@@ -142,7 +142,7 @@ func staleToolchains(s *Surface) []Issue {
 
 // staleToolchainMessage describes a toolchain directive the go command
 // ignores.
-func staleToolchainMessage(tc ToolchainDirective, goVersion string) string {
+func staleToolchainMessage(tc ToolchainDirective, goVersion GoVersion) string {
 	return fmt.Sprintf(
 		"%s pins toolchain %s below the same file's go %s: "+
 			"the go command ignores a toolchain older than the go directive, so the line is dead weight",
@@ -152,7 +152,7 @@ func staleToolchainMessage(tc ToolchainDirective, goVersion string) string {
 
 // goDirectiveIn returns the `go` directive version declared in the same
 // file as the given toolchain directive.
-func goDirectiveIn(s *Surface, tc ToolchainDirective) (string, bool) {
+func goDirectiveIn(s *Surface, tc ToolchainDirective) (GoVersion, bool) {
 	for _, m := range s.Modules {
 		if m.Path == tc.Path {
 			return m.Version, true
@@ -189,7 +189,7 @@ func pinAlignment(s *Surface) (majorMinor, *ToolchainDirective, bool) {
 	for i := range s.Toolchains {
 		tc := &s.Toolchains[i]
 
-		if parsed, err := parseMajorMinor(tc.Version); err == nil && parsed == toolFloor {
+		if parsed, err := parseMajorMinor(string(tc.Version)); err == nil && parsed == toolFloor {
 			return floor, tc, true
 		}
 	}
@@ -217,7 +217,7 @@ func nixPinIssues(s *Surface, floor majorMinor, toolDriver *ToolchainDirective) 
 	var issues []Issue
 
 	for _, pin := range s.NixPins {
-		parsed, err := parseMajorMinor(pin.Version)
+		parsed, err := parseMajorMinor(string(pin.Version))
 		if err != nil {
 			continue
 		}
@@ -254,7 +254,7 @@ func ciPinIssues(s *Surface, floor majorMinor, toolDriver *ToolchainDirective) [
 	var issues []Issue
 
 	for _, pin := range s.CIPins {
-		parsed, ok := parseCIPin(pin.Version)
+		parsed, ok := parseCIPin(string(pin.Version))
 
 		if !ok {
 			continue
@@ -272,7 +272,7 @@ func ciPinIssues(s *Surface, floor majorMinor, toolDriver *ToolchainDirective) [
 			continue
 		}
 
-		if hasPatch(pin.Raw) {
+		if hasPatch(string(pin.Raw)) {
 			issues = append(issues, Issue{
 				Rule:    RuleCIPinPatchForm,
 				Message: ciPatchPinMessage(pin, floor),
