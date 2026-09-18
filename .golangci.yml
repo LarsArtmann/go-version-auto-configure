@@ -1,0 +1,64 @@
+version: "2"
+run:
+  timeout: 5m
+  go: 1.26.7
+  build-tags: []
+  allow-parallel-runners: false
+  allow-serial-runners: false
+  issues-exit-code: 1
+  tests: true
+output:
+  formats: {}
+linters:
+  enable:
+    - copyloopvar
+    - errcheck
+    - gocritic
+    - gosec
+    - govet
+    - ineffassign
+    - staticcheck
+    - unused
+  settings:
+    gosec:
+      excludes:
+        # This tool reads version-surface files discovered by its own walk
+        # (G304) and shells out to the go binary located via LookPath (G204)
+        # — that IS the product, not an injection surface.
+        - G304
+        - G204
+  exclusions:
+    generated: lax
+    rules:
+      - path: _test\.go
+        linters:
+          - exhaustruct_v5
+          - testpackage
+          - gochecknoglobals
+          - funlen
+          - cyclop
+          - goconst
+          - forcetypeassert
+          - gosec
+          - errcheck
+          - wrapcheck
+          - ireturn
+          - recvcheck
+          - contextcheck
+          - exhaustive
+      - path: _test\.go
+        text: unused
+        linters:
+          - unused
+    paths:
+      - _templ\.go$
+      - \.gen\.go$
+      - vendor/
+formatters:
+  exclusions:
+    generated: lax
+    paths:
+      - _templ\.go$
+issues:
+  max-issues-per-linter: 50
+  max-same-issues: 10
