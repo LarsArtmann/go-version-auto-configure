@@ -63,7 +63,7 @@ func ParseToolchain(kind DirectiveKind, data []byte) (version string, line int, 
 		if file.Toolchain == nil {
 			return "", 0, nil
 		}
-		return file.Toolchain.Version, syntaxLine(file.Toolchain.Syntax), nil
+		return file.Toolchain.Name, syntaxLine(file.Toolchain.Syntax), nil
 	case KindGoWork:
 		file, parseErr := modfile.ParseWork("go.work", data, nil)
 		if parseErr != nil {
@@ -72,7 +72,7 @@ func ParseToolchain(kind DirectiveKind, data []byte) (version string, line int, 
 		if file.Toolchain == nil {
 			return "", 0, nil
 		}
-		return file.Toolchain.Version, syntaxLine(file.Toolchain.Syntax), nil
+		return file.Toolchain.Name, syntaxLine(file.Toolchain.Syntax), nil
 	default:
 		return "", 0, fmt.Errorf("unknown directive kind %q", kind)
 	}
