@@ -12,6 +12,7 @@ import (
 
 	"github.com/larsartmann/go-version-auto-configure/pkg/fix"
 	"github.com/larsartmann/go-version-auto-configure/pkg/surface"
+	"github.com/larsartmann/go-version-auto-configure/pkg/version"
 )
 
 const usage = `go-version-auto-configure — unify the Go toolchain version surface
@@ -36,7 +37,7 @@ func run(args []string) int {
 
 	switch args[0] {
 	case "version":
-		fmt.Println("go-version-auto-configure 0.1.0")
+		fmt.Printf("go-version-auto-configure %s\n", version.Version)
 		return 0
 	case "check":
 		return cmdCheck(args[1:])
