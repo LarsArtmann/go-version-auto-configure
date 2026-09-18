@@ -34,7 +34,7 @@ go build -o /tmp/gvac ./cmd/go-version-auto-configure
 4. **Unparseable go.mod files become findings, not errors** — one broken fixture must not hide drift in a hundred real modules.
 5. **Vendor/node_modules/.git/result are skipped**; vendored trees don't declare this repo's floor.
 
-## The floor-poisoning root cause (fleet-critical, 2026-09-18)
+## The floor-poisoning root cause (fleet-critical)
 
 `go mod tidy` lifts a consumer's `go` directive to the highest dependency floor. Published `go-finding@v1.10.0` declares `go 1.26.7`, `go-atomic-write@v0.5.x` declares `go 1.27.1` (accidental: its only floors are xxhash 1.11 / flock 1.25.0 — nothing needs 1.27). Consequence: every consumer tidy re-poisons its directive; per-repo fixes revert. Fleet convergence REQUIRES the supply-side campaign in TODO_LIST.md before (or together with) consumer sweeps. This tool fixes form; tidy WILL revert it until the supply side is re-tagged — reported as dep-forced, expected, not a bug.
 
