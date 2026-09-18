@@ -22,7 +22,8 @@ type ModuleFloors struct {
 	// MaxDepFloor is the highest `go` floor any dependency declares
 	// ("" when no dependency declares one).
 	MaxDepFloor string
-	// Poisoners names the dependencies carrying MaxDepFloor, sorted.
+	// Poisoners names the dependencies carrying MaxDepFloor when that floor
+	// exceeds the directive (Poisoned); empty otherwise.
 	Poisoners []string
 	// Poisoned reports whether `go mod tidy` would re-raise the directive:
 	// the dependency floor exceeds the declared directive.
@@ -79,7 +80,7 @@ func floorsForModule(ctx context.Context, root string, m surface.ModuleDirective
 	floors := map[string][]string{}
 
 	for line := range strings.SplitSeq(strings.TrimSuffix(out, "\n"), "\n") {
-		mod, floor, entry, ok := parseFloorLine(line, m.Module)
+		floor, _, entry, ok := parseFloorLine(line, m.Module)
 
 		if !ok {
 			continue
@@ -87,17 +88,17 @@ func floorsForModule(ctx context.Context, root string, m surface.ModuleDirective
 
 		floors[floor] = append(floors[floor], entry)
 
-		if surface.GreaterVersion(floor, row.MaxDepFloor) {
+		if row.MaxDepFloor == "" || surface.GreaterVersion(floor, row.MaxDepFloor) {
 			row.MaxDepFloor = floor
 		}
 	}
 
-	for _, poisoner := range floors[row.MaxDepFloor] {
-		row.Poisoners = append(row.Poisoners, poisoner)
-	}
-
-	slices.Sort(row.Poisoners)
 	row.Poisoned = surface.GreaterVersion(row.MaxDepFloor, row.Directive)
+
+	if row.Poisoned {
+		row.Poisoners = floors[row.MaxDepFloor]
+		slices.Sort(row.Poisoners)
+	}
 
 	return row
 }
