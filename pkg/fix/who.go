@@ -22,7 +22,7 @@ type ModuleFloors struct {
 	Directive string `json:"directive,omitempty"`
 	// MaxDepFloor is the highest `go` floor any dependency declares
 	// ("" when no dependency declares one).
-	MaxDepFloor string `json:"max_dep_floor,omitempty"`
+	MaxDepFloor string `json:"maxDepFloor,omitempty"`
 	// Poisoners names the dependencies carrying MaxDepFloor when that floor
 	// exceeds the directive (Poisoned); empty otherwise.
 	Poisoners []string `json:"poisoners,omitempty"`
@@ -105,7 +105,8 @@ func floorsForModule(ctx context.Context, root string, m surface.ModuleDirective
 // parseFloorLine splits one `go list -m` line into its dependency floor,
 // the module carrying it, and a printable "path@version" entry. The main
 // module itself and unreplaced development versions carry no floor here.
-func parseFloorLine(line, module string) (floor, carry, entry string, ok bool) {
+// Results, in order: floor, carrying module, entry, ok.
+func parseFloorLine(line, module string) (string, string, string, bool) {
 	fields := strings.Split(line, "\t")
 
 	if len(fields) != 3 || fields[0] == "" || fields[1] == "" || fields[1] == module {

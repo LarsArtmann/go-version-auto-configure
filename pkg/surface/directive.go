@@ -21,16 +21,32 @@ var errUnknownDirectiveKind = errors.New("unknown directive kind")
 // shared by discovery and by fix verification, so the fixer checks edits
 // with exactly the same code that detected the violation.
 func ParseDirective(kind DirectiveKind, data []byte) (string, int, error) {
-	file, err := parseFile(kind, data)
-	if err != nil {
-		return "", 0, err
-	}
+	switch kind {
+	case KindGoMod:
+		file, err := modfile.Parse("go.mod", data, nil)
+		if err != nil {
+			return "", 0, fmt.Errorf("parse go.mod: %w", err)
+		}
 
-	if file.Go == nil {
-		return "", 0, ErrNoDirective
-	}
+		if file.Go == nil {
+			return "", 0, ErrNoDirective
+		}
 
-	return file.Go.Version, syntaxLine(file.Go.Syntax), nil
+		return file.Go.Version, syntaxLine(file.Go.Syntax), nil
+	case KindGoWork:
+		file, err := modfile.ParseWork("go.work", data, nil)
+		if err != nil {
+			return "", 0, fmt.Errorf("parse go.work: %w", err)
+		}
+
+		if file.Go == nil {
+			return "", 0, ErrNoDirective
+		}
+
+		return file.Go.Version, syntaxLine(file.Go.Syntax), nil
+	default:
+		return "", 0, fmt.Errorf("%w: %q", errUnknownDirectiveKind, kind)
+	}
 }
 
 // ParseToolchain extracts the `toolchain` directive (version and 1-based
@@ -38,53 +54,53 @@ func ParseDirective(kind DirectiveKind, data []byte) (string, int, error) {
 // it yields an empty version and a nil error. The version keeps the `go`
 // prefix as written (e.g. "go1.26.7"), matching modfile's representation.
 func ParseToolchain(kind DirectiveKind, data []byte) (string, int, error) {
-	file, err := parseFile(kind, data)
-	if err != nil {
-		return "", 0, err
-	}
+	switch kind {
+	case KindGoMod:
+		file, err := modfile.Parse("go.mod", data, nil)
+		if err != nil {
+			return "", 0, fmt.Errorf("parse go.mod: %w", err)
+		}
 
-	if file.Toolchain == nil {
-		return "", 0, nil
-	}
+		if file.Toolchain == nil {
+			return "", 0, nil
+		}
 
-	return file.Toolchain.Name, syntaxLine(file.Toolchain.Syntax), nil
+		return file.Toolchain.Name, syntaxLine(file.Toolchain.Syntax), nil
+	case KindGoWork:
+		file, err := modfile.ParseWork("go.work", data, nil)
+		if err != nil {
+			return "", 0, fmt.Errorf("parse go.work: %w", err)
+		}
+
+		if file.Toolchain == nil {
+			return "", 0, nil
+		}
+
+		return file.Toolchain.Name, syntaxLine(file.Toolchain.Syntax), nil
+	default:
+		return "", 0, fmt.Errorf("%w: %q", errUnknownDirectiveKind, kind)
+	}
 }
 
 // ParseModulePath extracts the module path from go.mod content. go.work
 // declares no module and yields an empty path.
 func ParseModulePath(kind DirectiveKind, data []byte) (string, error) {
-	file, err := parseFile(kind, data)
-	if err != nil {
-		return "", err
-	}
-
-	if file.Module == nil {
-		return "", nil
-	}
-
-	return file.Module.Mod.Path, nil
-}
-
-// parseFile parses go.mod or go.work content by kind. It is the single
-// modfile entry point behind every exported Parse* function.
-func parseFile(kind DirectiveKind, data []byte) (*modfile.File, error) {
 	switch kind {
 	case KindGoMod:
 		file, err := modfile.Parse("go.mod", data, nil)
 		if err != nil {
-			return nil, fmt.Errorf("parse go.mod: %w", err)
+			return "", fmt.Errorf("parse go.mod: %w", err)
 		}
 
-		return file, nil
+		if file.Module == nil {
+			return "", nil
+		}
+
+		return file.Module.Mod.Path, nil
 	case KindGoWork:
-		file, err := modfile.ParseWork("go.work", data, nil)
-		if err != nil {
-			return nil, fmt.Errorf("parse go.work: %w", err)
-		}
-
-		return file, nil
+		return "", nil
 	default:
-		return nil, fmt.Errorf("%w: %q", errUnknownDirectiveKind, kind)
+		return "", fmt.Errorf("%w: %q", errUnknownDirectiveKind, kind)
 	}
 }
 

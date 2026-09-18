@@ -101,25 +101,34 @@ func (r *Result) Report() string {
 // output; overridable in tests.
 type GoCommandRunner func(ctx context.Context, dir string, args ...string) (string, error)
 
+// SelfCheck sentinel error.
+var errEmptyGoVersion = errors.New("fix: go env GOVERSION returned empty output")
+
 // SelfCheck verifies the `go` binary is available: directive edits shell
 // out to it, so a missing toolchain means repairs cannot run.
-func SelfCheck() error {
+func SelfCheck(ctx context.Context) error {
 	goBin, err := exec.LookPath("go")
 	if err != nil {
 		return fmt.Errorf("fix: go binary not found in PATH: %w", err)
 	}
 
-	out, err := exec.Command(goBin, "env", "GOVERSION").Output()
+	out, err := exec.CommandContext(ctx, goBin, "env", "GOVERSION").Output()
 	if err != nil {
 		return fmt.Errorf("fix: go env GOVERSION: %w", err)
 	}
 
 	if strings.TrimSpace(string(out)) == "" {
-		return errors.New("fix: go env GOVERSION returned empty output")
+		return errEmptyGoVersion
 	}
 
 	return nil
 }
+
+// applyOne sentinel errors.
+var (
+	errUnknownDirectiveKind = errors.New("unknown directive kind")
+	errDirectiveMismatch    = errors.New("verify after edit: directive mismatch")
+)
 
 // EditRunner returns the production runner: `go <args…>` executed in dir.
 // Module edits and module-graph listings run with GOWORK=off so a workspace
@@ -171,17 +180,17 @@ func Apply(ctx context.Context, root string, fixes []surface.Fix, opts Options, 
 
 	res := &Result{}
 
-	for _, f := range fixes {
+	for _, fx := range fixes {
 		if opts.DryRun {
-			res.HeldBack = append(res.HeldBack, f)
+			res.HeldBack = append(res.HeldBack, fx)
 
 			continue
 		}
 
-		if err := applyOne(ctx, root, f, run); err != nil {
+		if err := applyOne(ctx, root, fx, run); err != nil {
 			if depForced, ok := errors.AsType[*DepForcedError](err); ok {
 				res.DepForced = append(res.DepForced, DepForced{
-					Fix:       f,
+					Fix:       fx,
 					Floor:     depForced.Floor,
 					Poisoners: depForced.Poisoners,
 				})
@@ -189,12 +198,12 @@ func Apply(ctx context.Context, root string, fixes []surface.Fix, opts Options, 
 				continue
 			}
 
-			res.Failures = append(res.Failures, Failure{Fix: f, Cause: err.Error()})
+			res.Failures = append(res.Failures, Failure{Fix: fx, Cause: err.Error()})
 
 			continue
 		}
 
-		res.Applied = append(res.Applied, f)
+		res.Applied = append(res.Applied, fx)
 	}
 
 	return res, nil
@@ -205,34 +214,34 @@ func Apply(ctx context.Context, root string, fixes []surface.Fix, opts Options, 
 // at or above the highest dependency floor, so a stripped directive that
 // tidy re-raises is dep-forced, not mechanically fixable). Command success
 // alone proves nothing; the file is re-parsed as the oracle.
-func applyOne(ctx context.Context, root string, f surface.Fix, run GoCommandRunner) error {
-	abs := filepath.Join(root, f.File)
+func applyOne(ctx context.Context, root string, fx surface.Fix, run GoCommandRunner) error {
+	abs := filepath.Join(root, fx.File)
 	dir := filepath.Dir(abs)
 
-	switch f.Kind {
+	switch fx.Kind {
 	case surface.KindGoMod:
-		if _, err := run(ctx, dir, "mod", "edit", "-go="+f.To); err != nil {
+		if _, err := run(ctx, dir, "mod", "edit", "-go="+fx.To); err != nil {
 			return err
 		}
 	case surface.KindGoWork:
-		if _, err := run(ctx, dir, "work", "edit", "-go="+f.To); err != nil {
+		if _, err := run(ctx, dir, "work", "edit", "-go="+fx.To); err != nil {
 			return err
 		}
 	default:
-		return fmt.Errorf("unknown directive kind %q", f.Kind)
+		return fmt.Errorf("%w: %q", errUnknownDirectiveKind, fx.Kind)
 	}
 
-	got, err := currentDirective(abs, f.Kind)
+	got, err := currentDirective(abs, fx.Kind)
 	if err != nil {
 		return fmt.Errorf("verify after edit: %w", err)
 	}
 
-	if got != f.To {
-		return fmt.Errorf("verify after edit: directive is go %s, want go %s", got, f.To)
+	if got != fx.To {
+		return fmt.Errorf("%w: got go %s, want go %s", errDirectiveMismatch, got, fx.To)
 	}
 
-	if f.Kind == surface.KindGoMod {
-		if err := ensureTidyStable(ctx, dir, f, run); err != nil {
+	if fx.Kind == surface.KindGoMod {
+		if err := ensureTidyStable(ctx, dir, fx, run); err != nil {
 			return err
 		}
 	}
@@ -245,7 +254,7 @@ func applyOne(ctx context.Context, root string, f surface.Fix, run GoCommandRunn
 // — dependencies whose own go.mod floor equals the raised directive — are
 // resolved with `go list -m` and named in the error so the fix surfaces as
 // an actionable supply-side re-tag instead of a silently reverted edit.
-func ensureTidyStable(ctx context.Context, dir string, f surface.Fix, run GoCommandRunner) error {
+func ensureTidyStable(ctx context.Context, dir string, fx surface.Fix, run GoCommandRunner) error {
 	if _, err := run(ctx, dir, "mod", "tidy"); err != nil {
 		return fmt.Errorf("tidy stability check: %w", err)
 	}
@@ -255,14 +264,14 @@ func ensureTidyStable(ctx context.Context, dir string, f surface.Fix, run GoComm
 		return fmt.Errorf("verify tidy stability: %w", err)
 	}
 
-	if got == f.To {
+	if got == fx.To {
 		return nil
 	}
 
 	poisoners, err := resolvePoisoners(ctx, dir, run, got)
 	if err != nil {
 		return &DepForcedError{
-			Fix:       f,
+			Fix:       fx,
 			Floor:     got,
 			Poisoners: nil,
 			Cause: fmt.Sprintf(
@@ -273,7 +282,7 @@ func ensureTidyStable(ctx context.Context, dir string, f surface.Fix, run GoComm
 		}
 	}
 
-	return &DepForcedError{Fix: f, Floor: got, Poisoners: poisoners}
+	return &DepForcedError{Fix: fx, Floor: got, Poisoners: poisoners}
 }
 
 // resolvePoisoners lists modules whose go floor equals the forced floor
@@ -332,7 +341,7 @@ func (e *DepForcedError) Error() string {
 func currentDirective(abs string, kind surface.DirectiveKind) (string, error) {
 	data, err := os.ReadFile(abs)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("read %s: %w", abs, err)
 	}
 
 	version, _, err := surface.ParseDirective(kind, data)

@@ -26,7 +26,8 @@ const (
 	toolName = "go-version-auto-configure"
 
 	// description appears in BuildFlow --list output.
-	description = "Detects Go toolchain version-surface drift (patch versions in go directives, Nix/CI pins below the module floor) and auto-fixes directive form via go mod edit / go work edit"
+	description = "Detects Go toolchain version-surface drift (patch versions in go directives, " +
+		"Nix/CI pins below the module floor) and auto-fixes directive form via go mod edit / go work edit"
 )
 
 //nolint:gochecknoglobals // BuildFlow plugin SDK requires package-level Provider registration
@@ -48,9 +49,7 @@ func mustProvider() toolsdk.Spec {
 	}
 
 	spec.Trigger = toolsdk.OnFiles("go", "go.mod", "go.work")
-	spec.HealthCheck = func(_ context.Context) error {
-		return fix.SelfCheck()
-	}
+	spec.HealthCheck = fix.SelfCheck
 
 	return toolsdk.Register(spec)
 }
