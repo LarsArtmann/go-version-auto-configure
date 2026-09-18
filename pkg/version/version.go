@@ -41,14 +41,17 @@ func resolve(injected string, bi *debug.BuildInfo) string {
 	if injected != "" {
 		return injected
 	}
+
 	if stamp := vcsStamp(bi); stamp != "" {
 		return stamp
 	}
+
 	return "dev"
 }
 
 func readBuildInfo() *debug.BuildInfo {
 	bi, _ := debug.ReadBuildInfo()
+
 	return bi
 }
 
@@ -61,6 +64,7 @@ func vcsStamp(bi *debug.BuildInfo) string {
 	}
 
 	var revision, modified string
+
 	for _, setting := range bi.Settings {
 		switch setting.Key {
 		case "vcs.revision":
@@ -82,6 +86,7 @@ func vcsStamp(bi *debug.BuildInfo) string {
 	if modified == "true" {
 		return short + dirtySuffix
 	}
+
 	return short
 }
 

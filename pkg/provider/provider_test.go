@@ -22,17 +22,22 @@ func TestProviderRegistersItself(t *testing.T) {
 
 	all := toolsdk.All()
 	found := false
+
 	for _, spec := range all {
 		if spec.Name == toolName {
 			found = true
 		}
 	}
+
 	assert.True(t, found, "Provider must be in the process-global registry for BuildFlow discovery")
 }
 
 func TestDetect_ReportsPatchForm(t *testing.T) {
 	root := t.TempDir()
-	require.NoError(t, os.WriteFile(filepath.Join(root, "go.mod"), []byte("module example.com/m\n\ngo 1.26.7\n"), 0o644))
+	require.NoError(
+		t,
+		os.WriteFile(filepath.Join(root, "go.mod"), []byte("module example.com/m\n\ngo 1.26.7\n"), 0o644),
+	)
 
 	ctx := finding.WithWorkingDir(context.Background(), root)
 	findings, err := Provider.Detect.Detect(ctx)
@@ -40,10 +45,12 @@ func TestDetect_ReportsPatchForm(t *testing.T) {
 	require.NotEmpty(t, findings)
 
 	rules := map[string]bool{}
+
 	for _, f := range findings {
 		assert.Equal(t, finding.ToolName(toolName), f.ToolName, "every finding is stamped with the tool name")
 		rules[string(f.Rule)] = true
 	}
+
 	assert.Contains(t, rules, "go-directive-patch-form")
 }
 

@@ -43,6 +43,7 @@ func (s *scriptRunner) call(_ context.Context, dir string, args ...string) (stri
 	case len(args) >= 1 && args[0] == "list":
 		return s.listOut, nil
 	}
+
 	return "", nil
 }
 
@@ -63,17 +64,28 @@ func TestApply_DryRunHoldsBack(t *testing.T) {
 
 func TestApply_VerificationCatchesNoOpEdit(t *testing.T) {
 	root := t.TempDir()
-	require.NoError(t, os.WriteFile(filepath.Join(root, "go.mod"), []byte("module example.com/m\n\ngo 1.26.7\n"), 0o644))
+	require.NoError(
+		t,
+		os.WriteFile(filepath.Join(root, "go.mod"), []byte("module example.com/m\n\ngo 1.26.7\n"), 0o644),
+	)
 
 	run := fakeRunner(func(dir string, args []string) (string, error) {
 		if len(args) >= 2 && args[1] == "tidy" {
 			return "", nil
 		}
+
 		rewriteGoMod(dir, "1.26.7") // edit leaves the file untouched
+
 		return "", nil
 	})
 
-	res, err := Apply(context.Background(), root, []surface.Fix{{File: "go.mod", Kind: surface.KindGoMod, From: "1.26.7", To: "1.26", Line: 3}}, Options{}, run)
+	res, err := Apply(
+		context.Background(),
+		root,
+		[]surface.Fix{{File: "go.mod", Kind: surface.KindGoMod, From: "1.26.7", To: "1.26", Line: 3}},
+		Options{},
+		run,
+	)
 	require.NoError(t, err, "a failed fix is reported in the result, not as an error")
 	assert.Empty(t, res.Applied)
 	require.Len(t, res.Failures, 1)
@@ -89,10 +101,17 @@ func TestApply_SuccessWhenFileActuallyChanges(t *testing.T) {
 		if len(args) >= 1 && args[0] == "mod" {
 			rewriteGoMod(dir, "1.26")
 		}
+
 		return "", nil
 	})
 
-	res, err := Apply(context.Background(), root, []surface.Fix{{File: "go.mod", Kind: surface.KindGoMod, From: "1.26.7", To: "1.26", Line: 3}}, Options{}, run)
+	res, err := Apply(
+		context.Background(),
+		root,
+		[]surface.Fix{{File: "go.mod", Kind: surface.KindGoMod, From: "1.26.7", To: "1.26", Line: 3}},
+		Options{},
+		run,
+	)
 	require.NoError(t, err)
 	require.Len(t, res.Applied, 1)
 	assert.Empty(t, res.Failures)
@@ -104,7 +123,10 @@ func TestApply_SuccessWhenFileActuallyChanges(t *testing.T) {
 
 func TestApply_DepForcedFloorIsNamed(t *testing.T) {
 	root := t.TempDir()
-	require.NoError(t, os.WriteFile(filepath.Join(root, "go.mod"), []byte("module example.com/m\n\ngo 1.26.7\n"), 0o644))
+	require.NoError(
+		t,
+		os.WriteFile(filepath.Join(root, "go.mod"), []byte("module example.com/m\n\ngo 1.26.7\n"), 0o644),
+	)
 
 	run := &scriptRunner{
 		dir:     root,
@@ -113,14 +135,25 @@ func TestApply_DepForcedFloorIsNamed(t *testing.T) {
 		listOut: "example.com/m (devel) 1.26.7\ngithub.com/larsartmann/go-finding v1.10.0 1.26.7\ngithub.com/x/other v1.0.0 1.25\n",
 	}
 
-	res, err := Apply(context.Background(), root, []surface.Fix{{File: "go.mod", Kind: surface.KindGoMod, From: "1.26.7", To: "1.26", Line: 3}}, Options{}, run.call)
+	res, err := Apply(
+		context.Background(),
+		root,
+		[]surface.Fix{{File: "go.mod", Kind: surface.KindGoMod, From: "1.26.7", To: "1.26", Line: 3}},
+		Options{},
+		run.call,
+	)
 	require.NoError(t, err)
 	require.Len(t, res.DepForced, 1)
 	assert.Empty(t, res.Applied)
 
 	d := res.DepForced[0]
 	assert.Equal(t, "1.26.7", d.Floor)
-	assert.Equal(t, []string{"github.com/larsartmann/go-finding"}, d.Poisoners, "only the dep whose floor matches is named")
+	assert.Equal(
+		t,
+		[]string{"github.com/larsartmann/go-finding"},
+		d.Poisoners,
+		"only the dep whose floor matches is named",
+	)
 
 	report := res.Report()
 	assert.Contains(t, report, "dep-forced 1")
@@ -138,10 +171,17 @@ func TestApply_GoWorkEdit(t *testing.T) {
 			require.Equal(t, "work", args[0])
 			require.NoError(t, os.WriteFile(filepath.Join(dir, "go.work"), []byte("go 1.26\n\nuse .\n"), 0o644))
 		}
+
 		return "", nil
 	})
 
-	res, err := Apply(context.Background(), root, []surface.Fix{{File: "go.work", Kind: surface.KindGoWork, From: "1.26.5", To: "1.26", Line: 1}}, Options{}, run)
+	res, err := Apply(
+		context.Background(),
+		root,
+		[]surface.Fix{{File: "go.work", Kind: surface.KindGoWork, From: "1.26.5", To: "1.26", Line: 1}},
+		Options{},
+		run,
+	)
 	require.NoError(t, err)
 	require.Len(t, res.Applied, 1)
 }
@@ -154,18 +194,27 @@ func TestApply_SubdirectoryModuleRunsInItsDirectory(t *testing.T) {
 	require.NoError(t, os.WriteFile(abs, []byte("module example.com/sub/api\n\ngo 1.27.1\n"), 0o644))
 
 	var gotDir string
+
 	run := fakeRunner(func(dir string, args []string) (string, error) {
 		if len(args) >= 2 && args[1] == "edit" {
 			gotDir = dir
 			rewriteGoMod(dir, "1.27")
 		}
+
 		if len(args) >= 2 && args[1] == "tidy" {
 			rewriteGoMod(dir, "1.27")
 		}
+
 		return "", nil
 	})
 
-	res, err := Apply(context.Background(), root, []surface.Fix{{File: rel, Kind: surface.KindGoMod, From: "1.27.1", To: "1.27", Line: 3}}, Options{}, run)
+	res, err := Apply(
+		context.Background(),
+		root,
+		[]surface.Fix{{File: rel, Kind: surface.KindGoMod, From: "1.27.1", To: "1.27", Line: 3}},
+		Options{},
+		run,
+	)
 	require.NoError(t, err)
 	require.Len(t, res.Applied, 1)
 	assert.Equal(t, filepath.Join(root, "sub", "api"), gotDir)
@@ -174,7 +223,13 @@ func TestApply_SubdirectoryModuleRunsInItsDirectory(t *testing.T) {
 func TestApply_RunnerErrorBecomesFailure(t *testing.T) {
 	run := fakeRunner(func(_ string, _ []string) (string, error) { return "", errors.New("go: exit 1") })
 
-	res, err := Apply(context.Background(), t.TempDir(), []surface.Fix{{File: "go.mod", Kind: surface.KindGoMod, From: "1.26.7", To: "1.26", Line: 3}}, Options{}, run)
+	res, err := Apply(
+		context.Background(),
+		t.TempDir(),
+		[]surface.Fix{{File: "go.mod", Kind: surface.KindGoMod, From: "1.26.7", To: "1.26", Line: 3}},
+		Options{},
+		run,
+	)
 	require.NoError(t, err)
 	require.Len(t, res.Failures, 1)
 	assert.Contains(t, res.Failures[0].Cause, "exit 1")
@@ -182,7 +237,13 @@ func TestApply_RunnerErrorBecomesFailure(t *testing.T) {
 
 func TestApply_UnknownKindFails(t *testing.T) {
 	run := fakeRunner(func(string, []string) (string, error) { return "", nil })
-	res, err := Apply(context.Background(), t.TempDir(), []surface.Fix{{File: "x", Kind: "weird", From: "1", To: "2", Line: 1}}, Options{}, run)
+	res, err := Apply(
+		context.Background(),
+		t.TempDir(),
+		[]surface.Fix{{File: "x", Kind: "weird", From: "1", To: "2", Line: 1}},
+		Options{},
+		run,
+	)
 	require.NoError(t, err)
 	require.Len(t, res.Failures, 1)
 	assert.Contains(t, res.Failures[0].Cause, "unknown directive kind")

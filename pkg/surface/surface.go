@@ -136,20 +136,25 @@ type Surface struct {
 // when no module directive declares a parseable version.
 func (s *Surface) Floor() (majorMinor, bool) {
 	var best majorMinor
+
 	found := false
+
 	for _, m := range s.Modules {
 		parsed, err := parseMajorMinor(m.Version)
 		if err != nil {
 			continue
 		}
+
 		if !found || parsed.greaterThan(best) {
 			best = parsed
 			found = true
 		}
 	}
+
 	if !found {
 		return majorMinor{}, false
 	}
+
 	return best, true
 }
 
@@ -157,20 +162,25 @@ func (s *Surface) Floor() (majorMinor, bool) {
 // directive. The bool is false when none parses.
 func (s *Surface) toolchainFloor() (majorMinor, bool) {
 	var best majorMinor
+
 	found := false
+
 	for _, tc := range s.Toolchains {
 		parsed, err := parseMajorMinor(tc.Version)
 		if err != nil {
 			continue
 		}
+
 		if !found || parsed.greaterThan(best) {
 			best = parsed
 			found = true
 		}
 	}
+
 	if !found {
 		return majorMinor{}, false
 	}
+
 	return best, true
 }
 

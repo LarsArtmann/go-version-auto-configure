@@ -51,7 +51,6 @@ func formIssues(s *Surface, workspaceFloor majorMinor, hasFloor bool) []Issue {
 		}
 
 		parsed, err := parseMajorMinor(m.Version)
-
 		if err != nil {
 			continue
 		}
@@ -90,6 +89,7 @@ func formRule(kind DirectiveKind) string {
 	if kind == KindGoWork {
 		return RuleWorkDirectivePatchForm
 	}
+
 	return RuleGoDirectivePatchForm
 }
 
@@ -115,13 +115,11 @@ func staleToolchains(s *Surface) []Issue {
 		}
 
 		toolParsed, err := parseMajorMinor(tc.Version)
-
 		if err != nil {
 			continue
 		}
 
 		goParsed, err := parseMajorMinor(goVersion)
-
 		if err != nil {
 			continue
 		}
@@ -169,6 +167,7 @@ func editVerb(kind DirectiveKind) string {
 	if kind == KindGoWork {
 		return "work"
 	}
+
 	return "mod"
 }
 
@@ -202,7 +201,12 @@ func pinAlignment(s *Surface) (floor majorMinor, toolDriver *ToolchainDirective,
 // floor is 1.26", or the toolchain directive that raises it higher.
 func floorPhrase(floor majorMinor, toolchain *ToolchainDirective) string {
 	if toolchain != nil {
-		return fmt.Sprintf("toolchain %s in %s raises the effective floor to %s", toolchain.Version, toolchain.Path, floor)
+		return fmt.Sprintf(
+			"toolchain %s in %s raises the effective floor to %s",
+			toolchain.Version,
+			toolchain.Path,
+			floor,
+		)
 	}
 
 	return fmt.Sprintf("the module floor is %s", floor)
@@ -214,7 +218,6 @@ func nixPinIssues(s *Surface, floor majorMinor, toolDriver *ToolchainDirective) 
 
 	for _, pin := range s.NixPins {
 		parsed, err := parseMajorMinor(pin.Version)
-
 		if err != nil {
 			continue
 		}
@@ -224,11 +227,14 @@ func nixPinIssues(s *Surface, floor majorMinor, toolDriver *ToolchainDirective) 
 		}
 
 		issues = append(issues, Issue{
-			Rule:       RuleNixPinBelowFloor,
-			Message:    nixPinMessage(pin, floor, toolDriver),
-			File:       pin.Path,
-			Line:       pin.Line,
-			Suggestion: fmt.Sprintf("raise the flake's nixpkgs Go pin to go_%s (or newer), then run the Nix hash repair", strings.ReplaceAll(floor.String(), ".", "_")),
+			Rule:    RuleNixPinBelowFloor,
+			Message: nixPinMessage(pin, floor, toolDriver),
+			File:    pin.Path,
+			Line:    pin.Line,
+			Suggestion: fmt.Sprintf(
+				"raise the flake's nixpkgs Go pin to go_%s (or newer), then run the Nix hash repair",
+				strings.ReplaceAll(floor.String(), ".", "_"),
+			),
 		})
 	}
 
@@ -268,11 +274,14 @@ func ciPinIssues(s *Surface, floor majorMinor, toolDriver *ToolchainDirective) [
 
 		if hasPatch(pin.Raw) {
 			issues = append(issues, Issue{
-				Rule:       RuleCIPinPatchForm,
-				Message:    ciPatchPinMessage(pin, floor),
-				File:       pin.Path,
-				Line:       pin.Line,
-				Suggestion: fmt.Sprintf("set go-version to %s so CI tracks the same minor as the flake pin", floor.String()),
+				Rule:    RuleCIPinPatchForm,
+				Message: ciPatchPinMessage(pin, floor),
+				File:    pin.Path,
+				Line:    pin.Line,
+				Suggestion: fmt.Sprintf(
+					"set go-version to %s so CI tracks the same minor as the flake pin",
+					floor.String(),
+				),
 			})
 		}
 	}

@@ -75,9 +75,11 @@ func analyze(ctx context.Context) ([]autoconfigure.ConfigIssue, error) {
 			Line:     di.Line,
 		})
 	}
+
 	for _, issue := range surface.Analyze(s) {
 		issues = append(issues, toConfigIssue(issue))
 	}
+
 	return issues, nil
 }
 
@@ -89,6 +91,7 @@ func toConfigIssue(issue surface.Issue) autoconfigure.ConfigIssue {
 	if issue.Fix != nil {
 		suggestion = issue.Fix.Describe()
 	}
+
 	return autoconfigure.ConfigIssue{
 		Rule:       finding.RuleName(issue.Rule),
 		Message:    issue.Message,
@@ -111,11 +114,13 @@ func repair(ctx context.Context) (string, error) {
 	}
 
 	var fixes []surface.Fix
+
 	for _, issue := range surface.Analyze(s) {
 		if issue.Fix != nil {
 			fixes = append(fixes, *issue.Fix)
 		}
 	}
+
 	if len(fixes) == 0 {
 		return "no mechanical version-surface fixes needed", nil
 	}
@@ -124,6 +129,7 @@ func repair(ctx context.Context) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("%s repair: %w", toolName, err)
 	}
+
 	return res.Report(), nil
 }
 
@@ -134,5 +140,6 @@ func workingDir(ctx context.Context) string {
 	if dir := finding.WorkingDirFromContext(ctx); dir != "" {
 		return dir
 	}
+
 	return "."
 }

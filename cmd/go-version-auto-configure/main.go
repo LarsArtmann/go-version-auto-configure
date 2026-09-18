@@ -133,18 +133,14 @@ func analyzeAll(roots []string) []repoAnalysis {
 	var wg sync.WaitGroup
 
 	for i, root := range roots {
-		wg.Add(1)
-
-		go func() {
-			defer wg.Done()
-
+		wg.Go(func() {
 			sem <- struct{}{}
 
 			defer func() { <-sem }()
 
 			analyzed, err := analyzeAt(root)
 			analyses[i] = repoAnalysis{root: root, report: analyzed, err: err}
-		}()
+		})
 	}
 
 	wg.Wait()
@@ -179,11 +175,7 @@ func rootsFrom(args []string) []string {
 
 // workersFor bounds the pool by both the CPU count and the work size.
 func workersFor(work int) int {
-	n := runtime.GOMAXPROCS(0)
-
-	if n > work {
-		n = work
-	}
+	n := min(runtime.GOMAXPROCS(0), work)
 
 	if n < 1 {
 		n = 1
@@ -229,7 +221,14 @@ func printCheckReports(out io.Writer, analyses []repoAnalysis) {
 
 	if len(analyses) > 1 {
 		clean, findings, failed := summarize(analyses)
-		fmt.Fprintf(out, "\n%d repos: %d clean, %d with findings, %d failed analysis\n", len(analyses), clean, findings, failed)
+		fmt.Fprintf(
+			out,
+			"\n%d repos: %d clean, %d with findings, %d failed analysis\n",
+			len(analyses),
+			clean,
+			findings,
+			failed,
+		)
 	}
 }
 
@@ -247,11 +246,22 @@ func printCheckReport(out io.Writer, a repoAnalysis) {
 
 	switch {
 	case len(all) == 0:
-		fmt.Fprintf(out, "%s: version surface clean: go directives are major.minor, pins align with the module floor\n", a.root)
+		fmt.Fprintf(
+			out,
+			"%s: version surface clean: go directives are major.minor, pins align with the module floor\n",
+			a.root,
+		)
 	case len(a.report.suggested) == 0:
 		fmt.Fprintf(out, "%s: %d finding(s), all auto-fixable with 'fix'\n", a.root, len(all))
 	default:
-		fmt.Fprintf(out, "%s: %d finding(s): %d auto-fixable with 'fix', %d need a maintainer decision\n", a.root, len(all), len(a.report.mechanical), len(a.report.suggested))
+		fmt.Fprintf(
+			out,
+			"%s: %d finding(s): %d auto-fixable with 'fix', %d need a maintainer decision\n",
+			a.root,
+			len(all),
+			len(a.report.mechanical),
+			len(a.report.suggested),
+		)
 	}
 }
 
@@ -339,17 +349,13 @@ func applyAll(ctx context.Context, analyses []repoAnalysis, opts fix.Options) []
 	var wg sync.WaitGroup
 
 	for i, a := range analyses {
-		wg.Add(1)
-
-		go func() {
-			defer wg.Done()
-
+		wg.Go(func() {
 			sem <- struct{}{}
 
 			defer func() { <-sem }()
 
 			outcomes[i] = fixOne(ctx, a, opts)
-		}()
+		})
 	}
 
 	wg.Wait()
@@ -418,7 +424,12 @@ func printFixReport(out io.Writer, o fixOutcome) {
 	case o.result != nil:
 		fmt.Fprintln(out, o.result.Report())
 	case len(o.suggested) > 0:
-		fmt.Fprintf(out, "%s: %d finding(s) need a maintainer decision; nothing mechanical to fix\n", o.root, len(o.suggested))
+		fmt.Fprintf(
+			out,
+			"%s: %d finding(s) need a maintainer decision; nothing mechanical to fix\n",
+			o.root,
+			len(o.suggested),
+		)
 	default:
 		fmt.Fprintf(out, "%s: version surface clean: nothing to fix\n", o.root)
 	}
@@ -471,18 +482,14 @@ func cmdWhoForces(args []string, out io.Writer) int {
 	var wg sync.WaitGroup
 
 	for i, root := range roots {
-		wg.Add(1)
-
-		go func() {
-			defer wg.Done()
-
+		wg.Go(func() {
 			sem <- struct{}{}
 
 			defer func() { <-sem }()
 
 			rows, err := fix.AnalyzeFloors(context.Background(), root, nil)
 			results[i] = floorsResult{root: root, rows: rows, err: err}
-		}()
+		})
 	}
 
 	wg.Wait()
@@ -535,7 +542,12 @@ func printFloors(out io.Writer, rows []fix.ModuleFloors) {
 			continue
 		}
 
-		fmt.Fprintf(out, "  directive: %s   max dep floor: %s\n", goVersionOrNone(row.Directive), goVersionOrNone(row.MaxDepFloor))
+		fmt.Fprintf(
+			out,
+			"  directive: %s   max dep floor: %s\n",
+			goVersionOrNone(row.Directive),
+			goVersionOrNone(row.MaxDepFloor),
+		)
 
 		if !row.Poisoned {
 			fmt.Fprintln(out, "  clean: no dependency forces a higher floor")
@@ -543,7 +555,11 @@ func printFloors(out io.Writer, rows []fix.ModuleFloors) {
 			continue
 		}
 
-		fmt.Fprintf(out, "  POISONED: tidy re-raises the directive to %s, forced by:\n", goVersionOrNone(row.MaxDepFloor))
+		fmt.Fprintf(
+			out,
+			"  POISONED: tidy re-raises the directive to %s, forced by:\n",
+			goVersionOrNone(row.MaxDepFloor),
+		)
 
 		for _, poisoner := range row.Poisoners {
 			fmt.Fprintf(out, "    %s\n", poisoner)

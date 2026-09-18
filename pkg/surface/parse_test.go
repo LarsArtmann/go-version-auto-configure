@@ -28,8 +28,10 @@ func TestParseMajorMinor(t *testing.T) {
 			got, err := parseMajorMinor(tt.version)
 			if tt.wantErr {
 				require.Error(t, err)
+
 				return
 			}
+
 			require.NoError(t, err)
 			assert.Equal(t, tt.want, got)
 		})
@@ -69,8 +71,10 @@ func TestParseToolchain(t *testing.T) {
 			got, _, err := ParseToolchain(tt.kind, []byte(tt.content))
 			if tt.wantErr {
 				require.Error(t, err)
+
 				return
 			}
+
 			require.NoError(t, err)
 			assert.Equal(t, tt.want, got)
 		})
@@ -100,6 +104,7 @@ func TestMajorMinorOrdering(t *testing.T) {
 	a := majorMinor{Major: 1, Minor: 26}
 	b := majorMinor{Major: 1, Minor: 27}
 	c := majorMinor{Major: 2, Minor: 0}
+
 	assert.True(t, b.greaterThan(a))
 	assert.False(t, a.greaterThan(b))
 	assert.True(t, a.lessThan(b))
@@ -133,6 +138,7 @@ func TestParseCIPin(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			got, ok := parseCIPin(tt.raw)
 			assert.Equal(t, tt.wantOK, ok)
+
 			if tt.wantOK {
 				assert.Equal(t, tt.want, got)
 			}
@@ -157,6 +163,7 @@ func TestParseNixPin(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			got, ok := parseNixPin(tt.token)
 			assert.Equal(t, tt.wantOK, ok)
+
 			if tt.wantOK {
 				assert.Equal(t, tt.want, got)
 			}

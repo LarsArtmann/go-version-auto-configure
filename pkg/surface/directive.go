@@ -23,18 +23,22 @@ func ParseDirective(kind DirectiveKind, data []byte) (version string, line int, 
 		if parseErr != nil {
 			return "", 0, fmt.Errorf("parse go.mod: %w", parseErr)
 		}
+
 		if file.Go == nil {
 			return "", 0, ErrNoDirective
 		}
+
 		return file.Go.Version, syntaxLine(file.Go.Syntax), nil
 	case KindGoWork:
 		file, parseErr := modfile.ParseWork("go.work", data, nil)
 		if parseErr != nil {
 			return "", 0, fmt.Errorf("parse go.work: %w", parseErr)
 		}
+
 		if file.Go == nil {
 			return "", 0, ErrNoDirective
 		}
+
 		return file.Go.Version, syntaxLine(file.Go.Syntax), nil
 	default:
 		return "", 0, fmt.Errorf("unknown directive kind %q", kind)
@@ -46,6 +50,7 @@ func syntaxLine(syntax *modfile.Line) int {
 	if syntax == nil {
 		return 0
 	}
+
 	return syntax.Start.Line
 }
 
@@ -60,18 +65,22 @@ func ParseToolchain(kind DirectiveKind, data []byte) (version string, line int, 
 		if parseErr != nil {
 			return "", 0, fmt.Errorf("parse go.mod: %w", parseErr)
 		}
+
 		if file.Toolchain == nil {
 			return "", 0, nil
 		}
+
 		return file.Toolchain.Name, syntaxLine(file.Toolchain.Syntax), nil
 	case KindGoWork:
 		file, parseErr := modfile.ParseWork("go.work", data, nil)
 		if parseErr != nil {
 			return "", 0, fmt.Errorf("parse go.work: %w", parseErr)
 		}
+
 		if file.Toolchain == nil {
 			return "", 0, nil
 		}
+
 		return file.Toolchain.Name, syntaxLine(file.Toolchain.Syntax), nil
 	default:
 		return "", 0, fmt.Errorf("unknown directive kind %q", kind)
@@ -87,9 +96,11 @@ func ParseModulePath(kind DirectiveKind, data []byte) (string, error) {
 		if err != nil {
 			return "", fmt.Errorf("parse go.mod: %w", err)
 		}
+
 		if file.Module == nil {
 			return "", nil
 		}
+
 		return file.Module.Mod.Path, nil
 	case KindGoWork:
 		return "", nil

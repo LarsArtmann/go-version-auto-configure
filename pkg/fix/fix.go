@@ -59,27 +59,41 @@ func (r *Result) Report() string {
 	if r == nil {
 		return "no fixes"
 	}
+
 	var b strings.Builder
 	fmt.Fprintf(&b, "applied %d, dep-forced %d, held back %d, failed %d",
 		len(r.Applied), len(r.DepForced), len(r.HeldBack), len(r.Failures))
+
 	for _, f := range r.Applied {
 		fmt.Fprintf(&b, "\n  ok:         %s", f.Describe())
 	}
+
 	for _, d := range r.DepForced {
 		fmt.Fprintf(&b, "\n  dep-forced: %s", d.Fix.Describe())
+
 		if len(d.Poisoners) > 0 {
 			fmt.Fprintf(&b, "\n              floor go %s is forced by: %s", d.Floor, strings.Join(d.Poisoners, ", "))
-			fmt.Fprintf(&b, "\n              fix supply-side: re-tag those modules with a major.minor-only go directive, then bump consumers")
+			fmt.Fprintf(
+				&b,
+				"\n              fix supply-side: re-tag those modules with a major.minor-only go directive, then bump consumers",
+			)
 		} else {
-			fmt.Fprintf(&b, "\n              floor go %s is forced by dependencies (poisoner resolution unavailable)", d.Floor)
+			fmt.Fprintf(
+				&b,
+				"\n              floor go %s is forced by dependencies (poisoner resolution unavailable)",
+				d.Floor,
+			)
 		}
 	}
+
 	for _, f := range r.HeldBack {
 		fmt.Fprintf(&b, "\n  dry-run:    %s", f.Describe())
 	}
+
 	for _, f := range r.Failures {
 		fmt.Fprintf(&b, "\n  FAILED:     %s: %s", f.Fix.Describe(), f.Cause)
 	}
+
 	return b.String()
 }
 
@@ -94,13 +108,16 @@ func SelfCheck() error {
 	if err != nil {
 		return fmt.Errorf("fix: go binary not found in PATH: %w", err)
 	}
+
 	out, err := exec.Command(goBin, "env", "GOVERSION").Output()
 	if err != nil {
 		return fmt.Errorf("fix: go env GOVERSION: %w", err)
 	}
+
 	if strings.TrimSpace(string(out)) == "" {
-		return fmt.Errorf("fix: go env GOVERSION returned empty output")
+		return errors.New("fix: go env GOVERSION returned empty output")
 	}
+
 	return nil
 }
 
@@ -125,7 +142,14 @@ func EditRunner() GoCommandRunner {
 
 		out, err := cmd.CombinedOutput()
 		if err != nil {
-			return string(out), fmt.Errorf("go %s: %s: %w", strings.Join(args, " "), strings.TrimSpace(string(out)), err)
+			return string(
+					out,
+				), fmt.Errorf(
+					"go %s: %s: %w",
+					strings.Join(args, " "),
+					strings.TrimSpace(string(out)),
+					err,
+				)
 		}
 
 		return string(out), nil
@@ -144,12 +168,16 @@ func Apply(ctx context.Context, root string, fixes []surface.Fix, opts Options, 
 	if run == nil {
 		run = EditRunner()
 	}
+
 	res := &Result{}
+
 	for _, f := range fixes {
 		if opts.DryRun {
 			res.HeldBack = append(res.HeldBack, f)
+
 			continue
 		}
+
 		if err := applyOne(ctx, root, f, run); err != nil {
 			if depForced, ok := errors.AsType[*DepForcedError](err); ok {
 				res.DepForced = append(res.DepForced, DepForced{
@@ -157,13 +185,18 @@ func Apply(ctx context.Context, root string, fixes []surface.Fix, opts Options, 
 					Floor:     depForced.Floor,
 					Poisoners: depForced.Poisoners,
 				})
+
 				continue
 			}
+
 			res.Failures = append(res.Failures, Failure{Fix: f, Cause: err.Error()})
+
 			continue
 		}
+
 		res.Applied = append(res.Applied, f)
 	}
+
 	return res, nil
 }
 
@@ -193,6 +226,7 @@ func applyOne(ctx context.Context, root string, f surface.Fix, run GoCommandRunn
 	if err != nil {
 		return fmt.Errorf("verify after edit: %w", err)
 	}
+
 	if got != f.To {
 		return fmt.Errorf("verify after edit: directive is go %s, want go %s", got, f.To)
 	}
@@ -202,6 +236,7 @@ func applyOne(ctx context.Context, root string, f surface.Fix, run GoCommandRunn
 			return err
 		}
 	}
+
 	return nil
 }
 
@@ -214,19 +249,30 @@ func ensureTidyStable(ctx context.Context, dir string, f surface.Fix, run GoComm
 	if _, err := run(ctx, dir, "mod", "tidy"); err != nil {
 		return fmt.Errorf("tidy stability check: %w", err)
 	}
+
 	got, err := currentDirective(filepath.Join(dir, "go.mod"), surface.KindGoMod)
 	if err != nil {
 		return fmt.Errorf("verify tidy stability: %w", err)
 	}
+
 	if got == f.To {
 		return nil
 	}
 
 	poisoners, err := resolvePoisoners(ctx, dir, run, got)
 	if err != nil {
-		return &DepForcedError{Fix: f, Floor: got, Poisoners: nil,
-			Cause: fmt.Sprintf("go mod tidy re-raises the directive to go %s (poisoner resolution failed: %v)", got, err)}
+		return &DepForcedError{
+			Fix:       f,
+			Floor:     got,
+			Poisoners: nil,
+			Cause: fmt.Sprintf(
+				"go mod tidy re-raises the directive to go %s (poisoner resolution failed: %v)",
+				got,
+				err,
+			),
+		}
 	}
+
 	return &DepForcedError{Fix: f, Floor: got, Poisoners: poisoners}
 }
 
@@ -237,17 +283,22 @@ func resolvePoisoners(ctx context.Context, dir string, run GoCommandRunner, floo
 	if err != nil {
 		return nil, err
 	}
+
 	var poisoners []string
+
 	for line := range strings.SplitSeq(out, "\n") {
 		fields := strings.Fields(strings.TrimSpace(line))
 		if len(fields) != 3 || fields[2] != floor {
 			continue
 		}
+
 		if fields[1] == "(devel)" || fields[1] == "" {
 			continue
 		}
+
 		poisoners = append(poisoners, fields[0])
 	}
+
 	return poisoners, nil
 }
 
@@ -266,10 +317,15 @@ func (e *DepForcedError) Error() string {
 		if e.Cause != "" {
 			return e.Cause
 		}
+
 		return fmt.Sprintf("go mod tidy re-raises the directive to go %s: a dependency forces this floor", e.Floor)
 	}
-	return fmt.Sprintf("go mod tidy re-raises the directive to go %s: dependency floor forced by %s — fix supply-side by re-tagging with a major.minor-only go directive, then bump",
-		e.Floor, strings.Join(e.Poisoners, ", "))
+
+	return fmt.Sprintf(
+		"go mod tidy re-raises the directive to go %s: dependency floor forced by %s — fix supply-side by re-tagging with a major.minor-only go directive, then bump",
+		e.Floor,
+		strings.Join(e.Poisoners, ", "),
+	)
 }
 
 // currentDirective re-parses the file and returns the current `go` directive.
@@ -278,6 +334,8 @@ func currentDirective(abs string, kind surface.DirectiveKind) (string, error) {
 	if err != nil {
 		return "", err
 	}
+
 	version, _, err := surface.ParseDirective(kind, data)
+
 	return version, err
 }

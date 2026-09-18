@@ -84,9 +84,9 @@ func TestRun_FixDryRunLeavesFiles(t *testing.T) {
 // checkDoc mirrors the check --json contract the tests rely on.
 type checkDoc struct {
 	Repos []struct {
-		Root  string `json:"root"`
-		Error string `json:"error"`
-		Clean bool   `json:"clean"`
+		Root   string `json:"root"`
+		Error  string `json:"error"`
+		Clean  bool   `json:"clean"`
 		Counts struct {
 			Total      int `json:"total"`
 			Mechanical int `json:"mechanical"`
@@ -100,8 +100,8 @@ type checkDoc struct {
 // fixDoc mirrors the fix --json contract the tests rely on.
 type fixDoc struct {
 	Repos []struct {
-		Root     string `json:"root"`
-		Applied  []struct {
+		Root    string `json:"root"`
+		Applied []struct {
 			From string `json:"from"`
 		} `json:"applied"`
 		HeldBack []struct {
@@ -133,12 +133,12 @@ func TestRun_CheckJSONReportsEachRepo(t *testing.T) {
 	doc := decodeJSON[checkDoc](t, out.String())
 	require.Len(t, doc.Repos, 2)
 
-	assert.Less(t, strings.Compare(doc.Repos[0].Root, doc.Repos[1].Root), 0, "repos are sorted by root")
+	assert.Negative(t, strings.Compare(doc.Repos[0].Root, doc.Repos[1].Root), "repos are sorted by root")
 
 	var cleanRepo, driftedRepo *struct {
-		Root  string `json:"root"`
-		Error string `json:"error"`
-		Clean bool   `json:"clean"`
+		Root   string `json:"root"`
+		Error  string `json:"error"`
+		Clean  bool   `json:"clean"`
 		Counts struct {
 			Total      int `json:"total"`
 			Mechanical int `json:"mechanical"`

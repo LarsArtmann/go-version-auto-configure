@@ -4,10 +4,11 @@ updates:
     directory: /
     schedule:
       interval: weekly
-      groups:
-        go-modules:
-          patterns:
-            - "*"
+    groups:
+      gomod:
+        patterns:
+          - "*"
+    open-pull-requests-limit: 5
   - package-ecosystem: github-actions
     directory: /
     schedule:

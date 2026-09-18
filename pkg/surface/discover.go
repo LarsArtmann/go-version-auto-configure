@@ -30,42 +30,52 @@ func Discover(root string) (*Surface, []Issue, error) {
 	if err != nil {
 		return nil, nil, fmt.Errorf("surface: resolve root %q: %w", root, err)
 	}
+
 	info, err := os.Stat(absRoot)
 	if err != nil {
 		return nil, nil, fmt.Errorf("surface: stat root %q: %w", root, err)
 	}
+
 	if !info.IsDir() {
 		return nil, nil, fmt.Errorf("surface: root %q is not a directory", root)
 	}
 
 	s := &Surface{Root: absRoot}
+
 	var issues []Issue
 
 	walkErr := filepath.WalkDir(absRoot, func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return err
 		}
+
 		name := d.Name()
 		if d.IsDir() {
 			if skippedDirs[name] {
 				return filepath.SkipDir
 			}
+
 			return nil
 		}
+
 		rel, relErr := filepath.Rel(absRoot, path)
 		if relErr != nil {
 			return relErr
 		}
+
 		switch {
 		case name == "go.mod":
 			module, toolchain, issue := parseGoMod(path, rel)
 			if issue != nil {
 				issues = append(issues, *issue)
+
 				return nil
 			}
+
 			if module != nil {
 				s.Modules = append(s.Modules, *module)
 			}
+
 			if toolchain != nil {
 				s.Toolchains = append(s.Toolchains, *toolchain)
 			}
@@ -74,6 +84,7 @@ func Discover(root string) (*Surface, []Issue, error) {
 			if workspace != nil {
 				s.Modules = append(s.Modules, *workspace)
 			}
+
 			if toolchain != nil {
 				s.Toolchains = append(s.Toolchains, *toolchain)
 			}
@@ -84,6 +95,7 @@ func Discover(root string) (*Surface, []Issue, error) {
 		case isCIWorkflow(rel):
 			s.CIPins = append(s.CIPins, scanCIPins(path, rel)...)
 		}
+
 		return nil
 	})
 	if walkErr != nil {
@@ -100,10 +112,12 @@ func parseGoMod(path, rel string) (*ModuleDirective, *ToolchainDirective, *Issue
 	if err != nil {
 		return nil, nil, &Issue{Rule: RuleGoModUnparseable, Message: fmt.Sprintf("read go.mod: %v", err), File: rel}
 	}
+
 	version, line, err := ParseDirective(KindGoMod, data)
 	if errors.Is(err, ErrNoDirective) {
 		return nil, nil, nil
 	}
+
 	if err != nil {
 		return nil, nil, &Issue{
 			Rule:    RuleGoModUnparseable,
@@ -111,6 +125,7 @@ func parseGoMod(path, rel string) (*ModuleDirective, *ToolchainDirective, *Issue
 			File:    rel,
 		}
 	}
+
 	modulePath, moduleErr := ParseModulePath(KindGoMod, data)
 	if moduleErr != nil {
 		return nil, nil, &Issue{
@@ -119,6 +134,7 @@ func parseGoMod(path, rel string) (*ModuleDirective, *ToolchainDirective, *Issue
 			File:    rel,
 		}
 	}
+
 	return &ModuleDirective{
 		Path:    rel,
 		Kind:    KindGoMod,
@@ -135,11 +151,14 @@ func parseGoWork(path, rel string) (*ModuleDirective, *ToolchainDirective) {
 	if err != nil {
 		return nil, nil
 	}
+
 	version, line, err := ParseDirective(KindGoWork, data)
 	if err != nil {
 		return nil, nil
 	}
+
 	workspace := &ModuleDirective{Path: rel, Kind: KindGoWork, Version: version, Line: line}
+
 	return workspace, parseToolchainOf(KindGoWork, rel, data)
 }
 
@@ -150,6 +169,7 @@ func parseToolchainOf(kind DirectiveKind, rel string, data []byte) *ToolchainDir
 	if err != nil || version == "" {
 		return nil
 	}
+
 	return &ToolchainDirective{Path: rel, Kind: kind, Version: version, Line: line}
 }
 
@@ -163,10 +183,13 @@ func scanNixPins(path, rel string) []Pin {
 	if err != nil {
 		return nil
 	}
+
 	var pins []Pin
+
 	for lineNo, line := range strings.Split(string(data), "\n") {
 		for _, match := range nixGoPinRe.FindAllStringSubmatch(line, -1) {
 			var parsed majorMinor
+
 			switch {
 			case match[1] != "":
 				parsed = majorMinor{Major: atoi(match[1]), Minor: atoi(match[2])}
@@ -176,6 +199,7 @@ func scanNixPins(path, rel string) []Pin {
 			default:
 				continue
 			}
+
 			pins = append(pins, Pin{
 				Path:    rel,
 				Version: parsed.String(),
@@ -184,6 +208,7 @@ func scanNixPins(path, rel string) []Pin {
 			})
 		}
 	}
+
 	return pins
 }
 
@@ -197,20 +222,25 @@ func scanCIPins(path, rel string) []Pin {
 	if err != nil {
 		return nil
 	}
+
 	var pins []Pin
+
 	for lineNo, line := range strings.Split(string(data), "\n") {
 		match := ciGoVersionRe.FindStringSubmatch(line)
 		if match == nil {
 			continue
 		}
+
 		raw := match[1]
 		if strings.HasPrefix(raw, "[") && strings.HasSuffix(raw, "]") {
 			raw = strings.Trim(raw, "[]")
 		}
+
 		parsed, ok := parseCIPin(raw)
 		if !ok {
 			continue
 		}
+
 		pins = append(pins, Pin{
 			Path:    rel,
 			Version: parsed.String(),
@@ -219,6 +249,7 @@ func scanCIPins(path, rel string) []Pin {
 			Source:  PinCI,
 		})
 	}
+
 	return pins
 }
 
@@ -235,5 +266,6 @@ func atoi(s string) int {
 	if err != nil {
 		return 0
 	}
+
 	return n
 }

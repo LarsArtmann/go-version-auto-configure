@@ -13,12 +13,14 @@ import (
 // file content and returns its root.
 func writeRepo(t *testing.T, files map[string]string) string {
 	t.Helper()
+
 	root := t.TempDir()
 	for rel, content := range files {
 		abs := filepath.Join(root, rel)
 		require.NoError(t, os.MkdirAll(filepath.Dir(abs), 0o755))
 		require.NoError(t, os.WriteFile(abs, []byte(content), 0o644))
 	}
+
 	return root
 }
 
@@ -27,6 +29,7 @@ func issueRules(issues []Issue) []string {
 	for _, issue := range issues {
 		rules = append(rules, issue.Rule)
 	}
+
 	return rules
 }
 
@@ -44,10 +47,12 @@ func TestDiscoverAndAnalyze_PatchFormAcrossModules(t *testing.T) {
 	assert.Empty(t, discoverIssues)
 
 	require.Len(t, s.Modules, 3, "vendor must be skipped, go.work counted")
+
 	byPath := map[string]ModuleDirective{}
 	for _, m := range s.Modules {
 		byPath[m.Path] = m
 	}
+
 	assert.Equal(t, "1.26.7", byPath["go.mod"].Version)
 	assert.Equal(t, KindGoMod, byPath["go.mod"].Kind)
 	assert.Equal(t, "1.26", byPath["sub/api/go.mod"].Version)
@@ -66,12 +71,14 @@ func TestDiscoverAndAnalyze_PatchFormAcrossModules(t *testing.T) {
 	assert.NotContains(t, rules, RuleCIPinBelowFloor)
 
 	var goModFix *Fix
+
 	for _, issue := range issues {
 		if issue.Rule == RuleGoDirectivePatchForm {
 			require.NotNil(t, issue.Fix)
 			goModFix = issue.Fix
 		}
 	}
+
 	require.NotNil(t, goModFix)
 	assert.Equal(t, "go.mod", goModFix.File)
 	assert.Equal(t, "1.26.7", goModFix.From)
@@ -95,6 +102,7 @@ func TestDiscoverAndAnalyze_NixPinBelowFloor(t *testing.T) {
 
 	issues := Analyze(s)
 	require.Len(t, issues, 2, "both the attribute and the builder pin are below the floor")
+
 	for _, issue := range issues {
 		assert.Equal(t, RuleNixPinBelowFloor, issue.Rule)
 		assert.Nil(t, issue.Fix, "alignment issues are suggest-only")
@@ -159,6 +167,7 @@ func TestFloor_NoModules(t *testing.T) {
 	})
 	s, _, err := Discover(root)
 	require.NoError(t, err)
+
 	_, ok := s.Floor()
 	assert.False(t, ok)
 	assert.Empty(t, Analyze(s))
@@ -179,13 +188,16 @@ func TestAnalyze_GoWorkTargetRespectsWorkspaceFloor(t *testing.T) {
 	assert.Empty(t, discoverIssues)
 
 	issues := Analyze(s)
+
 	var workFix *Fix
+
 	for _, issue := range issues {
 		if issue.Rule == RuleWorkDirectivePatchForm {
 			require.NotNil(t, issue.Fix)
 			workFix = issue.Fix
 		}
 	}
+
 	require.NotNil(t, workFix)
 	assert.Equal(t, "1.26.7", workFix.From)
 	assert.Equal(t, "1.27", workFix.To, "go.work must cover the workspace floor")
@@ -216,9 +228,9 @@ func TestDiscover_ToolchainDirectives(t *testing.T) {
 	t.Parallel()
 
 	root := writeRepo(t, map[string]string{
-		"go.mod":        "module example.com/root\n\ngo 1.26\n\ntoolchain go1.26.7\n",
-		"go.work":       "go 1.26\n\ntoolchain go1.25.2\n\nuse .\n",
-		"plain/go.mod":  "module example.com/plain\n\ngo 1.26\n",
+		"go.mod":       "module example.com/root\n\ngo 1.26\n\ntoolchain go1.26.7\n",
+		"go.work":      "go 1.26\n\ntoolchain go1.25.2\n\nuse .\n",
+		"plain/go.mod": "module example.com/plain\n\ngo 1.26\n",
 	})
 
 	s, discoverIssues, err := Discover(root)
@@ -226,6 +238,7 @@ func TestDiscover_ToolchainDirectives(t *testing.T) {
 	assert.Empty(t, discoverIssues)
 
 	require.Len(t, s.Toolchains, 2, "only files declaring a toolchain are recorded")
+
 	byPath := map[string]ToolchainDirective{}
 
 	for _, tc := range s.Toolchains {

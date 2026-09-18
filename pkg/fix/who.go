@@ -45,7 +45,6 @@ func AnalyzeFloors(ctx context.Context, root string, run GoCommandRunner) ([]Mod
 	}
 
 	s, _, err := surface.Discover(root)
-
 	if err != nil {
 		return nil, fmt.Errorf("fix: discover %q: %w", root, err)
 	}
@@ -71,7 +70,6 @@ func floorsForModule(ctx context.Context, root string, m surface.ModuleDirective
 	dir := filepath.Join(root, filepath.Dir(m.Path))
 
 	out, err := run(ctx, dir, "list", "-m", "-f", "{{.GoVersion}}\t{{.Path}}\t{{.Version}}", "all")
-
 	if err != nil {
 		row.Error = err.Error()
 

@@ -2,11 +2,10 @@ package main
 
 import (
 	"encoding/json/jsontext"
+	jsonv2 "encoding/json/v2"
 	"fmt"
 	"io"
 	"os"
-
-	jsonv2 "encoding/json/v2"
 
 	"github.com/larsartmann/go-version-auto-configure/pkg/fix"
 	"github.com/larsartmann/go-version-auto-configure/pkg/surface"
