@@ -14,3 +14,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   - `pkg/provider`: BuildFlow provider self-registered through linter-autoconfigure-sdk's `ProviderFromSpec`.
   - CLI: `check`, `fix [--dry-run]`, `version`.
 - Fleet audit findings that motivated the tool (2026-09-18): 284/383 modules with patch-form `go` directives; floor poisoning propagates through `go mod tidy` from published go-finding/go-atomic-write versions; go.work-below-workspace-floor breakage class found in go-finding.
+
+### Fixed
+
+- README install instructions: replaced the `go get` command (unrunnable while the module is untagged) with build-from-source steps; `go get` is documented as available once the first version is tagged.

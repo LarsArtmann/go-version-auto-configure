@@ -30,6 +30,7 @@ Published library versions carry patch-form `go` floors that re-poison every con
 
 ## T3 — Tag + publish this tool — PLANNED
 
+- [ ] Create the GitHub repo and push (no `origin` remote is configured yet)
 - [ ] v0.1.0 tag once T1 lands the first clean supply-side versions (README install says "build from source" until then)
 - [ ] GitHub Actions CI: lint + test matrix + dogfood `go-version-auto-configure check .` as a gate
 - [ ] GoReleaser config with ldflags version stamping for `version`
