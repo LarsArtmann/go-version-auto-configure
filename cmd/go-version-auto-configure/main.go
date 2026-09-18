@@ -109,12 +109,7 @@ func analyzeAt(root string) (*report, error) {
 // all returns every issue in a stable order: discovery, mechanical, then
 // suggested.
 func (r *report) all() []surface.Issue {
-	out := make([]surface.Issue, 0, len(r.discovery)+len(r.mechanical)+len(r.suggested))
-	out = append(out, r.discovery...)
-	out = append(out, r.mechanical...)
-	out = append(out, r.suggested...)
-
-	return out
+	return slices.Concat(r.discovery, r.mechanical, r.suggested)
 }
 
 // repoAnalysis pairs one root with its analysis or failure.
@@ -265,8 +260,10 @@ func printCheckReport(out io.Writer, a repoAnalysis) {
 	}
 }
 
-// summarize counts clean, finding-carrying, and failed repositories.
-func summarize(analyses []repoAnalysis) (clean, findings, failed int) {
+// summarize counts clean, finding-carrying, and failed repositories:
+// clean, findings, failed.
+func summarize(analyses []repoAnalysis) (int, int, int) {
+	var clean, findings, failed int
 	for _, a := range analyses {
 		switch {
 		case a.err != nil:
@@ -348,6 +345,7 @@ func applyAll(ctx context.Context, analyses []repoAnalysis, opts fix.Options) []
 
 	var wg sync.WaitGroup
 
+	//nolint:makezero // pre-sized for index assignment in the worker pool
 	for i, a := range analyses {
 		wg.Go(func() {
 			sem <- struct{}{}
@@ -481,6 +479,7 @@ func cmdWhoForces(args []string, out io.Writer) int {
 
 	var wg sync.WaitGroup
 
+	//nolint:makezero // pre-sized for index assignment in the worker pool
 	for i, root := range roots {
 		wg.Go(func() {
 			sem <- struct{}{}

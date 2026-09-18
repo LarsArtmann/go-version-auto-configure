@@ -54,6 +54,8 @@ func rewriteGoMod(dir, directive string) {
 }
 
 func TestApply_DryRunHoldsBack(t *testing.T) {
+	t.Parallel()
+
 	fixes := []surface.Fix{{File: "go.mod", Kind: surface.KindGoMod, From: "1.26.7", To: "1.26", Line: 3}}
 
 	res, err := Apply(context.Background(), t.TempDir(), fixes, Options{DryRun: true}, nil)
@@ -63,6 +65,8 @@ func TestApply_DryRunHoldsBack(t *testing.T) {
 }
 
 func TestApply_VerificationCatchesNoOpEdit(t *testing.T) {
+	t.Parallel()
+
 	root := t.TempDir()
 	require.NoError(
 		t,
@@ -89,10 +93,12 @@ func TestApply_VerificationCatchesNoOpEdit(t *testing.T) {
 	require.NoError(t, err, "a failed fix is reported in the result, not as an error")
 	assert.Empty(t, res.Applied)
 	require.Len(t, res.Failures, 1)
-	assert.Contains(t, res.Failures[0].Cause, "directive is go 1.26.7, want go 1.26")
+	assert.Contains(t, res.Failures[0].Cause, "directive mismatch: got go 1.26.7, want go 1.26")
 }
 
 func TestApply_SuccessWhenFileActuallyChanges(t *testing.T) {
+	t.Parallel()
+
 	root := t.TempDir()
 	path := filepath.Join(root, "go.mod")
 	require.NoError(t, os.WriteFile(path, []byte("module example.com/m\n\ngo 1.26.7\n"), 0o644))
@@ -122,6 +128,8 @@ func TestApply_SuccessWhenFileActuallyChanges(t *testing.T) {
 }
 
 func TestApply_DepForcedFloorIsNamed(t *testing.T) {
+	t.Parallel()
+
 	root := t.TempDir()
 	require.NoError(
 		t,
@@ -162,6 +170,8 @@ func TestApply_DepForcedFloorIsNamed(t *testing.T) {
 }
 
 func TestApply_GoWorkEdit(t *testing.T) {
+	t.Parallel()
+
 	root := t.TempDir()
 	workPath := filepath.Join(root, "go.work")
 	require.NoError(t, os.WriteFile(workPath, []byte("go 1.26.5\n\nuse .\n"), 0o644))
@@ -187,6 +197,8 @@ func TestApply_GoWorkEdit(t *testing.T) {
 }
 
 func TestApply_SubdirectoryModuleRunsInItsDirectory(t *testing.T) {
+	t.Parallel()
+
 	root := t.TempDir()
 	rel := filepath.Join("sub", "api", "go.mod")
 	abs := filepath.Join(root, rel)
@@ -221,6 +233,8 @@ func TestApply_SubdirectoryModuleRunsInItsDirectory(t *testing.T) {
 }
 
 func TestApply_RunnerErrorBecomesFailure(t *testing.T) {
+	t.Parallel()
+
 	run := fakeRunner(func(_ string, _ []string) (string, error) { return "", errors.New("go: exit 1") })
 
 	res, err := Apply(
@@ -236,6 +250,8 @@ func TestApply_RunnerErrorBecomesFailure(t *testing.T) {
 }
 
 func TestApply_UnknownKindFails(t *testing.T) {
+	t.Parallel()
+
 	run := fakeRunner(func(string, []string) (string, error) { return "", nil })
 	res, err := Apply(
 		context.Background(),
@@ -250,6 +266,8 @@ func TestApply_UnknownKindFails(t *testing.T) {
 }
 
 func TestReport_Empty(t *testing.T) {
+	t.Parallel()
+
 	assert.Equal(t, "no fixes", (*Result)(nil).Report())
 	assert.True(t, strings.HasPrefix((&Result{}).Report(), "applied 0"))
 }

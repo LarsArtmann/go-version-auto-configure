@@ -13,6 +13,8 @@ import (
 )
 
 func TestProviderRegistersItself(t *testing.T) {
+	t.Parallel()
+
 	require.NotEmpty(t, Provider.Name)
 	assert.Equal(t, toolName, Provider.Name)
 	assert.NotNil(t, Provider.Detect, "the provider must detect")
@@ -33,6 +35,8 @@ func TestProviderRegistersItself(t *testing.T) {
 }
 
 func TestDetect_ReportsPatchForm(t *testing.T) {
+	t.Parallel()
+
 	root := t.TempDir()
 	require.NoError(
 		t,
@@ -55,6 +59,8 @@ func TestDetect_ReportsPatchForm(t *testing.T) {
 }
 
 func TestDetect_CleanRepoIsEmpty(t *testing.T) {
+	t.Parallel()
+
 	root := t.TempDir()
 	require.NoError(t, os.WriteFile(filepath.Join(root, "go.mod"), []byte("module example.com/m\n\ngo 1.26\n"), 0o644))
 
@@ -65,6 +71,8 @@ func TestDetect_CleanRepoIsEmpty(t *testing.T) {
 }
 
 func TestRepair_RewritesDirective(t *testing.T) {
+	t.Parallel()
+
 	root := t.TempDir()
 	path := filepath.Join(root, "go.mod")
 	require.NoError(t, os.WriteFile(path, []byte("module example.com/m\n\ngo 1.26.7\n"), 0o644))
@@ -80,6 +88,8 @@ func TestRepair_RewritesDirective(t *testing.T) {
 }
 
 func TestRepair_DryRunLeavesFileUntouched(t *testing.T) {
+	t.Parallel()
+
 	root := t.TempDir()
 	path := filepath.Join(root, "go.mod")
 	require.NoError(t, os.WriteFile(path, []byte("module example.com/m\n\ngo 1.26.7\n"), 0o644))
@@ -96,6 +106,8 @@ func TestRepair_DryRunLeavesFileUntouched(t *testing.T) {
 }
 
 func TestRepair_CleanRepo(t *testing.T) {
+	t.Parallel()
+
 	root := t.TempDir()
 	require.NoError(t, os.WriteFile(filepath.Join(root, "go.mod"), []byte("module example.com/m\n\ngo 1.26\n"), 0o644))
 

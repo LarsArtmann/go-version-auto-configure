@@ -74,8 +74,8 @@ type jsonFixRepo struct {
 	Root      string          `json:"root"`
 	Error     string          `json:"error,omitempty"`
 	Applied   []jsonFix       `json:"applied"`
-	HeldBack  []jsonFix       `json:"held_back"`
-	DepForced []jsonDepForced `json:"dep_forced"`
+	HeldBack  []jsonFix       `json:"heldBack"`
+	DepForced []jsonDepForced `json:"depForced"`
 	Failures  []jsonFailure   `json:"failures"`
 	Suggested []jsonIssue     `json:"suggested"`
 }
@@ -175,30 +175,30 @@ func emitCheckJSON(out io.Writer, analyses []repoAnalysis) int {
 // toJSONFixRepo converts one outcome into the fix report shape. The list
 // fields are always present (empty, never null) so consumers can range
 // without nil checks.
-func toJSONFixRepo(o fixOutcome) jsonFixRepo {
+func toJSONFixRepo(outcome fixOutcome) jsonFixRepo {
 	repo := jsonFixRepo{
-		Root:      o.root,
+		Root:      outcome.root,
 		Applied:   []jsonFix{},
 		HeldBack:  []jsonFix{},
 		DepForced: []jsonDepForced{},
 		Failures:  []jsonFailure{},
-		Suggested: toIssuesJSON(o.suggested),
+		Suggested: toIssuesJSON(outcome.suggested),
 	}
 
-	if o.err != nil {
-		repo.Error = o.err.Error()
+	if outcome.err != nil {
+		repo.Error = outcome.err.Error()
 
 		return repo
 	}
 
-	if o.result == nil {
+	if outcome.result == nil {
 		return repo
 	}
 
-	repo.Applied = toFixesJSON(o.result.Applied)
-	repo.HeldBack = toFixesJSON(o.result.HeldBack)
+	repo.Applied = toFixesJSON(outcome.result.Applied)
+	repo.HeldBack = toFixesJSON(outcome.result.HeldBack)
 
-	for _, d := range o.result.DepForced {
+	for _, d := range outcome.result.DepForced {
 		repo.DepForced = append(repo.DepForced, jsonDepForced{
 			Fix:       *toFixJSON(&d.Fix),
 			Floor:     d.Floor,
@@ -206,7 +206,7 @@ func toJSONFixRepo(o fixOutcome) jsonFixRepo {
 		})
 	}
 
-	for _, f := range o.result.Failures {
+	for _, f := range outcome.result.Failures {
 		repo.Failures = append(repo.Failures, jsonFailure{Fix: *toFixJSON(&f.Fix), Cause: f.Cause})
 	}
 

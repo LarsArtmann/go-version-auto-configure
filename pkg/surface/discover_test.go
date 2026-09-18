@@ -34,6 +34,8 @@ func issueRules(issues []Issue) []string {
 }
 
 func TestDiscoverAndAnalyze_PatchFormAcrossModules(t *testing.T) {
+	t.Parallel()
+
 	root := writeRepo(t, map[string]string{
 		"go.mod":                      "module example.com/root\n\ngo 1.26.7\n",
 		"sub/api/go.mod":              "module example.com/sub/api\n\ngo 1.26\n",
@@ -86,6 +88,8 @@ func TestDiscoverAndAnalyze_PatchFormAcrossModules(t *testing.T) {
 }
 
 func TestDiscoverAndAnalyze_NixPinBelowFloor(t *testing.T) {
+	t.Parallel()
+
 	root := writeRepo(t, map[string]string{
 		"go.mod":    "module example.com/root\n\ngo 1.27\n",
 		"flake.nix": "{\n  buildGoModule = pkgs.go_1_26;\n  x = buildGo126Module;\n}\n",
@@ -111,6 +115,8 @@ func TestDiscoverAndAnalyze_NixPinBelowFloor(t *testing.T) {
 }
 
 func TestDiscoverAndAnalyze_CIPinBelowFloor(t *testing.T) {
+	t.Parallel()
+
 	root := writeRepo(t, map[string]string{
 		"go.mod":                   "module example.com/root\n\ngo 1.26\n",
 		".github/workflows/ci.yml": "steps:\n  - uses: actions/setup-go@v5\n    with:\n      go-version: 1.23\n",
@@ -129,6 +135,8 @@ func TestDiscoverAndAnalyze_CIPinBelowFloor(t *testing.T) {
 }
 
 func TestDiscoverAndAnalyze_CleanSurface(t *testing.T) {
+	t.Parallel()
+
 	root := writeRepo(t, map[string]string{
 		"go.mod":                   "module example.com/root\n\ngo 1.26\n",
 		"go.work":                  "go 1.26\n\nuse .\n",
@@ -143,6 +151,8 @@ func TestDiscoverAndAnalyze_CleanSurface(t *testing.T) {
 }
 
 func TestDiscover_UnparseableGoModBecomesIssue(t *testing.T) {
+	t.Parallel()
+
 	root := writeRepo(t, map[string]string{
 		"go.mod":        "module example.com/root\n\ngo 1.26\n",
 		"broken/go.mod": "this is not a go.mod at all {{{",
@@ -157,11 +167,15 @@ func TestDiscover_UnparseableGoModBecomesIssue(t *testing.T) {
 }
 
 func TestDiscover_MissingRoot(t *testing.T) {
+	t.Parallel()
+
 	_, _, err := Discover(filepath.Join(t.TempDir(), "does-not-exist"))
 	require.Error(t, err)
 }
 
 func TestFloor_NoModules(t *testing.T) {
+	t.Parallel()
+
 	root := writeRepo(t, map[string]string{
 		"README.md": "nothing here\n",
 	})
@@ -174,6 +188,8 @@ func TestFloor_NoModules(t *testing.T) {
 }
 
 func TestAnalyze_GoWorkTargetRespectsWorkspaceFloor(t *testing.T) {
+	t.Parallel()
+
 	// go-finding shape: root module drifted to 1.27 while go.work still
 	// carries a patch of an older minor. The go.work rewrite must land on
 	// the workspace floor (1.27), not the stripped directive (1.26) — the
@@ -204,6 +220,8 @@ func TestAnalyze_GoWorkTargetRespectsWorkspaceFloor(t *testing.T) {
 }
 
 func TestAnalyze_GoWorkTargetIsDirectiveWhenAboveFloor(t *testing.T) {
+	t.Parallel()
+
 	// All modules at 1.26, go.work carrying a patch: the rewrite strips to
 	// 1.26 — the directive minor, not the floor, is what it already is.
 	root := writeRepo(t, map[string]string{

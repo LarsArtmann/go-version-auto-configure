@@ -106,7 +106,7 @@ type fixDoc struct {
 		} `json:"applied"`
 		HeldBack []struct {
 			From string `json:"from"`
-		} `json:"held_back"`
+		} `json:"heldBack"`
 	} `json:"repos"`
 }
 

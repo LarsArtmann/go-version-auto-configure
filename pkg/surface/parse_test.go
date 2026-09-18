@@ -8,6 +8,8 @@ import (
 )
 
 func TestParseMajorMinor(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name    string
 		version string
@@ -25,6 +27,8 @@ func TestParseMajorMinor(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			got, err := parseMajorMinor(tt.version)
 			if tt.wantErr {
 				require.Error(t, err)
@@ -39,6 +43,8 @@ func TestParseMajorMinor(t *testing.T) {
 }
 
 func TestParseToolchain(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name    string
 		kind    DirectiveKind
@@ -68,6 +74,8 @@ func TestParseToolchain(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			got, _, err := ParseToolchain(tt.kind, []byte(tt.content))
 			if tt.wantErr {
 				require.Error(t, err)
@@ -82,6 +90,8 @@ func TestParseToolchain(t *testing.T) {
 }
 
 func TestParseModulePath(t *testing.T) {
+	t.Parallel()
+
 	path, err := ParseModulePath(KindGoMod, []byte("module example.com/sub/api\n\ngo 1.26\n"))
 	require.NoError(t, err)
 	assert.Equal(t, "example.com/sub/api", path)
@@ -92,6 +102,8 @@ func TestParseModulePath(t *testing.T) {
 }
 
 func TestGreaterVersion(t *testing.T) {
+	t.Parallel()
+
 	assert.True(t, GreaterVersion("1.26.7", "1.26"))
 	assert.True(t, GreaterVersion("1.27", "1.26.7"))
 	assert.False(t, GreaterVersion("1.26", "1.26.7"))
@@ -101,6 +113,8 @@ func TestGreaterVersion(t *testing.T) {
 }
 
 func TestMajorMinorOrdering(t *testing.T) {
+	t.Parallel()
+
 	a := majorMinor{Major: 1, Minor: 26}
 	b := majorMinor{Major: 1, Minor: 27}
 	c := majorMinor{Major: 2, Minor: 0}
@@ -113,12 +127,16 @@ func TestMajorMinorOrdering(t *testing.T) {
 }
 
 func TestHasPatch(t *testing.T) {
+	t.Parallel()
+
 	assert.True(t, hasPatch("1.26.7"))
 	assert.True(t, hasPatch("1.26.0"))
 	assert.False(t, hasPatch("1.26"))
 }
 
 func TestParseCIPin(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name   string
 		raw    string
@@ -136,6 +154,8 @@ func TestParseCIPin(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			got, ok := parseCIPin(tt.raw)
 			assert.Equal(t, tt.wantOK, ok)
 
@@ -147,6 +167,8 @@ func TestParseCIPin(t *testing.T) {
 }
 
 func TestParseNixPin(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name   string
 		token  string
@@ -161,6 +183,8 @@ func TestParseNixPin(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			got, ok := parseNixPin(tt.token)
 			assert.Equal(t, tt.wantOK, ok)
 
