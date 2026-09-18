@@ -11,6 +11,7 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -48,10 +49,10 @@ parallel and reported sorted by path.
 `
 
 func main() {
-	os.Exit(run(os.Args[1:]))
+	os.Exit(run(os.Args[1:], os.Stdout))
 }
 
-func run(args []string) int {
+func run(args []string, out io.Writer) int {
 	if len(args) == 0 {
 		fmt.Fprint(os.Stderr, usage)
 
@@ -60,15 +61,15 @@ func run(args []string) int {
 
 	switch args[0] {
 	case "version":
-		fmt.Printf("go-version-auto-configure %s\n", version.Version)
+		fmt.Fprintf(out, "go-version-auto-configure %s\n", version.Version)
 
 		return exitOK
 	case "check":
-		return cmdCheck(args[1:])
+		return cmdCheck(args[1:], out)
 	case "fix":
-		return cmdFix(args[1:])
+		return cmdFix(args[1:], out)
 	case "who-forces":
-		return cmdWhoForces(args[1:])
+		return cmdWhoForces(args[1:], out)
 	default:
 		fmt.Fprint(os.Stderr, usage)
 
@@ -191,7 +192,7 @@ func workersFor(work int) int {
 	return n
 }
 
-func cmdCheck(args []string) int {
+func cmdCheck(args []string, out io.Writer) int {
 	fs := flag.NewFlagSet("check", flag.ContinueOnError)
 	asJSON := fs.Bool("json", false, "emit machine-readable JSON")
 
@@ -202,16 +203,16 @@ func cmdCheck(args []string) int {
 	analyses := analyzeAll(rootsFrom(fs.Args()))
 
 	if *asJSON {
-		return emitCheckJSON(analyses)
+		return emitCheckJSON(out, analyses)
 	}
 
-	printCheckReports(analyses)
+	printCheckReports(out, analyses)
 
 	return exitFromAnalyses(analyses)
 }
 
 // printCheckReports renders every repository's findings for humans.
-func printCheckReports(analyses []repoAnalysis) {
+func printCheckReports(out io.Writer, analyses []repoAnalysis) {
 	for _, a := range analyses {
 		if a.err != nil {
 			fmt.Fprintf(os.Stderr, "check: %s: %v\n", a.root, a.err)
@@ -220,37 +221,37 @@ func printCheckReports(analyses []repoAnalysis) {
 		}
 
 		if len(analyses) > 1 {
-			fmt.Printf("== %s ==\n", a.root)
+			fmt.Fprintf(out, "== %s ==\n", a.root)
 		}
 
-		printCheckReport(a)
+		printCheckReport(out, a)
 	}
 
 	if len(analyses) > 1 {
 		clean, findings, failed := summarize(analyses)
-		fmt.Printf("\n%d repos: %d clean, %d with findings, %d failed analysis\n", len(analyses), clean, findings, failed)
+		fmt.Fprintf(out, "\n%d repos: %d clean, %d with findings, %d failed analysis\n", len(analyses), clean, findings, failed)
 	}
 }
 
 // printCheckReport renders one repository's findings.
-func printCheckReport(a repoAnalysis) {
+func printCheckReport(out io.Writer, a repoAnalysis) {
 	all := a.report.all()
 
 	for _, issue := range all {
-		fmt.Printf("FOUND  %-26s %s:%d\n       %s\n", issue.Rule, issue.File, issue.Line, issue.Message)
+		fmt.Fprintf(out, "FOUND  %-26s %s:%d\n       %s\n", issue.Rule, issue.File, issue.Line, issue.Message)
 
 		if issue.Suggestion != "" {
-			fmt.Printf("       fix: %s\n", issue.Suggestion)
+			fmt.Fprintf(out, "       fix: %s\n", issue.Suggestion)
 		}
 	}
 
 	switch {
 	case len(all) == 0:
-		fmt.Printf("%s: version surface clean: go directives are major.minor, pins align with the module floor\n", a.root)
+		fmt.Fprintf(out, "%s: version surface clean: go directives are major.minor, pins align with the module floor\n", a.root)
 	case len(a.report.suggested) == 0:
-		fmt.Printf("%s: %d finding(s), all auto-fixable with 'fix'\n", a.root, len(all))
+		fmt.Fprintf(out, "%s: %d finding(s), all auto-fixable with 'fix'\n", a.root, len(all))
 	default:
-		fmt.Printf("%s: %d finding(s): %d auto-fixable with 'fix', %d need a maintainer decision\n", a.root, len(all), len(a.report.mechanical), len(a.report.suggested))
+		fmt.Fprintf(out, "%s: %d finding(s): %d auto-fixable with 'fix', %d need a maintainer decision\n", a.root, len(all), len(a.report.mechanical), len(a.report.suggested))
 	}
 }
 
@@ -305,7 +306,7 @@ type fixOutcome struct {
 	err       error
 }
 
-func cmdFix(args []string) int {
+func cmdFix(args []string, out io.Writer) int {
 	fs := flag.NewFlagSet("fix", flag.ContinueOnError)
 	dryRun := fs.Bool("dry-run", false, "report what would change without touching files")
 	asJSON := fs.Bool("json", false, "emit machine-readable JSON")
@@ -319,10 +320,10 @@ func cmdFix(args []string) int {
 	outcomes := applyAll(context.Background(), analyses, fix.Options{DryRun: *dryRun})
 
 	if *asJSON {
-		return emitFixJSON(outcomes)
+		return emitFixJSON(out, outcomes)
 	}
 
-	printFixReports(outcomes, len(analyses) > 1)
+	printFixReports(out, outcomes, len(analyses) > 1)
 
 	return exitFromOutcomes(outcomes)
 }
@@ -395,7 +396,7 @@ func fixOne(ctx context.Context, a repoAnalysis, opts fix.Options) fixOutcome {
 }
 
 // printFixReports renders every repository's fix outcome for humans.
-func printFixReports(outcomes []fixOutcome, header bool) {
+func printFixReports(out io.Writer, outcomes []fixOutcome, header bool) {
 	for _, o := range outcomes {
 		if o.err != nil {
 			fmt.Fprintf(os.Stderr, "fix: %s: %v\n", o.root, o.err)
@@ -404,26 +405,26 @@ func printFixReports(outcomes []fixOutcome, header bool) {
 		}
 
 		if header {
-			fmt.Printf("== %s ==\n", o.root)
+			fmt.Fprintf(out, "== %s ==\n", o.root)
 		}
 
-		printFixReport(o)
+		printFixReport(out, o)
 	}
 }
 
 // printFixReport renders one repository's fix outcome.
-func printFixReport(o fixOutcome) {
+func printFixReport(out io.Writer, o fixOutcome) {
 	switch {
 	case o.result != nil:
-		fmt.Println(o.result.Report())
+		fmt.Fprintln(out, o.result.Report())
 	case len(o.suggested) > 0:
-		fmt.Printf("%s: %d finding(s) need a maintainer decision; nothing mechanical to fix\n", o.root, len(o.suggested))
+		fmt.Fprintf(out, "%s: %d finding(s) need a maintainer decision; nothing mechanical to fix\n", o.root, len(o.suggested))
 	default:
-		fmt.Printf("%s: version surface clean: nothing to fix\n", o.root)
+		fmt.Fprintf(out, "%s: version surface clean: nothing to fix\n", o.root)
 	}
 
 	for _, issue := range o.suggested {
-		fmt.Printf("SUGGEST  %-24s %s:%d\n         %s\n", issue.Rule, issue.File, issue.Line, issue.Suggestion)
+		fmt.Fprintf(out, "SUGGEST  %-24s %s:%d\n         %s\n", issue.Rule, issue.File, issue.Line, issue.Suggestion)
 	}
 }
 
@@ -454,7 +455,7 @@ func exitFromOutcomes(outcomes []fixOutcome) int {
 	}
 }
 
-func cmdWhoForces(args []string) int {
+func cmdWhoForces(args []string, out io.Writer) int {
 	fs := flag.NewFlagSet("who-forces", flag.ContinueOnError)
 	asJSON := fs.Bool("json", false, "emit machine-readable JSON")
 
@@ -491,10 +492,10 @@ func cmdWhoForces(args []string) int {
 	})
 
 	if *asJSON {
-		return emitFloorsJSON(results)
+		return emitFloorsJSON(out, results)
 	}
 
-	printFloorsReports(results)
+	printFloorsReports(out, results)
 
 	return exitFromFloors(results)
 }
@@ -507,7 +508,7 @@ type floorsResult struct {
 }
 
 // printFloorsReports renders every repository's floor matrix for humans.
-func printFloorsReports(results []floorsResult) {
+func printFloorsReports(out io.Writer, results []floorsResult) {
 	for _, r := range results {
 		if r.err != nil {
 			fmt.Fprintf(os.Stderr, "who-forces: %s: %v\n", r.root, r.err)
@@ -516,36 +517,36 @@ func printFloorsReports(results []floorsResult) {
 		}
 
 		if len(results) > 1 {
-			fmt.Printf("== %s ==\n", r.root)
+			fmt.Fprintf(out, "== %s ==\n", r.root)
 		}
 
-		printFloors(r.rows)
+		printFloors(out, r.rows)
 	}
 }
 
 // printFloors renders one repository's floor matrix rows.
-func printFloors(rows []fix.ModuleFloors) {
+func printFloors(out io.Writer, rows []fix.ModuleFloors) {
 	for _, row := range rows {
-		fmt.Printf("%s  %s\n", row.Path, row.Module)
+		fmt.Fprintf(out, "%s  %s\n", row.Path, row.Module)
 
 		if row.Error != "" {
-			fmt.Printf("  analysis failed: %s\n", row.Error)
+			fmt.Fprintf(out, "  analysis failed: %s\n", row.Error)
 
 			continue
 		}
 
-		fmt.Printf("  directive: %s   max dep floor: %s\n", goVersionOrNone(row.Directive), goVersionOrNone(row.MaxDepFloor))
+		fmt.Fprintf(out, "  directive: %s   max dep floor: %s\n", goVersionOrNone(row.Directive), goVersionOrNone(row.MaxDepFloor))
 
 		if !row.Poisoned {
-			fmt.Println("  clean: no dependency forces a higher floor")
+			fmt.Fprintln(out, "  clean: no dependency forces a higher floor")
 
 			continue
 		}
 
-		fmt.Printf("  POISONED: tidy re-raises the directive to %s, forced by:\n", goVersionOrNone(row.MaxDepFloor))
+		fmt.Fprintf(out, "  POISONED: tidy re-raises the directive to %s, forced by:\n", goVersionOrNone(row.MaxDepFloor))
 
 		for _, poisoner := range row.Poisoners {
-			fmt.Printf("    %s\n", poisoner)
+			fmt.Fprintf(out, "    %s\n", poisoner)
 		}
 	}
 }

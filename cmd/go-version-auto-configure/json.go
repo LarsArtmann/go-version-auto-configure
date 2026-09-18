@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json/jsontext"
 	"fmt"
+	"io"
 	"os"
 
 	jsonv2 "encoding/json/v2"
@@ -158,14 +159,14 @@ func toJSONRepo(a repoAnalysis) jsonRepo {
 
 // emitCheckJSON writes the check document, preserving the findings exit
 // contract for machines.
-func emitCheckJSON(analyses []repoAnalysis) int {
+func emitCheckJSON(out io.Writer, analyses []repoAnalysis) int {
 	doc := checkDocument{Repos: make([]jsonRepo, 0, len(analyses))}
 
 	for _, a := range analyses {
 		doc.Repos = append(doc.Repos, toJSONRepo(a))
 	}
 
-	if code := emitJSON(&doc); code != exitOK {
+	if code := emitJSON(out, &doc); code != exitOK {
 		return code
 	}
 
@@ -215,14 +216,14 @@ func toJSONFixRepo(o fixOutcome) jsonFixRepo {
 
 // emitFixJSON writes the fix document, preserving the failures exit
 // contract for machines.
-func emitFixJSON(outcomes []fixOutcome) int {
+func emitFixJSON(out io.Writer, outcomes []fixOutcome) int {
 	doc := fixDocument{Repos: make([]jsonFixRepo, 0, len(outcomes))}
 
 	for _, o := range outcomes {
 		doc.Repos = append(doc.Repos, toJSONFixRepo(o))
 	}
 
-	if code := emitJSON(&doc); code != exitOK {
+	if code := emitJSON(out, &doc); code != exitOK {
 		return code
 	}
 
@@ -231,7 +232,7 @@ func emitFixJSON(outcomes []fixOutcome) int {
 
 // emitFloorsJSON writes the who-forces document, preserving the poisoned
 // exit contract for machines.
-func emitFloorsJSON(results []floorsResult) int {
+func emitFloorsJSON(out io.Writer, results []floorsResult) int {
 	doc := floorsDocument{Repos: make([]jsonFloorsRepo, 0, len(results))}
 
 	for _, r := range results {
@@ -248,7 +249,7 @@ func emitFloorsJSON(results []floorsResult) int {
 		doc.Repos = append(doc.Repos, repo)
 	}
 
-	if code := emitJSON(&doc); code != exitOK {
+	if code := emitJSON(out, &doc); code != exitOK {
 		return code
 	}
 
@@ -256,8 +257,8 @@ func emitFloorsJSON(results []floorsResult) int {
 }
 
 // emitJSON writes doc as indented JSON on stdout.
-func emitJSON(doc any) int {
-	enc := jsontext.NewEncoder(os.Stdout, jsontext.WithIndent("  "))
+func emitJSON(out io.Writer, doc any) int {
+	enc := jsontext.NewEncoder(out, jsontext.WithIndent("  "))
 
 	if err := jsonv2.MarshalEncode(enc, doc); err != nil {
 		fmt.Fprintf(os.Stderr, "json: %v\n", err)
