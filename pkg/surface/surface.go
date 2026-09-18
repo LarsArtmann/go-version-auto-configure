@@ -39,6 +39,12 @@ const (
 
 	// RuleGoModUnparseable fires when a discovered go.mod cannot be parsed.
 	RuleGoModUnparseable = "go-mod-unparseable"
+
+	// RuleToolchainBelowDirective fires when a `toolchain` directive names a
+	// toolchain older than the same file's `go` directive: the go command
+	// ignores such a line, so it is dead weight (usually stale after the go
+	// directive was raised).
+	RuleToolchainBelowDirective = "toolchain-below-directive"
 )
 
 // DirectiveKind distinguishes which file declares a Go version.
@@ -57,7 +63,25 @@ type ModuleDirective struct {
 	Path string
 	// Kind is KindGoMod or KindGoWork.
 	Kind DirectiveKind
+	// Module is the module path declared in the file; empty for go.work,
+	// which declares no module.
+	Module string
 	// Version is the declared version string, e.g. "1.26.7".
+	Version string
+	// Line is the 1-based line of the directive in the file.
+	Line int
+}
+
+// ToolchainDirective is a parsed `toolchain` directive from go.mod or
+// go.work. Unlike the `go` directive it names an exact toolchain (patch
+// component included, e.g. "go1.26.7") and is advisory: the go command
+// honors it only when it is newer than the `go` floor.
+type ToolchainDirective struct {
+	// Path is the file path relative to the repository root.
+	Path string
+	// Kind is KindGoMod or KindGoWork.
+	Kind DirectiveKind
+	// Version is the toolchain as written, e.g. "go1.26.7".
 	Version string
 	// Line is the 1-based line of the directive in the file.
 	Line int
@@ -98,6 +122,9 @@ type Surface struct {
 	Root string
 	// Modules holds every parsed `go` directive, one per module file.
 	Modules []ModuleDirective
+	// Toolchains holds every parsed `toolchain` directive, one per file
+	// that declares one.
+	Toolchains []ToolchainDirective
 	// NixPins holds flake.nix Go pins, newest first per file.
 	NixPins []Pin
 	// CIPins holds CI workflow go-version pins.
@@ -124,6 +151,41 @@ func (s *Surface) Floor() (majorMinor, bool) {
 		return majorMinor{}, false
 	}
 	return best, true
+}
+
+// toolchainFloor returns the highest major.minor pinned by any `toolchain`
+// directive. The bool is false when none parses.
+func (s *Surface) toolchainFloor() (majorMinor, bool) {
+	var best majorMinor
+	found := false
+	for _, tc := range s.Toolchains {
+		parsed, err := parseMajorMinor(tc.Version)
+		if err != nil {
+			continue
+		}
+		if !found || parsed.greaterThan(best) {
+			best = parsed
+			found = true
+		}
+	}
+	if !found {
+		return majorMinor{}, false
+	}
+	return best, true
+}
+
+// GreaterVersion reports whether version a exceeds version b as a
+// major.minor floor. Versions that do not parse never exceed anything.
+func GreaterVersion(a, b string) bool {
+	aParsed, err := parseMajorMinor(a)
+	if err != nil {
+		return false
+	}
+	bParsed, err := parseMajorMinor(b)
+	if err != nil {
+		return false
+	}
+	return aParsed.greaterThan(bParsed)
 }
 
 // Issue is one policy violation on the version surface.

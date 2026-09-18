@@ -58,7 +58,7 @@ func Discover(root string) (*Surface, []Issue, error) {
 		}
 		switch {
 		case name == "go.mod":
-			module, issue := parseGoMod(path, rel)
+			module, toolchain, issue := parseGoMod(path, rel)
 			if issue != nil {
 				issues = append(issues, *issue)
 				return nil
@@ -66,9 +66,16 @@ func Discover(root string) (*Surface, []Issue, error) {
 			if module != nil {
 				s.Modules = append(s.Modules, *module)
 			}
+			if toolchain != nil {
+				s.Toolchains = append(s.Toolchains, *toolchain)
+			}
 		case name == "go.work":
-			if workspace := parseGoWork(path, rel); workspace != nil {
+			workspace, toolchain := parseGoWork(path, rel)
+			if workspace != nil {
 				s.Modules = append(s.Modules, *workspace)
+			}
+			if toolchain != nil {
+				s.Toolchains = append(s.Toolchains, *toolchain)
 			}
 		case name == "flake.nix":
 			s.NixPins = append(s.NixPins, scanNixPins(path, rel)...)
@@ -86,37 +93,64 @@ func Discover(root string) (*Surface, []Issue, error) {
 	return s, issues, nil
 }
 
-// parseGoMod extracts the `go` directive from one go.mod.
-func parseGoMod(path, rel string) (*ModuleDirective, *Issue) {
+// parseGoMod extracts the module path, the `go` directive, and the
+// `toolchain` directive from one go.mod.
+func parseGoMod(path, rel string) (*ModuleDirective, *ToolchainDirective, *Issue) {
 	data, err := os.ReadFile(path)
 	if err != nil {
-		return nil, &Issue{Rule: RuleGoModUnparseable, Message: fmt.Sprintf("read go.mod: %v", err), File: rel}
+		return nil, nil, &Issue{Rule: RuleGoModUnparseable, Message: fmt.Sprintf("read go.mod: %v", err), File: rel}
 	}
 	version, line, err := ParseDirective(KindGoMod, data)
 	if errors.Is(err, ErrNoDirective) {
-		return nil, nil
+		return nil, nil, nil
 	}
 	if err != nil {
-		return nil, &Issue{
+		return nil, nil, &Issue{
 			Rule:    RuleGoModUnparseable,
 			Message: err.Error(),
 			File:    rel,
 		}
 	}
-	return &ModuleDirective{Path: rel, Kind: KindGoMod, Version: version, Line: line}, nil
+	modulePath, moduleErr := ParseModulePath(KindGoMod, data)
+	if moduleErr != nil {
+		return nil, nil, &Issue{
+			Rule:    RuleGoModUnparseable,
+			Message: moduleErr.Error(),
+			File:    rel,
+		}
+	}
+	return &ModuleDirective{
+		Path:    rel,
+		Kind:    KindGoMod,
+		Module:  modulePath,
+		Version: version,
+		Line:    line,
+	}, parseToolchainOf(KindGoMod, rel, data), nil
 }
 
-// parseGoWork extracts the `go` directive from a go.work file.
-func parseGoWork(path, rel string) *ModuleDirective {
+// parseGoWork extracts the `go` and `toolchain` directives from a go.work
+// file.
+func parseGoWork(path, rel string) (*ModuleDirective, *ToolchainDirective) {
 	data, err := os.ReadFile(path)
 	if err != nil {
-		return nil
+		return nil, nil
 	}
 	version, line, err := ParseDirective(KindGoWork, data)
 	if err != nil {
+		return nil, nil
+	}
+	workspace := &ModuleDirective{Path: rel, Kind: KindGoWork, Version: version, Line: line}
+	return workspace, parseToolchainOf(KindGoWork, rel, data)
+}
+
+// parseToolchainOf extracts the `toolchain` directive from already-read
+// file content; a file without one yields nil.
+func parseToolchainOf(kind DirectiveKind, rel string, data []byte) *ToolchainDirective {
+	version, line, err := ParseToolchain(kind, data)
+	if err != nil || version == "" {
 		return nil
 	}
-	return &ModuleDirective{Path: rel, Kind: KindGoWork, Version: version, Line: line}
+	return &ToolchainDirective{Path: rel, Kind: kind, Version: version, Line: line}
 }
 
 // nixGoPinRe matches nixpkgs Go references: go_1_26, go_1_27, and the
