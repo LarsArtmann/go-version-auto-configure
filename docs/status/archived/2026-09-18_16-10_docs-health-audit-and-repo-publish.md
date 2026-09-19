@@ -68,58 +68,58 @@
 
 ## f) 50 THINGS TO GET DONE NEXT
 
-| #  | Task                                                                                                              | Impact   | Effort | Source       |
-| -- | ----------------------------------------------------------------------------------------------------------------- | -------- | ------ | ------------ |
-| 1  | T1: re-tag go-atomic-write with major.minor-only floor (downgrade 1.27.1→1.26, owner-confirmed)                   | Critical | M      | TODO T1      |
-| 2  | T1: re-tag go-finding root + modules after minor decision                                                         | Critical | M      | TODO T1      |
-| 3  | T1: re-tag remaining go-* libs with published patch floors (go-error-family, …)                                   | Critical | M      | TODO T1      |
-| 4  | T1 gate: owner go/no-go for proxy publishing (irreversible)                                                       | Critical | S      | TODO T1 / g2 |
-| 5  | T4: decide fleet canonical minor 1.26 vs 1.27                                                                     | Critical | S      | TODO T4 / g1 |
-| 6  | T4: record decision as ADR                                                                                        | Medium   | S      | TODO T4      |
-| 7  | T2: blank-import provider into BuildFlow SDK import set                                                           | High     | S      | TODO T2      |
-| 8  | T2: BuildFlow provider catalog entry + `buildflow --dry-run` discovery proof                                      | Medium   | S      | TODO T2      |
-| 9  | T2: decide DAG position (after go-mod-update, before nix-checker)                                                 | Medium   | S      | TODO T2      |
-| 10 | T3: GitHub Actions CI (lint + test + dogfood `check .` gate)                                                      | High     | S      | TODO T3      |
-| ~~11~~ | ~~T3: v0.1.0 tag once T1 lands first clean versions~~ done at `17fdd1d` | ~~High~~ | ~~S~~ | ~~TODO T3~~ |
-| 12 | T3: GoReleaser + ldflags version stamping                                                                         | Medium   | M      | TODO T3      |
-| 13 | T3: pkg.go.dev + `go get @v0.1.0` verification; flip README install to go-get                                     | High     | S      | TODO T3      |
-| 14 | T3: website launch (sibling pattern) if it earns one                                                              | Low      | L      | TODO T3      |
-| ~~15~~ | ~~T7: parallel repo execution + skip-if-clean fast path~~ done at `22e8874` | ~~High~~ | ~~M~~ | ~~TODO T7~~ |
-| ~~16~~ | ~~T7: JSON output for CI/machines~~ done at `22e8874` | ~~High~~ | ~~S~~ | ~~TODO T7~~ |
-| ~~17~~ | ~~T7: `who-forces` command (per-repo dep-floor matrix)~~ done at `22e8874` | ~~Medium~~ | ~~M~~ | ~~TODO T7~~ |
-| ~~18~~ | ~~T9: go.mod/go.work `toolchain` directive handling~~ done at `22e8874` | ~~Medium~~ | ~~S~~ | ~~TODO T9~~ |
-| 19 | T9: flake.lock effective Go revision parsing                                                                      | Medium   | M      | TODO T9      |
-| 20 | T5: upstream gomod-checker "tidy revert" rule                                                                     | High     | M      | TODO T5      |
-| 21 | T6: VERSION/CHANGELOG/tag authority drift detection                                                               | Medium   | M      | TODO T6      |
-| ~~22~~ | ~~T10: full-mode BuildFlow run (race + coverage)~~ done at `22e8874` | ~~Medium~~ | ~~S~~ | ~~TODO T10~~ |
-| ~~23~~ | ~~T10: .editorconfig + .gitattributes~~ done at `22e8874` | ~~Low~~ | ~~S~~ | ~~TODO T10~~ |
-| ~~24~~ | ~~T10: run `buildflow -s dependabot-auto-configure --fix` (open-pull-requests-limit) instead of hand-editing~~ done — fixed + verified via buildflow -s dependabot-auto-configure 2026-09-18 | ~~Low~~ | ~~S~~ | ~~NEW~~ |
-| 25 | T1: re-tag hygiene — no `replace` directives in any re-tagged go.mod                                              | High     | S      | TODO T1      |
-| 26 | T1: post-release `go get @vX.Y.Z` proxy verification per re-tag                                                   | High     | M      | TODO T1      |
-| 27 | T1: after re-tags, bump autoconfigure family + fleet consumers                                                    | High     | L      | TODO T1      |
-| 28 | T1: re-run `check` fleet-wide, expect ~0 surviving mechanical findings                                            | High     | S      | TODO T1      |
-| 29 | T4: `--expect-minor` flag encoding the decision                                                                   | Medium   | S      | TODO T4      |
-| ~~30~~ | ~~Push the pending local commit (b13085e, TODO_LIST cleanup) — local ahead of origin by 1~~ done — pushed; origin/master at 22e8874 (verified 2026-09-19) | ~~Low~~ | ~~S~~ | ~~NEW~~ |
-| ~~31~~ | ~~Document cqrs-lint false positives in AGENTS.md (known-tool-bug contract)~~ done — documented in AGENTS.md known-tool-bug notes 2026-09-19 | ~~Low~~ | ~~S~~ | ~~NEW~~ |
-| 32 | Investigate + document skip_steps WARN "go-mod-update matches no registered tool" (tool-name drift?)              | Medium   | S      | NEW          |
-| ~~33~~ | ~~ANNOTATE report 15-13 (mark section (f) items with today's resolutions)~~ done — annotated + archived 2026-09-19 | ~~Low~~ | ~~S~~ | ~~NEW~~ |
-| 34 | GitHub: decide branch protection for master — note it would block the auto-commit daemon's direct pushes (see g3) | Low      | S      | NEW          |
-| 35 | GitHub: add repo topics (go, buildflow, golangci, auto-configure, version-surface)                                | Low      | S      | NEW          |
-| 36 | Verify README build-from-source instructions in a truly clean environment (container/nix shell)                   | Medium   | S      | NEW          |
-| 37 | Check module-path case handling (github.com/larsartmann/… vs LarsArtmann casing) with a real `go get` post-tag    | Low      | S      | NEW          |
-| ~~38~~ | ~~HARVEST this report into TODO_LIST/ROADMAP (items 30–37 are the new delta)~~ done — routed into TODO_LIST T11/T12 + T3 additions 2026-09-19 | ~~Medium~~ | ~~S~~ | ~~NEW~~ |
-| 39 | Add CI badge to README once workflow #10 lands                                                                    | Low      | S      | NEW          |
-| 40 | Persist /tmp fleet artifacts (fleet_report.txt, gvac binary recipe) into committed bin/ + docs/                   | Low      | S      | ROADMAP      |
-| 41 | Fleet sweep: fix + tidy + build + test across ~152 finding repos (after T1/T4)                                    | High     | L      | ROADMAP      |
-| 42 | CI pin normalization campaign (126 below-floor findings at audit time)                                            | High     | L      | ROADMAP      |
-| 43 | CI patch-pin cleanup (38 findings at audit time)                                                                  | Medium   | M      | ROADMAP      |
-| 44 | Nix pin alignment (37 findings) paired with `buildflow -s nix-hash-fix --fix`                                     | High     | M      | ROADMAP      |
-| 45 | Fix flake typos from scan (`go_256`, `go_1_`)                                                                     | Medium   | S      | ROADMAP      |
-| 46 | Fleet poisoner matrix via `go list -m` across module caches                                                       | Critical | M      | ROADMAP      |
-| 47 | project-dependency-graph consumes pkg/surface                                                                     | Medium   | M      | ROADMAP      |
-| 48 | Cross-check these rules vs BuildFlow gomod-checker (overlap/dedupe)                                               | Medium   | S      | ROADMAP      |
-| 49 | Resolve structure-linter "1.27.1 available" split-brain upstream                                                  | Medium   | M      | ROADMAP      |
-| 50 | Promote pkg/surface to its own submodule once a second consumer exists                                            | Low      | S      | ROADMAP      |
+| #      | Task                                                                                                                                                                                         | Impact     | Effort | Source       |
+| ------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------- | ------ | ------------ |
+| 1      | T1: re-tag go-atomic-write with major.minor-only floor (downgrade 1.27.1→1.26, owner-confirmed)                                                                                              | Critical   | M      | TODO T1      |
+| 2      | T1: re-tag go-finding root + modules after minor decision                                                                                                                                    | Critical   | M      | TODO T1      |
+| 3      | T1: re-tag remaining go-* libs with published patch floors (go-error-family, …)                                                                                                              | Critical   | M      | TODO T1      |
+| 4      | T1 gate: owner go/no-go for proxy publishing (irreversible)                                                                                                                                  | Critical   | S      | TODO T1 / g2 |
+| 5      | T4: decide fleet canonical minor 1.26 vs 1.27                                                                                                                                                | Critical   | S      | TODO T4 / g1 |
+| 6      | T4: record decision as ADR                                                                                                                                                                   | Medium     | S      | TODO T4      |
+| 7      | T2: blank-import provider into BuildFlow SDK import set                                                                                                                                      | High       | S      | TODO T2      |
+| 8      | T2: BuildFlow provider catalog entry + `buildflow --dry-run` discovery proof                                                                                                                 | Medium     | S      | TODO T2      |
+| 9      | T2: decide DAG position (after go-mod-update, before nix-checker)                                                                                                                            | Medium     | S      | TODO T2      |
+| 10     | T3: GitHub Actions CI (lint + test + dogfood `check .` gate)                                                                                                                                 | High       | S      | TODO T3      |
+| ~~11~~ | ~~T3: v0.1.0 tag once T1 lands first clean versions~~ done at `17fdd1d`                                                                                                                      | ~~High~~   | ~~S~~  | ~~TODO T3~~  |
+| 12     | T3: GoReleaser + ldflags version stamping                                                                                                                                                    | Medium     | M      | TODO T3      |
+| 13     | T3: pkg.go.dev + `go get @v0.1.0` verification; flip README install to go-get                                                                                                                | High       | S      | TODO T3      |
+| 14     | T3: website launch (sibling pattern) if it earns one                                                                                                                                         | Low        | L      | TODO T3      |
+| ~~15~~ | ~~T7: parallel repo execution + skip-if-clean fast path~~ done at `22e8874`                                                                                                                  | ~~High~~   | ~~M~~  | ~~TODO T7~~  |
+| ~~16~~ | ~~T7: JSON output for CI/machines~~ done at `22e8874`                                                                                                                                        | ~~High~~   | ~~S~~  | ~~TODO T7~~  |
+| ~~17~~ | ~~T7: `who-forces` command (per-repo dep-floor matrix)~~ done at `22e8874`                                                                                                                   | ~~Medium~~ | ~~M~~  | ~~TODO T7~~  |
+| ~~18~~ | ~~T9: go.mod/go.work `toolchain` directive handling~~ done at `22e8874`                                                                                                                      | ~~Medium~~ | ~~S~~  | ~~TODO T9~~  |
+| 19     | T9: flake.lock effective Go revision parsing                                                                                                                                                 | Medium     | M      | TODO T9      |
+| 20     | T5: upstream gomod-checker "tidy revert" rule                                                                                                                                                | High       | M      | TODO T5      |
+| 21     | T6: VERSION/CHANGELOG/tag authority drift detection                                                                                                                                          | Medium     | M      | TODO T6      |
+| ~~22~~ | ~~T10: full-mode BuildFlow run (race + coverage)~~ done at `22e8874`                                                                                                                         | ~~Medium~~ | ~~S~~  | ~~TODO T10~~ |
+| ~~23~~ | ~~T10: .editorconfig + .gitattributes~~ done at `22e8874`                                                                                                                                    | ~~Low~~    | ~~S~~  | ~~TODO T10~~ |
+| ~~24~~ | ~~T10: run `buildflow -s dependabot-auto-configure --fix` (open-pull-requests-limit) instead of hand-editing~~ done — fixed + verified via buildflow -s dependabot-auto-configure 2026-09-18 | ~~Low~~    | ~~S~~  | ~~NEW~~      |
+| 25     | T1: re-tag hygiene — no `replace` directives in any re-tagged go.mod                                                                                                                         | High       | S      | TODO T1      |
+| 26     | T1: post-release `go get @vX.Y.Z` proxy verification per re-tag                                                                                                                              | High       | M      | TODO T1      |
+| 27     | T1: after re-tags, bump autoconfigure family + fleet consumers                                                                                                                               | High       | L      | TODO T1      |
+| 28     | T1: re-run `check` fleet-wide, expect ~0 surviving mechanical findings                                                                                                                       | High       | S      | TODO T1      |
+| 29     | T4: `--expect-minor` flag encoding the decision                                                                                                                                              | Medium     | S      | TODO T4      |
+| ~~30~~ | ~~Push the pending local commit (b13085e, TODO_LIST cleanup) — local ahead of origin by 1~~ done — pushed; origin/master at 22e8874 (verified 2026-09-19)                                    | ~~Low~~    | ~~S~~  | ~~NEW~~      |
+| ~~31~~ | ~~Document cqrs-lint false positives in AGENTS.md (known-tool-bug contract)~~ done — documented in AGENTS.md known-tool-bug notes 2026-09-19                                                 | ~~Low~~    | ~~S~~  | ~~NEW~~      |
+| 32     | Investigate + document skip_steps WARN "go-mod-update matches no registered tool" (tool-name drift?)                                                                                         | Medium     | S      | NEW          |
+| ~~33~~ | ~~ANNOTATE report 15-13 (mark section (f) items with today's resolutions)~~ done — annotated + archived 2026-09-19                                                                           | ~~Low~~    | ~~S~~  | ~~NEW~~      |
+| 34     | GitHub: decide branch protection for master — note it would block the auto-commit daemon's direct pushes (see g3)                                                                            | Low        | S      | NEW          |
+| 35     | GitHub: add repo topics (go, buildflow, golangci, auto-configure, version-surface)                                                                                                           | Low        | S      | NEW          |
+| 36     | Verify README build-from-source instructions in a truly clean environment (container/nix shell)                                                                                              | Medium     | S      | NEW          |
+| 37     | Check module-path case handling (github.com/larsartmann/… vs LarsArtmann casing) with a real `go get` post-tag                                                                               | Low        | S      | NEW          |
+| ~~38~~ | ~~HARVEST this report into TODO_LIST/ROADMAP (items 30–37 are the new delta)~~ done — routed into TODO_LIST T11/T12 + T3 additions 2026-09-19                                                | ~~Medium~~ | ~~S~~  | ~~NEW~~      |
+| 39     | Add CI badge to README once workflow #10 lands                                                                                                                                               | Low        | S      | NEW          |
+| 40     | Persist /tmp fleet artifacts (fleet_report.txt, gvac binary recipe) into committed bin/ + docs/                                                                                              | Low        | S      | ROADMAP      |
+| 41     | Fleet sweep: fix + tidy + build + test across ~152 finding repos (after T1/T4)                                                                                                               | High       | L      | ROADMAP      |
+| 42     | CI pin normalization campaign (126 below-floor findings at audit time)                                                                                                                       | High       | L      | ROADMAP      |
+| 43     | CI patch-pin cleanup (38 findings at audit time)                                                                                                                                             | Medium     | M      | ROADMAP      |
+| 44     | Nix pin alignment (37 findings) paired with `buildflow -s nix-hash-fix --fix`                                                                                                                | High       | M      | ROADMAP      |
+| 45     | Fix flake typos from scan (`go_256`, `go_1_`)                                                                                                                                                | Medium     | S      | ROADMAP      |
+| 46     | Fleet poisoner matrix via `go list -m` across module caches                                                                                                                                  | Critical   | M      | ROADMAP      |
+| 47     | project-dependency-graph consumes pkg/surface                                                                                                                                                | Medium     | M      | ROADMAP      |
+| 48     | Cross-check these rules vs BuildFlow gomod-checker (overlap/dedupe)                                                                                                                          | Medium     | S      | ROADMAP      |
+| 49     | Resolve structure-linter "1.27.1 available" split-brain upstream                                                                                                                             | Medium     | M      | ROADMAP      |
+| 50     | Promote pkg/surface to its own submodule once a second consumer exists                                                                                                                       | Low        | S      | ROADMAP      |
 
 ## g) QUESTIONS ONLY YOU CAN ANSWER
 

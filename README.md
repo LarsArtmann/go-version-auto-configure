@@ -65,11 +65,11 @@ applied 0, dep-forced 1, held back 0, failed 0
 
 The `--json` documents are a stable machine contract: field names and presence (`omitempty`) are guaranteed, and list fields are empty, never null.
 
-| Command      | Per-repo fields                                                                                          |
-| ------------ | -------------------------------------------------------------------------------------------------------- |
+| Command      | Per-repo fields                                                                                                                                              |
+| ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `check`      | `root`, `error?`, `clean`, `counts` (`total`, `mechanical`, `suggested`, `discovery`), `findings` (`rule`, `message`, `file`, `line`, `suggestion?`, `fix?`) |
-| `fix`        | `root`, `error?`, `applied`, `heldBack`, `depForced` (`fix`, `floor`, `poisoners?`), `failures`, `suggested` |
-| `who-forces` | `root`, `error?`, `modules` (`path`, `module`, `directive?`, `maxDepFloor?`, `poisoners?`, `poisoned`, `error?`) |
+| `fix`        | `root`, `error?`, `applied`, `heldBack`, `depForced` (`fix`, `floor`, `poisoners?`), `failures`, `suggested`                                                 |
+| `who-forces` | `root`, `error?`, `modules` (`path`, `module`, `directive?`, `maxDepFloor?`, `poisoners?`, `poisoned`, `error?`)                                             |
 
 ### BuildFlow provider
 

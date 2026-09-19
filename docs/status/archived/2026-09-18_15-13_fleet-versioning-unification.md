@@ -66,58 +66,58 @@
 
 ## f) 50 THINGS TO GET DONE NEXT
 
-| #  | Task                                                                                                                                   | Impact   | Effort | Category      |
-| -- | -------------------------------------------------------------------------------------------------------------------------------------- | -------- | ------ | ------------- |
-| 1  | T1: re-tag go-atomic-write with major.minor-only floor (downgrade 1.27.1→1.26, owner-confirmed)                                        | Critical | M      | Release       |
-| 2  | T1: re-tag go-finding root + modules after minor decision                                                                              | Critical | M      | Release       |
-| 3  | T1: re-tag linter-autoconfigure-sdk v0.3.0 with clean floor                                                                            | Critical | S      | Release       |
-| 4  | Build poisoner matrix: `go list -m -f '{{.Path}} {{.GoVersion}}' all` across fleet caches; every published lib with patch floor listed | Critical | M      | Feature       |
-| 5  | T4 decision doc (ADR): fleet canonical minor 1.26 vs 1.27                                                                              | Critical | S      | Documentation |
-| 6  | Execute T4 outcome (downgrade 62 modules to 1.26 OR bump 241 flakes + CI to 1.27)                                                      | Critical | L      | Feature       |
-| 7  | Owner go/no-go for proxy publishing (T1 gate)                                                                                          | Critical | S      | Decision      |
-| 8  | T2: blank-import provider in BuildFlow + confirm discovery via `buildflow --dry-run`                                                   | High     | S      | Feature       |
-| 9  | T5: gomod-checker upstream rule "directive re-poisoned after tidy"                                                                     | High     | M      | Feature       |
-| 10 | Fleet sweep: gvac fix + tidy + build+test across 152 finding repos                                                                     | High     | L      | Feature       |
-| ~~11~~ | ~~gvac: parallel repo execution + skip-if-clean fast path~~ done at `22e8874` | ~~High~~ | ~~M~~ | ~~Feature~~ |
-| ~~12~~ | ~~gvac: JSON output for CI/machines~~ done at `22e8874` | ~~High~~ | ~~S~~ | ~~Feature~~ |
-| ~~13~~ | ~~gvac: `who-forces` command — per-repo dep-floor matrix~~ done at `22e8874` | ~~Medium~~ | ~~M~~ | ~~Feature~~ |
-| 14 | gvac: `--expect-minor` flag encoding the T4 decision                                                                                   | Medium   | S      | Feature       |
-| 15 | CI pin normalization campaign (126 ci-pin-below-floor findings)                                                                        | High     | L      | Cleanup       |
-| 16 | CI patch-pin cleanup (38 ci-pin-patch-form findings)                                                                                   | Medium   | M      | Cleanup       |
-| 17 | Nix pin alignment (37 nix-pin-below-floor) paired with `buildflow -s nix-hash-fix --fix`                                               | High     | M      | Cleanup       |
-| 18 | Fix flake typos found in scan (`go_256`, `go_1_`)                                                                                      | Medium   | S      | Bug           |
-| 19 | Post-T1 consumer bumps: autoconfigure family + templ-components, go-cqrs-lite (88 findings), cqrs-htmx (35)                            | High     | L      | Feature       |
-| 20 | T3: v0.1.0 tag + GitHub release + pkg.go.dev verification                                                                              | High     | S      | Release       |
-| 21 | CI workflow for the new repo (lint + test matrix + dogfood `gvac check .` gate)                                                        | High     | S      | Quality       |
-| 22 | GoReleaser setup for the new repo                                                                                                      | Medium   | M      | Feature       |
-| 23 | T6: VERSION/CHANGELOG/tag authority drift detection (start: project-dependency-graph 0.7.0-vs-v0.2.0)                                  | Medium   | M      | Feature       |
-| 24 | Update go-ecosystem-upgrade skill version-surface.md: floor-poisoning section + gvac check command                                     | High     | S      | Documentation |
-| ~~25~~ | ~~Update global AGENTS.md: daemon floor re-raise + exit-code-after-pipe recurrence~~ done — captured: global AGENTS pipeline-masking lesson + floor mechanism in version-surface.md | ~~Medium~~ | ~~S~~ | ~~Documentation~~ |
-| 26 | Document directive state in the 7 pilot repos' AGENTS.md files                                                                         | Medium   | M      | Documentation |
-| 27 | Root-cause the re-raise force: which daemon pass runs `go get`-style floor bumps                                                       | High     | M      | Bug           |
-| ~~28~~ | ~~Full-mode BuildFlow run on new repo (race + coverage)~~ done at `22e8874` | ~~Medium~~ | ~~S~~ | ~~Quality~~ |
-| ~~29~~ | ~~.editorconfig + .gitattributes for new repo~~ done at `22e8874` | ~~Low~~ | ~~S~~ | ~~Cleanup~~ |
-| ~~30~~ | ~~dependabot.yml refinement (groups + open-pull-requests-limit per auto-fixer suggestion)~~ done at `22e8874` | ~~Low~~ | ~~S~~ | ~~Cleanup~~ |
-| 31 | project-dependency-graph: consume pkg/surface for release-overview alignment                                                           | Medium   | M      | Feature       |
-| ~~32~~ | ~~gvac: go.work `toolchain` directive coverage~~ done at `22e8874` | ~~Medium~~ | ~~S~~ | ~~Feature~~ |
-| 33 | gvac: flake.lock effective-go-rev parsing                                                                                              | Medium   | M      | Feature       |
-| 34 | gvac: Dockerfile/.tool-versions/mise pin coverage                                                                                      | Low      | M      | Feature       |
-| 35 | gvac: per-repo config file (.goversionrc) for floor expectations                                                                       | Low      | M      | Feature       |
-| 36 | Promote pkg/surface to its own submodule once a second consumer exists                                                                 | Low      | S      | Cleanup       |
-| 37 | Cross-check gvac rules vs BuildFlow gomod-checker for overlap/dedupe                                                                   | Medium   | S      | Quality       |
-| 38 | Benchmark Discover on go-cqrs-lite (largest monorepo)                                                                                  | Low      | S      | Quality       |
-| 39 | website-launch for go-version-auto-configure (sibling pattern)                                                                         | Low      | L      | Feature       |
-| ~~40~~ | ~~docs-health HARVEST: pull section (f) into TODO_LIST.md / ROADMAP.md~~ done — harvested 2026-09-18 (16:10 audit), re-verified 2026-09-19 | ~~Medium~~ | ~~S~~ | ~~Documentation~~ |
-| 41 | Annotate project-dependency-graph status Q3 (version authority) with link to T6                                                        | Low      | S      | Documentation |
-| 42 | Refresh go-cqrs-lite-ecosystem-update-plan.md using gvac fleet data                                                                    | Low      | S      | Documentation |
-| 43 | oxlint-auto-configure: drop vendored/replace SDK pin after SDK v0.3.0                                                                  | Low      | S      | Cleanup       |
-| 44 | Verify no `replace` directives leak into any re-tagged go.mod (go-release Phase 3)                                                     | High     | S      | Quality       |
-| 45 | Post-release: `go get @vX.Y.Z` clean-module verification per re-tag (proxy check)                                                      | High     | M      | Quality       |
-| 46 | Add `gvac version` ldflags stamping in release pipeline                                                                                | Low      | S      | Feature       |
-| 47 | Decide go-finding root minor as part of T1 (its flake/CI must follow)                                                                  | Critical | S      | Decision      |
-| 48 | Split-brain check: structure-linter's "1.27.1 available" rule vs fleet policy — tune upstream or document exception per repo           | Medium   | M      | Quality       |
-| ~~49~~ | ~~Add go.work presence detection to provider Trigger (currently triggers on go.mod files only)~~ done — go.work already in provider triggers (pkg/provider/provider.go:51) | ~~Low~~ | ~~S~~ | ~~Bug~~ |
-| 50 | Retire /tmp/gvac + /tmp/fleet_report.txt into committed artifacts (bin/ + docs/)                                                       | Low      | S      | Cleanup       |
+| #      | Task                                                                                                                                                                                | Impact     | Effort | Category          |
+| ------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------- | ------ | ----------------- |
+| 1      | T1: re-tag go-atomic-write with major.minor-only floor (downgrade 1.27.1→1.26, owner-confirmed)                                                                                     | Critical   | M      | Release           |
+| 2      | T1: re-tag go-finding root + modules after minor decision                                                                                                                           | Critical   | M      | Release           |
+| 3      | T1: re-tag linter-autoconfigure-sdk v0.3.0 with clean floor                                                                                                                         | Critical   | S      | Release           |
+| 4      | Build poisoner matrix: `go list -m -f '{{.Path}} {{.GoVersion}}' all` across fleet caches; every published lib with patch floor listed                                              | Critical   | M      | Feature           |
+| 5      | T4 decision doc (ADR): fleet canonical minor 1.26 vs 1.27                                                                                                                           | Critical   | S      | Documentation     |
+| 6      | Execute T4 outcome (downgrade 62 modules to 1.26 OR bump 241 flakes + CI to 1.27)                                                                                                   | Critical   | L      | Feature           |
+| 7      | Owner go/no-go for proxy publishing (T1 gate)                                                                                                                                       | Critical   | S      | Decision          |
+| 8      | T2: blank-import provider in BuildFlow + confirm discovery via `buildflow --dry-run`                                                                                                | High       | S      | Feature           |
+| 9      | T5: gomod-checker upstream rule "directive re-poisoned after tidy"                                                                                                                  | High       | M      | Feature           |
+| 10     | Fleet sweep: gvac fix + tidy + build+test across 152 finding repos                                                                                                                  | High       | L      | Feature           |
+| ~~11~~ | ~~gvac: parallel repo execution + skip-if-clean fast path~~ done at `22e8874`                                                                                                       | ~~High~~   | ~~M~~  | ~~Feature~~       |
+| ~~12~~ | ~~gvac: JSON output for CI/machines~~ done at `22e8874`                                                                                                                             | ~~High~~   | ~~S~~  | ~~Feature~~       |
+| ~~13~~ | ~~gvac: `who-forces` command — per-repo dep-floor matrix~~ done at `22e8874`                                                                                                        | ~~Medium~~ | ~~M~~  | ~~Feature~~       |
+| 14     | gvac: `--expect-minor` flag encoding the T4 decision                                                                                                                                | Medium     | S      | Feature           |
+| 15     | CI pin normalization campaign (126 ci-pin-below-floor findings)                                                                                                                     | High       | L      | Cleanup           |
+| 16     | CI patch-pin cleanup (38 ci-pin-patch-form findings)                                                                                                                                | Medium     | M      | Cleanup           |
+| 17     | Nix pin alignment (37 nix-pin-below-floor) paired with `buildflow -s nix-hash-fix --fix`                                                                                            | High       | M      | Cleanup           |
+| 18     | Fix flake typos found in scan (`go_256`, `go_1_`)                                                                                                                                   | Medium     | S      | Bug               |
+| 19     | Post-T1 consumer bumps: autoconfigure family + templ-components, go-cqrs-lite (88 findings), cqrs-htmx (35)                                                                         | High       | L      | Feature           |
+| 20     | T3: v0.1.0 tag + GitHub release + pkg.go.dev verification                                                                                                                           | High       | S      | Release           |
+| 21     | CI workflow for the new repo (lint + test matrix + dogfood `gvac check .` gate)                                                                                                     | High       | S      | Quality           |
+| 22     | GoReleaser setup for the new repo                                                                                                                                                   | Medium     | M      | Feature           |
+| 23     | T6: VERSION/CHANGELOG/tag authority drift detection (start: project-dependency-graph 0.7.0-vs-v0.2.0)                                                                               | Medium     | M      | Feature           |
+| 24     | Update go-ecosystem-upgrade skill version-surface.md: floor-poisoning section + gvac check command                                                                                  | High       | S      | Documentation     |
+| ~~25~~ | ~~Update global AGENTS.md: daemon floor re-raise + exit-code-after-pipe recurrence~~ done — captured: global AGENTS pipeline-masking lesson + floor mechanism in version-surface.md | ~~Medium~~ | ~~S~~  | ~~Documentation~~ |
+| 26     | Document directive state in the 7 pilot repos' AGENTS.md files                                                                                                                      | Medium     | M      | Documentation     |
+| 27     | Root-cause the re-raise force: which daemon pass runs `go get`-style floor bumps                                                                                                    | High       | M      | Bug               |
+| ~~28~~ | ~~Full-mode BuildFlow run on new repo (race + coverage)~~ done at `22e8874`                                                                                                         | ~~Medium~~ | ~~S~~  | ~~Quality~~       |
+| ~~29~~ | ~~.editorconfig + .gitattributes for new repo~~ done at `22e8874`                                                                                                                   | ~~Low~~    | ~~S~~  | ~~Cleanup~~       |
+| ~~30~~ | ~~dependabot.yml refinement (groups + open-pull-requests-limit per auto-fixer suggestion)~~ done at `22e8874`                                                                       | ~~Low~~    | ~~S~~  | ~~Cleanup~~       |
+| 31     | project-dependency-graph: consume pkg/surface for release-overview alignment                                                                                                        | Medium     | M      | Feature           |
+| ~~32~~ | ~~gvac: go.work `toolchain` directive coverage~~ done at `22e8874`                                                                                                                  | ~~Medium~~ | ~~S~~  | ~~Feature~~       |
+| 33     | gvac: flake.lock effective-go-rev parsing                                                                                                                                           | Medium     | M      | Feature           |
+| 34     | gvac: Dockerfile/.tool-versions/mise pin coverage                                                                                                                                   | Low        | M      | Feature           |
+| 35     | gvac: per-repo config file (.goversionrc) for floor expectations                                                                                                                    | Low        | M      | Feature           |
+| 36     | Promote pkg/surface to its own submodule once a second consumer exists                                                                                                              | Low        | S      | Cleanup           |
+| 37     | Cross-check gvac rules vs BuildFlow gomod-checker for overlap/dedupe                                                                                                                | Medium     | S      | Quality           |
+| 38     | Benchmark Discover on go-cqrs-lite (largest monorepo)                                                                                                                               | Low        | S      | Quality           |
+| 39     | website-launch for go-version-auto-configure (sibling pattern)                                                                                                                      | Low        | L      | Feature           |
+| ~~40~~ | ~~docs-health HARVEST: pull section (f) into TODO_LIST.md / ROADMAP.md~~ done — harvested 2026-09-18 (16:10 audit), re-verified 2026-09-19                                          | ~~Medium~~ | ~~S~~  | ~~Documentation~~ |
+| 41     | Annotate project-dependency-graph status Q3 (version authority) with link to T6                                                                                                     | Low        | S      | Documentation     |
+| 42     | Refresh go-cqrs-lite-ecosystem-update-plan.md using gvac fleet data                                                                                                                 | Low        | S      | Documentation     |
+| 43     | oxlint-auto-configure: drop vendored/replace SDK pin after SDK v0.3.0                                                                                                               | Low        | S      | Cleanup           |
+| 44     | Verify no `replace` directives leak into any re-tagged go.mod (go-release Phase 3)                                                                                                  | High       | S      | Quality           |
+| 45     | Post-release: `go get @vX.Y.Z` clean-module verification per re-tag (proxy check)                                                                                                   | High       | M      | Quality           |
+| 46     | Add `gvac version` ldflags stamping in release pipeline                                                                                                                             | Low        | S      | Feature           |
+| 47     | Decide go-finding root minor as part of T1 (its flake/CI must follow)                                                                                                               | Critical   | S      | Decision          |
+| 48     | Split-brain check: structure-linter's "1.27.1 available" rule vs fleet policy — tune upstream or document exception per repo                                                        | Medium     | M      | Quality           |
+| ~~49~~ | ~~Add go.work presence detection to provider Trigger (currently triggers on go.mod files only)~~ done — go.work already in provider triggers (pkg/provider/provider.go:51)          | ~~Low~~    | ~~S~~  | ~~Bug~~           |
+| 50     | Retire /tmp/gvac + /tmp/fleet_report.txt into committed artifacts (bin/ + docs/)                                                                                                    | Low        | S      | Cleanup           |
 
 ## g) QUESTIONS ONLY YOU CAN ANSWER
 

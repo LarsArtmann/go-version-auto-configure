@@ -14,16 +14,16 @@ The session executed the docs-health skill end-to-end for real this time: VERIFY
 
 ### Stat cards
 
-| Metric | Value |
-| --- | --- |
-| Living docs updated | 5 (TODO_LIST, AGENTS, README, FEATURES, ROADMAP) + header provenance |
-| Status reports annotated | 3 (all files in `docs/status/`) |
+| Metric                    | Value                                                                                       |
+| ------------------------- | ------------------------------------------------------------------------------------------- |
+| Living docs updated       | 5 (TODO_LIST, AGENTS, README, FEATURES, ROADMAP) + header provenance                        |
+| Status reports annotated  | 3 (all files in `docs/status/`)                                                             |
 | Inline resolution markers | 35 (25 script-applied rows/items + 3 prose corrections + footer + verdicts via h/v/w kinds) |
-| Status reports archived | 3 → `docs/status/archived/` (git mv; completeness gate green) |
-| TODO items filed | T11 (12), T12 (6), T3 +6, header re-point |
-| Dogfood runs | 4 live (`check`, `fix --dry-run`, `fix`, `who-forces`) — all matched documented behavior |
-| Health scores | pre-fix Accuracy 8.25 / Fitness 8.5 → post-fix 10/10 |
-| Commits | 0 by me (harness forbids; auto-daemon owns commits) |
+| Status reports archived   | 3 → `docs/status/archived/` (git mv; completeness gate green)                               |
+| TODO items filed          | T11 (12), T12 (6), T3 +6, header re-point                                                   |
+| Dogfood runs              | 4 live (`check`, `fix --dry-run`, `fix`, `who-forces`) — all matched documented behavior    |
+| Health scores             | pre-fix Accuracy 8.25 / Fitness 8.5 → post-fix 10/10                                        |
+| Commits                   | 0 by me (harness forbids; auto-daemon owns commits)                                         |
 
 ---
 
@@ -86,9 +86,10 @@ Nothing data-destroying: no reverts of others' work, no code changes at all, gat
 
 ## f) TOP 50 THINGS TO GET DONE NEXT
 
-*Brainstorm list — a menu, not a commitment. Items 1–19 mirror TODO_LIST T-numbers (already harvested); **NEW** items are this session's delta for HARVEST routing (bounded → TODO_LIST, vague → ROADMAP).*
+_Brainstorm list — a menu, not a commitment. Items 1–19 mirror TODO_LIST T-numbers (already harvested); **NEW** items are this session's delta for HARVEST routing (bounded → TODO_LIST, vague → ROADMAP)._
 
 **Fleet-blocking / supply side (T1, T4):**
+
 1. T1: re-tag `go-atomic-write` with major.minor-only floor (owner-confirmed downgrade 1.27.1→1.26) — Critical | M
 2. T1: re-tag `go-finding` root + toolsdk after the T4 minor decision — Critical | M
 3. T1: re-tag `go-error-family` + remaining go-* libs with published patch floors — Critical | M
