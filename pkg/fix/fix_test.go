@@ -157,7 +157,7 @@ func TestApply_DepForcedFloorIsNamed(t *testing.T) {
 	assert.Empty(t, res.Applied)
 
 	d := res.DepForced[0]
-	assert.Equal(t, "1.26.7", d.Floor)
+	assert.Equal(t, surface.GoVersion("1.26.7"), d.Floor)
 	assert.Equal(
 		t,
 		[]string{"github.com/larsartmann/go-finding"},

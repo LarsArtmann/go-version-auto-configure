@@ -62,12 +62,12 @@ func Discover(root string) (*Surface, []Issue, error) {
 			return nil
 		}
 
-		rel, relErr := filepath.Rel(absRoot, path)
+		relStr, relErr := filepath.Rel(absRoot, path)
 		if relErr != nil {
 			return relErr
 		}
 
-		issues = append(issues, surf.absorbFile(path, rel, entry.Name())...)
+		issues = append(issues, surf.absorbFile(path, FilePath(relStr), entry.Name())...)
 
 		return nil
 	})
@@ -80,7 +80,7 @@ func Discover(root string) (*Surface, []Issue, error) {
 
 // absorbFile folds one discovered file into the surface and returns any
 // discovery issues it raised. It is Discover's per-file dispatch.
-func (s *Surface) absorbFile(path, rel, name string) []Issue {
+func (s *Surface) absorbFile(path string, rel FilePath, name string) []Issue {
 	switch {
 	case name == "go.mod":
 		module, toolchain, issue := parseGoMod(path, rel)
@@ -120,10 +120,14 @@ func (s *Surface) absorbFile(path, rel, name string) []Issue {
 
 // parseGoMod extracts the module path, the `go` directive, and the
 // `toolchain` directive from one go.mod.
-func parseGoMod(path, rel string) (*ModuleDirective, *ToolchainDirective, *Issue) {
+func parseGoMod(path string, rel FilePath) (*ModuleDirective, *ToolchainDirective, *Issue) {
 	data, err := os.ReadFile(path)
 	if err != nil {
-		return nil, nil, &Issue{Rule: RuleGoModUnparseable, Message: fmt.Sprintf("read go.mod: %v", err), File: rel}
+		return nil, nil, &Issue{
+			Rule:    RuleGoModUnparseable,
+			Message: fmt.Sprintf("read go.mod: %v", err),
+			File:    string(rel),
+		}
 	}
 
 	version, line, err := ParseDirective(KindGoMod, data)
@@ -135,7 +139,7 @@ func parseGoMod(path, rel string) (*ModuleDirective, *ToolchainDirective, *Issue
 		return nil, nil, &Issue{
 			Rule:    RuleGoModUnparseable,
 			Message: err.Error(),
-			File:    rel,
+			File:    string(rel),
 		}
 	}
 
@@ -144,12 +148,12 @@ func parseGoMod(path, rel string) (*ModuleDirective, *ToolchainDirective, *Issue
 		return nil, nil, &Issue{
 			Rule:    RuleGoModUnparseable,
 			Message: moduleErr.Error(),
-			File:    rel,
+			File:    string(rel),
 		}
 	}
 
 	return &ModuleDirective{
-		Path:    rel,
+		Path:    string(rel),
 		Kind:    KindGoMod,
 		Module:  modulePath,
 		Version: version,
@@ -159,7 +163,7 @@ func parseGoMod(path, rel string) (*ModuleDirective, *ToolchainDirective, *Issue
 
 // parseGoWork extracts the `go` and `toolchain` directives from a go.work
 // file.
-func parseGoWork(path, rel string) (*ModuleDirective, *ToolchainDirective) {
+func parseGoWork(path string, rel FilePath) (*ModuleDirective, *ToolchainDirective) {
 	data, err := os.ReadFile(path)
 	if err != nil {
 		return nil, nil
@@ -170,20 +174,20 @@ func parseGoWork(path, rel string) (*ModuleDirective, *ToolchainDirective) {
 		return nil, nil
 	}
 
-	workspace := &ModuleDirective{Path: rel, Kind: KindGoWork, Version: version, Line: line}
+	workspace := &ModuleDirective{Path: string(rel), Kind: KindGoWork, Version: version, Line: line}
 
 	return workspace, parseToolchainOf(KindGoWork, rel, data)
 }
 
 // parseToolchainOf extracts the `toolchain` directive from already-read
 // file content; a file without one yields nil.
-func parseToolchainOf(kind DirectiveKind, rel string, data []byte) *ToolchainDirective {
+func parseToolchainOf(kind DirectiveKind, rel FilePath, data []byte) *ToolchainDirective {
 	version, line, err := ParseToolchain(kind, data)
 	if err != nil || version == "" {
 		return nil
 	}
 
-	return &ToolchainDirective{Path: rel, Kind: kind, Version: version, Line: line}
+	return &ToolchainDirective{Path: string(rel), Kind: kind, Version: version, Line: line}
 }
 
 // nixGoPinRe matches nixpkgs Go references: go_1_26, go_1_27, and the
@@ -191,7 +195,7 @@ func parseToolchainOf(kind DirectiveKind, rel string, data []byte) *ToolchainDir
 var nixGoPinRe = regexp.MustCompile(`\bgo_([0-9]+)_([0-9]+)\b|\bbuildGo([0-9]{3})Module\b`)
 
 // scanNixPins extracts every nixpkgs Go pin with its line number.
-func scanNixPins(path, rel string) []Pin {
+func scanNixPins(path string, rel FilePath) []Pin {
 	data, err := os.ReadFile(path)
 	if err != nil {
 		return nil
@@ -214,7 +218,7 @@ func scanNixPins(path, rel string) []Pin {
 			}
 
 			pins = append(pins, Pin{
-				Path:    rel,
+				Path:    string(rel),
 				Version: GoVersion(parsed.String()),
 				Line:    lineNo + 1,
 				Source:  PinNixFlake,
@@ -230,7 +234,7 @@ var ciGoVersionRe = regexp.MustCompile(`^\s*go-version:\s*(.+?)\s*$`)
 
 // scanCIPins extracts every comparable CI go-version pin. Expression pins
 // (${{ matrix.go }}) and ranges are skipped: they carry no fixed floor.
-func scanCIPins(path, rel string) []Pin {
+func scanCIPins(path string, rel FilePath) []Pin {
 	data, err := os.ReadFile(path)
 	if err != nil {
 		return nil
@@ -255,7 +259,7 @@ func scanCIPins(path, rel string) []Pin {
 		}
 
 		pins = append(pins, Pin{
-			Path:    rel,
+			Path:    string(rel),
 			Version: GoVersion(parsed.String()),
 			Raw:     GoVersion(raw),
 			Line:    lineNo + 1,
@@ -267,9 +271,9 @@ func scanCIPins(path, rel string) []Pin {
 }
 
 // isCIWorkflow reports whether rel points into .github/workflows.
-func isCIWorkflow(rel string) bool {
-	return strings.HasPrefix(rel, ".github/workflows/") &&
-		(strings.HasSuffix(rel, ".yml") || strings.HasSuffix(rel, ".yaml"))
+func isCIWorkflow(rel FilePath) bool {
+	return strings.HasPrefix(string(rel), ".github/workflows/") &&
+		(strings.HasSuffix(string(rel), ".yml") || strings.HasSuffix(string(rel), ".yaml"))
 }
 
 // atoi is strconv.Atoi without the error path; callers only pass digit

@@ -234,7 +234,7 @@ func applyOne(ctx context.Context, root string, fx surface.Fix, run GoCommandRun
 		return fmt.Errorf("%w: %q", errUnknownDirectiveKind, fx.Kind)
 	}
 
-	got, err := currentDirective(abs, fx.Kind)
+	got, err := currentDirective(surface.FilePath(abs), fx.Kind)
 	if err != nil {
 		return fmt.Errorf("verify after edit: %w", err)
 	}
@@ -262,7 +262,7 @@ func ensureTidyStable(ctx context.Context, dir string, fx surface.Fix, run GoCom
 		return fmt.Errorf("tidy stability check: %w", err)
 	}
 
-	got, err := currentDirective(filepath.Join(dir, "go.mod"), surface.KindGoMod)
+	got, err := currentDirective(surface.FilePath(filepath.Join(dir, "go.mod")), surface.KindGoMod)
 	if err != nil {
 		return fmt.Errorf("verify tidy stability: %w", err)
 	}
@@ -271,7 +271,7 @@ func ensureTidyStable(ctx context.Context, dir string, fx surface.Fix, run GoCom
 		return nil
 	}
 
-	poisoners, err := resolvePoisoners(ctx, dir, run, string(got))
+	poisoners, err := resolvePoisoners(ctx, dir, run, got)
 	if err != nil {
 		return &DepForcedError{
 			Fix:       fx,
@@ -290,7 +290,7 @@ func ensureTidyStable(ctx context.Context, dir string, fx surface.Fix, run GoCom
 
 // resolvePoisoners lists modules whose go floor equals the forced floor
 // (the value tidy enforces, which is the highest dependency floor).
-func resolvePoisoners(ctx context.Context, dir string, run GoCommandRunner, floor string) ([]string, error) {
+func resolvePoisoners(ctx context.Context, dir string, run GoCommandRunner, floor surface.GoVersion) ([]string, error) {
 	out, err := run(ctx, dir, "list", "-m", "-f", "{{.Path}} {{.Version}} {{.GoVersion}}", "all")
 	if err != nil {
 		return nil, fmt.Errorf("list dependency floors: %w", err)
@@ -300,7 +300,7 @@ func resolvePoisoners(ctx context.Context, dir string, run GoCommandRunner, floo
 
 	for line := range strings.SplitSeq(out, "\n") {
 		fields := strings.Fields(strings.TrimSpace(line))
-		if len(fields) != 3 || fields[2] != floor {
+		if len(fields) != 3 || fields[2] != string(floor) {
 			continue
 		}
 
@@ -342,8 +342,8 @@ func (e *DepForcedError) Error() string {
 }
 
 // currentDirective re-parses the file and returns the current `go` directive.
-func currentDirective(abs string, kind surface.DirectiveKind) (surface.GoVersion, error) {
-	data, err := os.ReadFile(abs)
+func currentDirective(abs surface.FilePath, kind surface.DirectiveKind) (surface.GoVersion, error) {
+	data, err := os.ReadFile(string(abs))
 	if err != nil {
 		return "", fmt.Errorf("read %s: %w", abs, err)
 	}

@@ -177,7 +177,10 @@ func workersFor(work int) int {
 
 func cmdCheck(args []string, out io.Writer) int {
 	fs := flag.NewFlagSet("check", flag.ContinueOnError)
-	asJSON := fs.Bool("json", false, "emit machine-readable JSON")
+
+	var asJSON bool
+
+	fs.BoolVar(&asJSON, "json", false, "emit machine-readable JSON")
 
 	if err := fs.Parse(args); err != nil {
 		return exitError
@@ -185,7 +188,7 @@ func cmdCheck(args []string, out io.Writer) int {
 
 	analyses := analyzeAll(rootsFrom(fs.Args()))
 
-	if *asJSON {
+	if asJSON {
 		return emitCheckJSON(out, analyses)
 	}
 
@@ -312,8 +315,11 @@ type fixOutcome struct {
 
 func cmdFix(args []string, out io.Writer) int {
 	fs := flag.NewFlagSet("fix", flag.ContinueOnError)
-	dryRun := fs.Bool("dry-run", false, "report what would change without touching files")
-	asJSON := fs.Bool("json", false, "emit machine-readable JSON")
+
+	var dryRun, asJSON bool
+
+	fs.BoolVar(&dryRun, "dry-run", false, "report what would change without touching files")
+	fs.BoolVar(&asJSON, "json", false, "emit machine-readable JSON")
 
 	if err := fs.Parse(args); err != nil {
 		return exitError
@@ -321,9 +327,9 @@ func cmdFix(args []string, out io.Writer) int {
 
 	analyses := analyzeAll(rootsFrom(fs.Args()))
 
-	outcomes := applyAll(context.Background(), analyses, fix.Options{DryRun: *dryRun})
+	outcomes := applyAll(context.Background(), analyses, fix.Options{DryRun: dryRun})
 
-	if *asJSON {
+	if asJSON {
 		return emitFixJSON(out, outcomes)
 	}
 
@@ -462,7 +468,10 @@ func exitFromOutcomes(outcomes []fixOutcome) int {
 
 func cmdWhoForces(args []string, out io.Writer) int {
 	fs := flag.NewFlagSet("who-forces", flag.ContinueOnError)
-	asJSON := fs.Bool("json", false, "emit machine-readable JSON")
+
+	var asJSON bool
+
+	fs.BoolVar(&asJSON, "json", false, "emit machine-readable JSON")
 
 	if err := fs.Parse(args); err != nil {
 		return exitError
@@ -492,7 +501,7 @@ func cmdWhoForces(args []string, out io.Writer) int {
 		return strings.Compare(a.root, b.root)
 	})
 
-	if *asJSON {
+	if asJSON {
 		return emitFloorsJSON(out, results)
 	}
 

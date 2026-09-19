@@ -40,6 +40,13 @@ GOEXPERIMENT=jsonv2 go build -o go-version-auto-configure ./cmd/go-version-auto-
 go-version-auto-configure check ~/projects/go-finding   # detect drift, exit 1 when found
 go-version-auto-configure fix  ~/projects/go-finding    # auto-fix directive form
 go-version-auto-configure fix --dry-run .               # report without touching files
+go-version-auto-configure who-forces .                  # name the deps forcing each go directive
+```
+
+Built for fleet sweeps: every command accepts multiple roots (analyzed in parallel, reported sorted), `fix` skips clean repos entirely, and `--json` emits a stable machine-readable report for CI:
+
+```bash
+go-version-auto-configure check --json ~/projects/*/ | jq '.repos[] | select(.clean == false)'
 ```
 
 ### BuildFlow provider

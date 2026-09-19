@@ -84,7 +84,7 @@ func TestParseToolchain(t *testing.T) {
 			}
 
 			require.NoError(t, err)
-			assert.Equal(t, tt.want, got)
+			assert.Equal(t, GoVersion(tt.want), got)
 		})
 	}
 }
@@ -94,7 +94,7 @@ func TestParseModulePath(t *testing.T) {
 
 	path, err := ParseModulePath(KindGoMod, []byte("module example.com/sub/api\n\ngo 1.26\n"))
 	require.NoError(t, err)
-	assert.Equal(t, "example.com/sub/api", path)
+	assert.Equal(t, ModulePath("example.com/sub/api"), path)
 
 	workPath, err := ParseModulePath(KindGoWork, []byte("go 1.26\n\nuse .\n"))
 	require.NoError(t, err)
@@ -171,7 +171,7 @@ func TestParseNixPin(t *testing.T) {
 
 	tests := []struct {
 		name   string
-		token  string
+		token  nixGoRef
 		want   majorMinor
 		wantOK bool
 	}{

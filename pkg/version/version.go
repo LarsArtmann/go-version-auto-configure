@@ -32,14 +32,18 @@ var injected string
 // otherwise the git-derived VCS stamp, otherwise "dev".
 //
 //nolint:gochecknoglobals // resolved once at package init; consumers read it
-var Version = resolve(injected, readBuildInfo())
+var Version = resolve(versionInput(injected), readBuildInfo())
 
 // resolve picks the version. Precedence: ldflags injection (nix shortRev
 // or an explicit release string), then the toolchain's VCS stamp, then
 // "dev".
-func resolve(injected string, bi *debug.BuildInfo) string {
+// versionInput is a candidate version string: an ldflags injection or a
+// VCS stamp.
+type versionInput string
+
+func resolve(injected versionInput, bi *debug.BuildInfo) string {
 	if injected != "" {
-		return injected
+		return string(injected)
 	}
 
 	if stamp := vcsStamp(bi); stamp != "" {

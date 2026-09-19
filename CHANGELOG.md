@@ -4,6 +4,25 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [Unreleased]
+
+### Added
+
+- `who-forces` command: a per-module dependency-floor matrix naming which dependencies force (poison) each `go` directive and whether `go mod tidy` would re-raise it (`pkg/fix.AnalyzeFloors`).
+- Fleet-sweep enablers: `check`/`fix`/`who-forces` accept multiple roots analyzed in parallel, and `fix` skips clean repos entirely (no go invocations) so sweeps scale with drifted repos, not repo count.
+- `--json` machine-readable output for `check`, `fix`, and `who-forces` (`encoding/json/v2`, stable camelCase contract).
+- `toolchain` directive coverage: `toolchain` lines in go.mod/go.work are discovered; a stale one below the same file's `go` directive surfaces as `toolchain-below-directive` (suggest-only), and a toolchain naming a newer minor raises the effective floor for Nix/CI pin alignment.
+- `.editorconfig` and `.gitattributes`; dependabot config gained an explicit `open-pull-requests-limit` and an entry-level `gomod` update group.
+
+### Changed
+
+- Domain strings in `pkg/surface` and `pkg/fix` are now named types (`surface.Rule`, `surface.GoVersion`, `surface.ModulePath`, `fix.FailureCause`), matching go-finding's branded-type convention; the JSON wire format is unchanged.
+
+### Fixed
+
+- `go list -m` invocations run with `GOWORK=off` so a module's dependency graph cannot be resolved through an enclosing workspace.
+- Cleared every warning-severity golangci-lint finding (159 → 0); tests run in parallel; full-mode BuildFlow (race + coverage) green.
+
 ## [0.1.0] - 2026-09-18
 
 ### Added

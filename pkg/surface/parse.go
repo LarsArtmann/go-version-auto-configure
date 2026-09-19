@@ -155,41 +155,48 @@ func parseCIPin(raw string) (majorMinor, bool) {
 	return parsed, true
 }
 
+// nixGoRef is a nixpkgs reference to a Go toolchain: an attribute name
+// (go_1_26) or a builder function name (buildGo126Module).
+type nixGoRef string
+
+// digitRun is a run of ASCII digits matched by one of the pin regexes.
+type digitRun string
+
 // parseNixPin extracts a comparable major.minor from a nixpkgs Go
 // reference: an attribute name (go_1_26) or a builder function name
 // (buildGo126Module, 3-digit encoding of major.minor).
-func parseNixPin(token string) (majorMinor, bool) {
-	if digits, ok := strings.CutPrefix(token, "buildGo"); ok {
+func parseNixPin(token nixGoRef) (majorMinor, bool) {
+	if digits, ok := strings.CutPrefix(string(token), "buildGo"); ok {
 		digits = strings.TrimSuffix(digits, "Module")
 
 		if len(digits) != builderDigits {
 			return majorMinor{}, false
 		}
 
-		return parseTwoParts(digits[:1], digits[1:])
+		return parseTwoParts(digitRun(digits[:1]), digitRun(digits[1:]))
 	}
 
-	if rest, ok := strings.CutPrefix(token, "go_"); ok {
+	if rest, ok := strings.CutPrefix(string(token), "go_"); ok {
 		parts := strings.Split(rest, "_")
 
 		if len(parts) != majorMinorParts {
 			return majorMinor{}, false
 		}
 
-		return parseTwoParts(parts[0], parts[1])
+		return parseTwoParts(digitRun(parts[0]), digitRun(parts[1]))
 	}
 
 	return majorMinor{}, false
 }
 
 // parseTwoParts converts two digit runs into a majorMinor.
-func parseTwoParts(majorStr, minorStr string) (majorMinor, bool) {
-	major, err := strconv.Atoi(majorStr)
+func parseTwoParts(majorStr, minorStr digitRun) (majorMinor, bool) {
+	major, err := strconv.Atoi(string(majorStr))
 	if err != nil {
 		return majorMinor{}, false
 	}
 
-	minor, err := strconv.Atoi(minorStr)
+	minor, err := strconv.Atoi(string(minorStr))
 	if err != nil {
 		return majorMinor{}, false
 	}

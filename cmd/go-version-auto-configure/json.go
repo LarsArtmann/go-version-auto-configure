@@ -126,7 +126,10 @@ func toFixesJSON(fixes []surface.Fix) []jsonFix {
 	out := make([]jsonFix, 0, len(fixes))
 
 	for _, f := range fixes {
-		out = append(out, jsonFix{File: f.File, Kind: string(f.Kind), From: string(f.From), To: string(f.To), Line: f.Line})
+		out = append(
+			out,
+			jsonFix{File: f.File, Kind: string(f.Kind), From: string(f.From), To: string(f.To), Line: f.Line},
+		)
 	}
 
 	return out

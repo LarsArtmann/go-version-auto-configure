@@ -24,8 +24,8 @@ func writeRepo(t *testing.T, files map[string]string) string {
 	return root
 }
 
-func issueRules(issues []Issue) []string {
-	rules := make([]string, 0, len(issues))
+func issueRules(issues []Issue) []Rule {
+	rules := make([]Rule, 0, len(issues))
 	for _, issue := range issues {
 		rules = append(rules, issue.Rule)
 	}
@@ -56,15 +56,15 @@ func TestDiscoverAndAnalyze_PatchFormAcrossModules(t *testing.T) {
 		byPath[m.Path] = m
 	}
 
-	assert.Equal(t, "1.26.7", byPath["go.mod"].Version)
+	assert.Equal(t, GoVersion("1.26.7"), byPath["go.mod"].Version)
 	assert.Equal(t, KindGoMod, byPath["go.mod"].Kind)
-	assert.Equal(t, "1.26", byPath["sub/api/go.mod"].Version)
-	assert.Equal(t, "1.26.5", byPath["go.work"].Version)
+	assert.Equal(t, GoVersion("1.26"), byPath["sub/api/go.mod"].Version)
+	assert.Equal(t, GoVersion("1.26.5"), byPath["go.work"].Version)
 	assert.Equal(t, KindGoWork, byPath["go.work"].Kind)
 
 	require.Len(t, surf.CIPins, 1)
-	assert.Equal(t, "1.26", surf.CIPins[0].Version, "Version is the normalized floor")
-	assert.Equal(t, "1.26.7", surf.CIPins[0].Raw, "Raw preserves the patch component")
+	assert.Equal(t, GoVersion("1.26"), surf.CIPins[0].Version, "Version is the normalized floor")
+	assert.Equal(t, GoVersion("1.26.7"), surf.CIPins[0].Raw, "Raw preserves the patch component")
 
 	issues := Analyze(surf)
 	rules := issueRules(issues)
@@ -85,7 +85,7 @@ func TestDiscoverAndAnalyze_PatchFormAcrossModules(t *testing.T) {
 	require.NotNil(t, goModFix)
 	assert.Equal(t, "go.mod", goModFix.File)
 	assert.Equal(t, GoVersion("1.26.7"), goModFix.From)
-	assert.Equal(t, "1.26", goModFix.To)
+	assert.Equal(t, GoVersion("1.26"), goModFix.To)
 }
 
 func TestDiscoverAndAnalyze_NixPinBelowFloor(t *testing.T) {
@@ -217,7 +217,7 @@ func TestAnalyze_GoWorkTargetRespectsWorkspaceFloor(t *testing.T) {
 
 	require.NotNil(t, workFix)
 	assert.Equal(t, GoVersion("1.26.7"), workFix.From)
-	assert.Equal(t, "1.27", workFix.To, "go.work must cover the workspace floor")
+	assert.Equal(t, GoVersion("1.27"), workFix.To, "go.work must cover the workspace floor")
 }
 
 func TestAnalyze_GoWorkTargetIsDirectiveWhenAboveFloor(t *testing.T) {
@@ -238,7 +238,7 @@ func TestAnalyze_GoWorkTargetIsDirectiveWhenAboveFloor(t *testing.T) {
 	for _, issue := range issues {
 		if issue.Rule == RuleWorkDirectivePatchForm {
 			require.NotNil(t, issue.Fix)
-			assert.Equal(t, "1.26", issue.Fix.To)
+			assert.Equal(t, GoVersion("1.26"), issue.Fix.To)
 		}
 	}
 }
@@ -264,9 +264,9 @@ func TestDiscover_ToolchainDirectives(t *testing.T) {
 		byPath[tc.Path] = tc
 	}
 
-	assert.Equal(t, "go1.26.7", byPath["go.mod"].Version, "Version keeps the go prefix")
+	assert.Equal(t, GoVersion("go1.26.7"), byPath["go.mod"].Version, "Version keeps the go prefix")
 	assert.Equal(t, KindGoMod, byPath["go.mod"].Kind)
-	assert.Equal(t, "go1.25.2", byPath["go.work"].Version)
+	assert.Equal(t, GoVersion("go1.25.2"), byPath["go.work"].Version)
 	assert.Equal(t, KindGoWork, byPath["go.work"].Kind)
 }
 

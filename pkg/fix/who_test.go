@@ -8,6 +8,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/larsartmann/go-version-auto-configure/pkg/surface"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -49,7 +50,7 @@ func TestAnalyzeFloors_NamesPoisoners(t *testing.T) {
 
 	row := rows[0]
 	assert.Equal(t, "go.mod", row.Path)
-	assert.Equal(t, "example.com/m", row.Module)
+	assert.Equal(t, surface.ModulePath("example.com/m"), row.Module)
 	assert.Equal(t, surface.GoVersion("1.26"), row.Directive)
 	assert.Equal(t, surface.GoVersion("1.26.7"), row.MaxDepFloor)
 	assert.Equal(t, []string{"github.com/larsartmann/go-finding@v1.12.0"}, row.Poisoners)

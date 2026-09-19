@@ -79,7 +79,7 @@ func floorsForModule(ctx context.Context, root string, m surface.ModuleDirective
 	floors := map[string][]string{}
 
 	for line := range strings.SplitSeq(strings.TrimSuffix(out, "\n"), "\n") {
-		floor, _, entry, ok := parseFloorLine(line, string(m.Module))
+		floor, _, entry, ok := parseFloorLine(line, m.Module)
 
 		if !ok {
 			continue
@@ -106,10 +106,10 @@ func floorsForModule(ctx context.Context, root string, m surface.ModuleDirective
 // the module carrying it, and a printable "path@version" entry. The main
 // module itself and unreplaced development versions carry no floor here.
 // Results, in order: floor, carrying module, entry, ok.
-func parseFloorLine(line, module string) (string, string, string, bool) {
+func parseFloorLine(line string, module surface.ModulePath) (string, string, string, bool) {
 	fields := strings.Split(line, "\t")
 
-	if len(fields) != 3 || fields[0] == "" || fields[1] == "" || fields[1] == module {
+	if len(fields) != 3 || fields[0] == "" || fields[1] == "" || fields[1] == string(module) {
 		return "", "", "", false
 	}
 

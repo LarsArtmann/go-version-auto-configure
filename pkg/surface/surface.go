@@ -22,6 +22,10 @@ type GoVersion string
 // ModulePath is a Go module path, e.g. "github.com/larsartmann/go-finding".
 type ModulePath string
 
+// FilePath is a file path relative to the repository root, as carried by
+// every surface location.
+type FilePath string
+
 // Policy rules reported by Analyze.
 const (
 	// RuleGoDirectivePatchForm fires when a go.mod `go` directive carries a
