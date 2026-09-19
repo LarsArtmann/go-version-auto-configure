@@ -49,6 +49,28 @@ Built for fleet sweeps: every command accepts multiple roots (analyzed in parall
 go-version-auto-configure check --json ~/projects/*/ | jq '.repos[] | select(.clean == false)'
 ```
 
+When a form fix cannot stick, the tool says so truthfully and names the dependencies that force the floor — the supply-side re-tag targets:
+
+```text
+$ go-version-auto-configure fix .
+applied 0, dep-forced 1, held back 0, failed 0
+  dep-forced: rewrite go.mod directive in go.mod: go 1.26.7 → go 1.26
+              floor go 1.26.7 is forced by: github.com/larsartmann/go-finding, github.com/larsartmann/go-finding/toolsdk, github.com/larsartmann/linter-autoconfigure-sdk
+              fix supply-side: re-tag those modules with a major.minor-only go directive, then bump consumers
+```
+
+`who-forces` reports the same matrix for every module up front — directive, highest dependency floor, and who carries it — without touching anything.
+
+#### JSON contract
+
+The `--json` documents are a stable machine contract: field names and presence (`omitempty`) are guaranteed, and list fields are empty, never null.
+
+| Command      | Per-repo fields                                                                                          |
+| ------------ | -------------------------------------------------------------------------------------------------------- |
+| `check`      | `root`, `error?`, `clean`, `counts` (`total`, `mechanical`, `suggested`, `discovery`), `findings` (`rule`, `message`, `file`, `line`, `suggestion?`, `fix?`) |
+| `fix`        | `root`, `error?`, `applied`, `heldBack`, `depForced` (`fix`, `floor`, `poisoners?`), `failures`, `suggested` |
+| `who-forces` | `root`, `error?`, `modules` (`path`, `module`, `directive?`, `maxDepFloor?`, `poisoners?`, `poisoned`, `error?`) |
+
 ### BuildFlow provider
 
 BuildFlow discovers the provider when a consumer blank-imports it:

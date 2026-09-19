@@ -48,6 +48,7 @@ All commands accept multiple roots (parallel, sorted output) and `--json` (stabl
 
 - Installed toolchain: go1.26.7 with `GOTOOLCHAIN=local` — modules with a 1.27 floor do NOT build in this shell (go-finding, go-atomic-write, oxlint-auto-configure at head). That predates this tool; the tool _surfaces_ it as nix-pin/ci-pin alignment findings.
 - The auto-commit daemon commits changes in fleet repos quickly (heuristic messages). Verify with `git log`, don't assume.
+- `reports/` (coverage output) and `.crush/` (session DB) are gitignored local artifacts — expected to be dirty, nothing to commit.
 
 ## Known limitations (v0.2)
 
@@ -58,6 +59,7 @@ All commands accept multiple roots (parallel, sorted output) and `--json` (stabl
 ## Known-tool-bug notes (do not "fix" what these report)
 
 - **dependabot-auto-configure reports "no update groups" even for valid configs.** The config's `groups:` sits at the entry level (GitHub's schema; go-finding uses the same shape in production) and the tool still warns. Verified false positive 2026-09-18 by comparing against go-finding. The `open-pull-requests-limit` and groups entries are real and present; ignore the warning.
+- **cqrs-lint reports 2 info findings here, but this repo imports no go-cqrs-lite.** Verified against go.mod 2026-09-19 (no such require); ignore until the linter learns to skip non-consumers.
 - **branching-flow flags string fields/params without domain types in pkg/ code** ("should use phantom type"). This is fleet policy, not noise — go-finding models everything as named types (`RuleName`, `FilePath`, ...). This repo complies via `surface.Rule`/`GoVersion`/`ModulePath`/`FilePath` and `fix.FailureCause`. Wire DTOs in cmd/ (main package) are exempt.
 
 ## References

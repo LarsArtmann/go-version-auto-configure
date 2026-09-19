@@ -48,7 +48,7 @@ The session executed the in-repo portion of the TODO list: **T7 complete (all 3 
 2. **T9 — parser coverage.** Toolchain done; flake.lock open and documented as blocked-by-design (lock records a nixpkgs rev, not the Go version it packages; resolution needs an impure `nix eval`, but `Discover` must stay pure). Right home would be a separate opt-in command or BuildFlow step — design not started.
 3. **who-forces validation on real foreign repos.** Tested against seeded zero-dependency modules (offline-safe) and this repo. Never run against go-finding/go-atomic-write — i.e., never exercised with real dependency graphs, real network resolution, or the 1.27-floor-under-GOTOOLCHAIN=local failure mode. The matrix's fleet value is unproven in the field.
 4. **Parallel-sweep performance claim.** "Scales with drifted repos" is architecturally true (clean repos skip Apply) but **unbenchmarked**. No measurement exists for a 152-repo sweep; worker count is fixed (GOMAXPROCS-capped), not tunable via flag.
-5. **TODO_LIST hygiene (docs-health compliance).** I deleted done T7/T10 sections but left two `[x]`-marked rows in place (T3's v0.1.0 bullet, T9's toolchain bullet). docs-health's rule is *delete* done items (they live in CHANGELOG), not mark them. Self-inconsistency to clean up.
+5. ~~**TODO_LIST hygiene (docs-health compliance).** I deleted done T7/T10 sections but left two `[x]`-marked rows in place (T3's v0.1.0 bullet, T9's toolchain bullet). docs-health's rule is *delete* done items (they live in CHANGELOG), not mark them. Self-inconsistency to clean up.~~ done (deleted in this docs-health pass 2026-09-19)
 6. **JSON machine contract.** Shapes are stable but carry no schema-version field (`"schema": 1`), and the contract's alignment with go-finding's finding JSON was never considered — see question 2.
 7. **erraudit findings (6).** Reviewed via buildflow findings (all "error checked but enclosing function has no error return" — the deliberate skip-and-continue policy in Floor/toolchainFloor/rules). Judged correct-as-is without running the go-error-modernization skill's actual workflow (`erraudit fix --dry-run`, `--type-aware`). Verdict probably right, process shortcut taken.
 8. **Coverage visibility.** fix and cmd package coverage numbers were not captured in session output (tail cut them off). Unknown whether they meet the 80% bar.
@@ -64,7 +64,7 @@ The session executed the in-repo portion of the TODO list: **T7 complete (all 3 
 7. **go-auto-upgrade 265 findings triage** from the full-mode run — never opened.
 8. **cqrs-lint 2 findings** — never opened.
 9. **`buildflow doctor`** — the full run reported **9 tools unavailable (health check failed)**; never identified which or whether they should exist in this environment.
-10. **ROADMAP.md consistency check** — README/FEATURES changed; ROADMAP was neither read nor verified this session.
+10. ~~**ROADMAP.md consistency check** — README/FEATURES changed; ROADMAP was neither read nor verified this session.~~ done (done in this docs-health pass 2026-09-19)
 
 ## d) TOTALLY FUCKED UP
 
@@ -126,7 +126,7 @@ Nothing data-destroying: no reverts of others' work, no lost changes, no forced 
 26. Run `buildflow doctor`; identify the 9 unavailable tools; install or document.
 27. Investigate the forbidigo vanishing (confirm `.golangci.yml` truly unchanged; understand the mechanism; document in AGENTS if it's a tool quirk).
 28. Run the erraudit skill workflow properly (`fix --dry-run`, `--type-aware`) and disposition the 6 "error checked, no error return" warnings (nolint-with-rationale or refactor).
-29. Fix TODO_LIST hygiene: delete the two `[x]` rows (T3 v0.1.0, T9 toolchain) — they live in CHANGELOG.
+29. ~~Fix TODO_LIST hygiene: delete the two `[x]` rows (T3 v0.1.0, T9 toolchain) — they live in CHANGELOG.~~ done (deleted in this docs-health pass 2026-09-19)
 30. Promote stale-toolchain removal to a mechanical Fix (`go mod edit -toolchain=none` is provably a no-op restore) — policy #6 currently says suggest-only.
 31. `who-forces`: decide and implement `--allow-partial` (or keep fail-closed) for sweeps where some modules' `go list` fails (Q3-adjacent policy call).
 32. Surface discovery issues in `fix --json` (currently only in check's output — consistency gap).
@@ -137,18 +137,18 @@ Nothing data-destroying: no reverts of others' work, no lost changes, no forced 
 37. Mini-sweep validation: run `check --json ~/projects/<5 fleet repos>` and eyeball the machine output on real drift.
 
 **Docs / consistency:**
-38. ROADMAP.md: read + verify against the new CLI surface (docs-health VERIFY step skipped this session).
-39. Annotate/archive the two 2026-09-18 status reports (docs-health ANNOTATE) — they predate today's state.
-40. HARVEST this report's section f into TODO_LIST/ROADMAP with routing rigor (bounded → TODO_LIST, vague → ROADMAP).
-41. README: add `who-forces` example output + a short JSON contract table.
-42. AGENTS: note the session lesson "run the full gate before declaring done" if it proves recurrent (it is already the global rule; only re-derive if violated again).
+38. ~~ROADMAP.md: read + verify against the new CLI surface (docs-health VERIFY step skipped this session).~~ done (verified 2026-09-19; poisoner-matrix line updated for who-forces)
+39. ~~Annotate/archive the two 2026-09-18 status reports (docs-health ANNOTATE) — they predate today's state.~~ done (annotated + archived 2026-09-19)
+40. ~~HARVEST this report's section f into TODO_LIST/ROADMAP with routing rigor (bounded → TODO_LIST, vague → ROADMAP).~~ done (routed into TODO_LIST T11/T12 + T3 additions 2026-09-19)
+41. ~~README: add `who-forces` example output + a short JSON contract table.~~ done (added to README 2026-09-19 (dep-forced example + JSON contract table))
+42. ~~AGENTS: note the session lesson "run the full gate before declaring done" if it proves recurrent (it is already the global rule; only re-derive if violated again).~~ **Won't implement — conditional by design; re-derive only if the violation recurs (global rule already covers it).**
 
 **Polish / later:**
 43. `toolchain local` handling: currently silently ignored by parsing; consider an explicit info finding.
 44. who-forces poisoner entries could carry each dep's own floor (currently name@version only).
 45. `check`: consider surfacing the effective-floor driver in `--json` (today it's prose-only in messages).
 46. `--version` flag alias alongside the `version` subcommand (CLI convention).
-47. Inspect the `reports/` directory and `.crush/` — never opened this session; confirm they belong.
+47. ~~Inspect the `reports/` directory and `.crush/` — never opened this session; confirm they belong.~~ done (both gitignored local artifacts (reports/ coverage output, .crush session DB))
 48. Consider go.work rows in `who-forces` output marked as workspaces (currently silently skipped) — or document the skip in `--help`.
 49. Multi-root test with more roots than workers (exercises pool contention; current test uses 2).
 50. Versioned release cut (`v0.2.0`?) once items 13–15 land, cutting CHANGELOG `[Unreleased]` per go-release protocol.

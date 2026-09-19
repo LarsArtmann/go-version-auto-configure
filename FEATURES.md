@@ -1,6 +1,6 @@
 # Features
 
-Status legend: FULLY_FUNCTIONAL / PARTIALLY_FUNCTIONAL / BROKEN / DISABLED / PLANNED. Zero BROKEN and zero DISABLED rows as of the 2026-09-18 sweep (build + race test suite green, golangci gate at zero findings, dogfooded on this repo).
+Status legend: FULLY_FUNCTIONAL / PARTIALLY_FUNCTIONAL / BROKEN / DISABLED / PLANNED. Zero BROKEN and zero DISABLED rows, re-verified 2026-09-19 (build + test suite green, golangci gate at zero findings, dogfooded on this repo: `check` exits 1 on drift, `fix` reports the dep-forced steady state, `who-forces` runs clean).
 
 ## FULLY_FUNCTIONAL
 

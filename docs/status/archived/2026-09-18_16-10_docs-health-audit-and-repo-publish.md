@@ -30,9 +30,9 @@
 
 1. **T3 (tag + publish this tool)** — repo exists and is public; everything after that is open: v0.1.0 tag (gated on T1), GitHub Actions CI, GoReleaser + ldflags stamping, pkg.go.dev verification, website launch. The public repo currently has **zero CI** — publishing created that obligation.
 2. **Verification depth of the audit itself** — external fleet numbers (284/383 modules, 62×1.27, 241/42 flakes, 152 repos, 700 findings) could NOT be re-verified from this repo; they are consistent and cited to the in-repo 15:13 report, date-stamped. Trust chain ends at that report.
-3. **Report 15:13 is now stale but unannotated** — its section (f) items were harvested/routed today, but the report file carries no `done at` markers (ANNOTATE mode was not part of this session's mandate). A reader opening it cannot tell what shipped since.
+3. ~~**Report 15:13 is now stale but unannotated** — its section (f) items were harvested/routed today, but the report file carries no `done at` markers (ANNOTATE mode was not part of this session's mandate). A reader opening it cannot tell what shipped since.~~ done (annotated + archived 2026-09-19 (docs/status/archived/))
 4. **BuildFlow findings observed but not actioned:** dependabot-auto-configure reports 3 findings (missing `open-pull-requests-limit` is real — harvested to T10; the "no update groups" one contradicts the file on disk, likely stale-binary false positive); cqrs-lint reports 2 info findings that are false positives (this repo does not import go-cqrs-lite); skip_steps WARN: `go-mod-update` "matches no registered tool". None documented in AGENTS.md yet.
-5. **Doc hygiene tail** — one TODO_LIST edit landed as daemon commit `b13085e` AFTER the push: local is **ahead of origin by 1**, unpushed.
+5. ~~**Doc hygiene tail** — one TODO_LIST edit landed as daemon commit `b13085e` AFTER the push: local is **ahead of origin by 1**, unpushed.~~ done (pushed since; origin/master at 22e8874 as of 2026-09-19)
 
 ## c) NOT STARTED
 
@@ -80,34 +80,34 @@
 | 8  | T2: BuildFlow provider catalog entry + `buildflow --dry-run` discovery proof                                      | Medium   | S      | TODO T2      |
 | 9  | T2: decide DAG position (after go-mod-update, before nix-checker)                                                 | Medium   | S      | TODO T2      |
 | 10 | T3: GitHub Actions CI (lint + test + dogfood `check .` gate)                                                      | High     | S      | TODO T3      |
-| 11 | T3: v0.1.0 tag once T1 lands first clean versions                                                                 | High     | S      | TODO T3      |
+| ~~11~~ | ~~T3: v0.1.0 tag once T1 lands first clean versions~~ done at `17fdd1d` | ~~High~~ | ~~S~~ | ~~TODO T3~~ |
 | 12 | T3: GoReleaser + ldflags version stamping                                                                         | Medium   | M      | TODO T3      |
 | 13 | T3: pkg.go.dev + `go get @v0.1.0` verification; flip README install to go-get                                     | High     | S      | TODO T3      |
 | 14 | T3: website launch (sibling pattern) if it earns one                                                              | Low      | L      | TODO T3      |
-| 15 | T7: parallel repo execution + skip-if-clean fast path                                                             | High     | M      | TODO T7      |
-| 16 | T7: JSON output for CI/machines                                                                                   | High     | S      | TODO T7      |
-| 17 | T7: `who-forces` command (per-repo dep-floor matrix)                                                              | Medium   | M      | TODO T7      |
-| 18 | T9: go.mod/go.work `toolchain` directive handling                                                                 | Medium   | S      | TODO T9      |
+| ~~15~~ | ~~T7: parallel repo execution + skip-if-clean fast path~~ done at `22e8874` | ~~High~~ | ~~M~~ | ~~TODO T7~~ |
+| ~~16~~ | ~~T7: JSON output for CI/machines~~ done at `22e8874` | ~~High~~ | ~~S~~ | ~~TODO T7~~ |
+| ~~17~~ | ~~T7: `who-forces` command (per-repo dep-floor matrix)~~ done at `22e8874` | ~~Medium~~ | ~~M~~ | ~~TODO T7~~ |
+| ~~18~~ | ~~T9: go.mod/go.work `toolchain` directive handling~~ done at `22e8874` | ~~Medium~~ | ~~S~~ | ~~TODO T9~~ |
 | 19 | T9: flake.lock effective Go revision parsing                                                                      | Medium   | M      | TODO T9      |
 | 20 | T5: upstream gomod-checker "tidy revert" rule                                                                     | High     | M      | TODO T5      |
 | 21 | T6: VERSION/CHANGELOG/tag authority drift detection                                                               | Medium   | M      | TODO T6      |
-| 22 | T10: full-mode BuildFlow run (race + coverage)                                                                    | Medium   | S      | TODO T10     |
-| 23 | T10: .editorconfig + .gitattributes                                                                               | Low      | S      | TODO T10     |
-| 24 | T10: run `buildflow -s dependabot-auto-configure --fix` (open-pull-requests-limit) instead of hand-editing        | Low      | S      | NEW          |
+| ~~22~~ | ~~T10: full-mode BuildFlow run (race + coverage)~~ done at `22e8874` | ~~Medium~~ | ~~S~~ | ~~TODO T10~~ |
+| ~~23~~ | ~~T10: .editorconfig + .gitattributes~~ done at `22e8874` | ~~Low~~ | ~~S~~ | ~~TODO T10~~ |
+| ~~24~~ | ~~T10: run `buildflow -s dependabot-auto-configure --fix` (open-pull-requests-limit) instead of hand-editing~~ done — fixed + verified via buildflow -s dependabot-auto-configure 2026-09-18 | ~~Low~~ | ~~S~~ | ~~NEW~~ |
 | 25 | T1: re-tag hygiene — no `replace` directives in any re-tagged go.mod                                              | High     | S      | TODO T1      |
 | 26 | T1: post-release `go get @vX.Y.Z` proxy verification per re-tag                                                   | High     | M      | TODO T1      |
 | 27 | T1: after re-tags, bump autoconfigure family + fleet consumers                                                    | High     | L      | TODO T1      |
 | 28 | T1: re-run `check` fleet-wide, expect ~0 surviving mechanical findings                                            | High     | S      | TODO T1      |
 | 29 | T4: `--expect-minor` flag encoding the decision                                                                   | Medium   | S      | TODO T4      |
-| 30 | Push the pending local commit (b13085e, TODO_LIST cleanup) — local ahead of origin by 1                           | Low      | S      | NEW          |
-| 31 | Document cqrs-lint false positives in AGENTS.md (known-tool-bug contract)                                         | Low      | S      | NEW          |
+| ~~30~~ | ~~Push the pending local commit (b13085e, TODO_LIST cleanup) — local ahead of origin by 1~~ done — pushed; origin/master at 22e8874 (verified 2026-09-19) | ~~Low~~ | ~~S~~ | ~~NEW~~ |
+| ~~31~~ | ~~Document cqrs-lint false positives in AGENTS.md (known-tool-bug contract)~~ done — documented in AGENTS.md known-tool-bug notes 2026-09-19 | ~~Low~~ | ~~S~~ | ~~NEW~~ |
 | 32 | Investigate + document skip_steps WARN "go-mod-update matches no registered tool" (tool-name drift?)              | Medium   | S      | NEW          |
-| 33 | ANNOTATE report 15-13 (mark section (f) items with today's resolutions)                                           | Low      | S      | NEW          |
+| ~~33~~ | ~~ANNOTATE report 15-13 (mark section (f) items with today's resolutions)~~ done — annotated + archived 2026-09-19 | ~~Low~~ | ~~S~~ | ~~NEW~~ |
 | 34 | GitHub: decide branch protection for master — note it would block the auto-commit daemon's direct pushes (see g3) | Low      | S      | NEW          |
 | 35 | GitHub: add repo topics (go, buildflow, golangci, auto-configure, version-surface)                                | Low      | S      | NEW          |
 | 36 | Verify README build-from-source instructions in a truly clean environment (container/nix shell)                   | Medium   | S      | NEW          |
 | 37 | Check module-path case handling (github.com/larsartmann/… vs LarsArtmann casing) with a real `go get` post-tag    | Low      | S      | NEW          |
-| 38 | HARVEST this report into TODO_LIST/ROADMAP (items 30–37 are the new delta)                                        | Medium   | S      | NEW          |
+| ~~38~~ | ~~HARVEST this report into TODO_LIST/ROADMAP (items 30–37 are the new delta)~~ done — routed into TODO_LIST T11/T12 + T3 additions 2026-09-19 | ~~Medium~~ | ~~S~~ | ~~NEW~~ |
 | 39 | Add CI badge to README once workflow #10 lands                                                                    | Low      | S      | NEW          |
 | 40 | Persist /tmp fleet artifacts (fleet_report.txt, gvac binary recipe) into committed bin/ + docs/                   | Low      | S      | ROADMAP      |
 | 41 | Fleet sweep: fix + tidy + build + test across ~152 finding repos (after T1/T4)                                    | High     | L      | ROADMAP      |
@@ -129,4 +129,4 @@
 
 ---
 
-_Point-in-time snapshot, Markdown per explicit user instruction (skill default is HTML). Section (f) is HARVEST input for TODO_LIST.md/ROADMAP.md — items 1–29 and 40–50 already live there; 30–39 are the new delta needing harvest. Report written for the docs-health AUDIT + repo-publish session of 2026-09-18 15:13–16:10._
+_Point-in-time snapshot, Markdown per explicit user instruction (skill default is HTML). Section (f) is HARVEST input for TODO_LIST.md/ROADMAP.md — items 1–29 and 40–50 already live there; ~~30–39 are the new delta needing harvest~~ 30–39 were harvested 2026-09-19 (T3 additions, AGENTS known-tool-bug notes, this annotation pass). Report written for the docs-health AUDIT + repo-publish session of 2026-09-18 15:13–16:10._
