@@ -93,7 +93,7 @@ func TestSharedFlagContract(t *testing.T) {
 		"quiet": {
 			"quiet",
 			"false",
-			"exit-code-only: suppress the human report (JSON is still emitted with --json)",
+			"exit-code-only: suppress the human report (--json still emitted)",
 		},
 	}
 
@@ -168,10 +168,12 @@ func TestJSONWireContractGoldens(t *testing.T) {
 				},
 				"findings": []any{
 					map[string]any{
-						"rule":    "go-directive-patch-form",
-						"message": "go.mod declares go 1.26.7: the go directive is a floor and must be major.minor only; a patch component pins the toolchain to one exact patch and breaks trailing environments",
-						"file":    "go.mod",
-						"line":    float64(3),
+						"rule": "go-directive-patch-form",
+						"message": "go.mod declares go 1.26.7: the go directive is a floor and must be " +
+							"major.minor only; a patch component pins the toolchain to one exact patch and " +
+							"breaks trailing environments",
+						"file": "go.mod",
+						"line": float64(3),
 						"fix": map[string]any{
 							"file": "go.mod", "kind": "go.mod",
 							"from": "1.26.7", "to": "1.26", "line": float64(3),

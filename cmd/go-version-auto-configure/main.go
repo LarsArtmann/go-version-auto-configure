@@ -65,7 +65,8 @@ func run(args []string, out io.Writer) int {
 	if len(args) == 0 {
 		fmt.Fprint(
 			os.Stderr,
-			"go-version-auto-configure — unify the Go toolchain version surface\n\nRun 'go-version-auto-configure --help' for usage.\n",
+			"go-version-auto-configure — unify the Go toolchain version surface\n\n"+
+				"Run 'go-version-auto-configure --help' for usage.\n",
 		)
 
 		return exitError
@@ -111,12 +112,12 @@ type CommonFlags struct {
 
 // QuietFlags is shared by all three analysis commands.
 type QuietFlags struct {
-	Quiet bool `default:"false" flag:"quiet" help:"exit-code-only: suppress the human report (JSON is still emitted with --json)"`
+	Quiet bool `default:"false" flag:"quiet" help:"exit-code-only: suppress the human report (--json still emitted)"`
 }
 
 // AnalysisFlags is shared by check and fix: fleet-policy expectation.
 type AnalysisFlags struct {
-	ExpectMinor string `default:"" flag:"expect-minor" help:"fleet-expected Go minor (e.g. 1.27): surfaces above it fire alignment findings"`
+	ExpectMinor string `default:"" flag:"expect-minor" help:"fleet-expected Go minor (e.g. 1.27); higher surfaces drift"`
 }
 
 type checkFlags struct {
@@ -137,39 +138,111 @@ type whoForcesFlags struct {
 	CommonFlags
 	QuietFlags
 
-	AllowPartial bool `default:"false" flag:"allow-partial" help:"downgrade per-module go list failures from exit 2 to exit 1 (default: fail closed)"`
+	AllowPartial bool `default:"false" flag:"allow-partial" help:"downgrade per-module go list failures to exit 1"`
 }
 
 // appConfig carries no configuration file state; the tool is flag-driven.
 type appConfig struct{}
+
+// newCommand builds a cmdguard command, naming it in any construction
+// error so assembly failures point at the offending subcommand.
+func newCommand[F any](
+	use string,
+	flags F,
+	runE func(context.Context, *appConfig, F) error,
+	opts ...v4.CommandOption,
+) (v4.Command[appConfig, F], error) {
+	cmd, err := v4.NewCommand(use, flags, runE, opts...)
+	if err != nil {
+		return v4.Command[appConfig, F]{}, fmt.Errorf("build %s command: %w", use, err)
+	}
+
+	return cmd, nil
+}
+
+// addCommand attaches cmd to cli, naming it in any registration error.
+func addCommand[F any](cli *v4.CLI[appConfig], name string, cmd v4.Command[appConfig, F]) error {
+	if err := v4.AddCommand(cli, cmd); err != nil {
+		return fmt.Errorf("register %s command: %w", name, err)
+	}
+
+	return nil
+}
+
+// runCheck executes the check command body: analyze every root, emit the
+// report, and map findings to the exit contract.
+func runCheck(out io.Writer, ctx context.Context, f *checkFlags) error {
+	roots := rootsFrom(v4.ArgsFromContext(ctx))
+
+	opts, code := expectMinorOptions(out, f.ExpectMinor)
+	if code != exitOK {
+		return codeFrom(code)
+	}
+
+	analyses := analyzeAll(roots, f.Parallel, opts...)
+
+	if f.JSON {
+		return codeFrom(emitCheckJSON(out, analyses))
+	}
+
+	if !f.Quiet {
+		printCheckReports(out, analyses)
+	}
+
+	return codeFrom(exitFromAnalyses(analyses))
+}
+
+// runFix executes the fix command body: analyze, apply the mechanical
+// fixes, and report what changed (or what dependencies force back).
+func runFix(out io.Writer, ctx context.Context, f *fixFlags) error {
+	roots := rootsFrom(v4.ArgsFromContext(ctx))
+
+	opts, code := expectMinorOptions(out, f.ExpectMinor)
+	if code != exitOK {
+		return codeFrom(code)
+	}
+
+	analyses := analyzeAll(roots, f.Parallel, opts...)
+	outcomes := applyAll(ctx, analyses, fix.Options{DryRun: f.DryRun}, f.Parallel)
+
+	if f.JSON {
+		return codeFrom(emitFixJSON(out, outcomes))
+	}
+
+	if !f.Quiet {
+		printFixReports(out, outcomes, len(analyses) > 1)
+	}
+
+	return codeFrom(exitFromOutcomes(outcomes))
+}
+
+// runWhoForces executes the who-forces command body: name the dependency
+// floors behind each root's go directives.
+func runWhoForces(out io.Writer, ctx context.Context, f *whoForcesFlags) error {
+	roots := rootsFrom(v4.ArgsFromContext(ctx))
+	results := analyzeFloorsAll(roots, f.Parallel)
+
+	if f.JSON {
+		return codeFrom(emitFloorsJSON(out, results, f.AllowPartial))
+	}
+
+	if !f.Quiet {
+		printFloorsReports(out, results)
+	}
+
+	return codeFrom(exitFromFloors(results, f.AllowPartial))
+}
 
 // buildCLI assembles the cmdguard CLI: four commands, the exit-contract
 // sentinels, and a fang error handler that stays silent for findings and
 // already-reported failures (their output is the report itself) while
 // printing genuine usage errors plainly.
 func buildCLI(out io.Writer, ver string) (*v4.CLI[appConfig], error) {
-	checkCmd, err := v4.NewCommand(
+	checkCmd, err := newCommand(
 		"check",
 		&checkFlags{},
 		func(ctx context.Context, _ *appConfig, f *checkFlags) error {
-			roots := rootsFrom(v4.ArgsFromContext(ctx))
-
-			opts, code := expectMinorOptions(out, f.ExpectMinor)
-			if code != exitOK {
-				return codeFrom(code)
-			}
-
-			analyses := analyzeAll(roots, f.Parallel, opts...)
-
-			if f.JSON {
-				return codeFrom(emitCheckJSON(out, analyses))
-			}
-
-			if !f.Quiet {
-				printCheckReports(out, analyses)
-			}
-
-			return codeFrom(exitFromAnalyses(analyses))
+			return runCheck(out, ctx, f)
 		},
 		v4.WithShort("detect version-surface drift, exit 1 when found"),
 		v4.WithMinimumArgs(0),
@@ -178,47 +251,24 @@ func buildCLI(out io.Writer, ver string) (*v4.CLI[appConfig], error) {
 		return nil, err
 	}
 
-	fixCmd, err := v4.NewCommand("fix", &fixFlags{}, func(ctx context.Context, _ *appConfig, f *fixFlags) error {
-		roots := rootsFrom(v4.ArgsFromContext(ctx))
-
-		opts, code := expectMinorOptions(out, f.ExpectMinor)
-		if code != exitOK {
-			return codeFrom(code)
-		}
-
-		analyses := analyzeAll(roots, f.Parallel, opts...)
-		outcomes := applyAll(context.Background(), analyses, fix.Options{DryRun: f.DryRun}, f.Parallel)
-
-		if f.JSON {
-			return codeFrom(emitFixJSON(out, outcomes))
-		}
-
-		if !f.Quiet {
-			printFixReports(out, outcomes, len(analyses) > 1)
-		}
-
-		return codeFrom(exitFromOutcomes(outcomes))
-	}, v4.WithShort("auto-fix directive form, suggest the rest"), v4.WithMinimumArgs(0))
+	fixCmd, err := newCommand(
+		"fix",
+		&fixFlags{},
+		func(ctx context.Context, _ *appConfig, f *fixFlags) error {
+			return runFix(out, ctx, f)
+		},
+		v4.WithShort("auto-fix directive form, suggest the rest"),
+		v4.WithMinimumArgs(0),
+	)
 	if err != nil {
 		return nil, err
 	}
 
-	whoCmd, err := v4.NewCommand(
+	whoCmd, err := newCommand(
 		"who-forces",
 		&whoForcesFlags{},
 		func(ctx context.Context, _ *appConfig, f *whoForcesFlags) error {
-			roots := rootsFrom(v4.ArgsFromContext(ctx))
-			results := analyzeFloorsAll(roots, f.Parallel)
-
-			if f.JSON {
-				return codeFrom(emitFloorsJSON(out, results, f.AllowPartial))
-			}
-
-			if !f.Quiet {
-				printFloorsReports(out, results)
-			}
-
-			return codeFrom(exitFromFloors(results, f.AllowPartial))
+			return runWhoForces(out, ctx, f)
 		},
 		v4.WithShort("name the dependencies forcing each go directive"),
 		v4.WithMinimumArgs(0),
@@ -253,15 +303,15 @@ parallel and reported sorted by path.`),
 		return nil, err
 	}
 
-	if err := v4.AddCommand(cli, checkCmd); err != nil {
+	if err := addCommand(cli, "check", checkCmd); err != nil {
 		return nil, err
 	}
 
-	if err := v4.AddCommand(cli, fixCmd); err != nil {
+	if err := addCommand(cli, "fix", fixCmd); err != nil {
 		return nil, err
 	}
 
-	if err := v4.AddCommand(cli, whoCmd); err != nil {
+	if err := addCommand(cli, "who-forces", whoCmd); err != nil {
 		return nil, err
 	}
 

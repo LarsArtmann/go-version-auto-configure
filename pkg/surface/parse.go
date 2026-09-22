@@ -136,15 +136,6 @@ func versionParts(v string) ([]int, bool) {
 	return parts, true
 }
 
-// partAt returns the version component at index i, zero past the end.
-func partAt(parts []int, i int) int {
-	if i >= len(parts) {
-		return 0
-	}
-
-	return parts[i]
-}
-
 // directivePartAt returns the version component at index i for go-tool
 // directive ranking. The patch component (index 2) defaults to -1 when
 // absent: the go tool ranks the bare minor (go 1.26) below go 1.26.0,
