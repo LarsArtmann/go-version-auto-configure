@@ -6,7 +6,7 @@
 - **Purpose:** Detect Go toolchain version-surface drift (patch components in `go` directives, `go.work` below the workspace floor, Nix/CI pins trailing the module floor) and auto-fix the mechanically safe part
 - **Repo:** `github.com/larsartmann/go-version-auto-configure`
 - **Version:** 0.1.0 (tagged 2026-09-18 for BuildFlow integration; README install stays build-from-source until T1's clean re-tags land)
-- **Dogfooding caveat (this repo IS poisoned):** plain `go mod tidy` re-raises this repo's `go` directive to `go 1.26.7` — every published dependency (linter-autoconfigure-sdk, go-finding, go-finding/toolsdk) carries that patch floor, and tidy lifts the main module to the highest dependency floor (verified 2026-09-18: strip → tidy → back to `go 1.26.7`, build green; the daemon's dependency passes only make it happen sooner). Expected steady state: `go.mod` sits at 1.26.7; `/tmp/gvac fix .` reports it truthfully as `applied 0, dep-forced 1`, naming those modules as the poisoners — the strip cannot stick until the supply side re-tags (TODO_LIST.md T1). Do NOT "fix" go.mod to match the structure-linter's "1.27.1 available" suggestion — that direction is the accidental 1.27 wave (see Floor-poisoning section).
+- **Toolchain floor (updated 2026-09-22):** the module `go` directive is `go 1.27` (minor-only): the jsonv2 APIs in cmd/ are gated at language go1.27, and the fleet toolchain is go1.27 since the nixpkgs bump. `go mod tidy` may re-raise it to a dep-forced patch floor while published deps still carry one; that state is reported honestly by this tool's own `check` and is the T1 supply-side campaign's target, not a bug.
 
 ## Build & Run
 
