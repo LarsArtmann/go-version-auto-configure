@@ -76,8 +76,8 @@ The `--json` documents are a stable machine contract, versioned by the top-level
 | Command      | Per-repo fields                                                                                                                                              |
 | ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `check`      | `root`, `error?`, `clean`, `counts` (`total`, `mechanical`, `suggested`, `discovery`), `findings` (`rule`, `message`, `file`, `line`, `suggestion?`, `fix?`) |
-| `fix`        | `root`, `error?`, `applied`, `heldBack`, `depForced` (`fix`, `floor`), `failures`, `suggested`, `discovery`                                                 |
-| `who-forces` | `root`, `error?`, `modules` (`path`, `kind`, `module`, `directive?`, `maxDepFloor?`, `poisonerFloors?`, `poisoned`, `error?`)                               |
+| `fix`        | `root`, `error?`, `applied`, `heldBack`, `depForced` (`fix`, `floor`), `failures`, `suggested`, `discovery`                                                  |
+| `who-forces` | `root`, `error?`, `modules` (`path`, `kind`, `module`, `directive?`, `maxDepFloor?`, `poisonerFloors?`, `poisoned`, `error?`)                                |
 
 ### BuildFlow provider
 
