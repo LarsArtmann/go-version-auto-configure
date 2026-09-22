@@ -60,6 +60,13 @@ const (
 	// ignores such a line, so it is dead weight (usually stale after the go
 	// directive was raised).
 	RuleToolchainBelowDirective Rule = "toolchain-below-directive"
+
+	// RuleToolchainLocal fires when a `toolchain` directive names `local`:
+	// the go command reads it as "never switch toolchains", so it pins
+	// nothing and is invisible to floor analysis. Informational: the line
+	// is legal, but it silently opts the module out of toolchain
+	// resolution, which fleet policy wants surfaced.
+	RuleToolchainLocal Rule = "toolchain-local"
 )
 
 // DirectiveKind distinguishes which file declares a Go version.
@@ -150,38 +157,37 @@ type Surface struct {
 // which is the minimum toolchain the whole repo needs. The bool is false
 // when no module directive declares a parseable version.
 func (s *Surface) Floor() (majorMinor, bool) {
-	var best majorMinor
-
-	found := false
+	versions := make([]GoVersion, 0, len(s.Modules))
 
 	for _, m := range s.Modules {
-		parsed, err := parseMajorMinor(string(m.Version))
-		if err != nil {
-			continue
-		}
-
-		if !found || parsed.greaterThan(best) {
-			best = parsed
-			found = true
-		}
+		versions = append(versions, m.Version)
 	}
 
-	if !found {
-		return majorMinor{}, false
-	}
-
-	return best, true
+	return highestMajorMinor(versions)
 }
 
 // toolchainFloor returns the highest major.minor pinned by any `toolchain`
 // directive. The bool is false when none parses.
 func (s *Surface) toolchainFloor() (majorMinor, bool) {
+	versions := make([]GoVersion, 0, len(s.Toolchains))
+
+	for _, tc := range s.Toolchains {
+		versions = append(versions, tc.Version)
+	}
+
+	return highestMajorMinor(versions)
+}
+
+// highestMajorMinor returns the highest parseable major.minor among the
+// given versions; unparseable entries are skipped. The bool is false when
+// no version parses.
+func highestMajorMinor(versions []GoVersion) (majorMinor, bool) {
 	var best majorMinor
 
 	found := false
 
-	for _, tc := range s.Toolchains {
-		parsed, err := parseMajorMinor(string(tc.Version))
+	for _, v := range versions {
+		parsed, err := parseMajorMinor(string(v))
 		if err != nil {
 			continue
 		}
