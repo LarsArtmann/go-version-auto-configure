@@ -194,3 +194,33 @@ func TestParseNixPin(t *testing.T) {
 		})
 	}
 }
+
+func TestCompareDirectiveRanksBareMinorBelowZeroPatch(t *testing.T) {
+	t.Parallel()
+
+	assert.Negative(t, CompareDirective("1.26", "1.26.0"), "go tool ranking: go 1.26 < go 1.26.0")
+	assert.Negative(t, CompareDirective("1.26.0", "1.26.7"))
+	assert.Positive(t, CompareDirective("1.27", "1.26.7"))
+	assert.Equal(t, 0, CompareDirective("1.26", "1.26"))
+	assert.Equal(t, 0, CompareDirective("banana", "1.26"), "unparseable input compares as equal")
+}
+
+func TestFullModuleFloorIsOrderIndependent(t *testing.T) {
+	t.Parallel()
+
+	// GreaterVersion's old zero-padding read go 1.26.0 and go 1.26 as
+	// equal, so FullModuleFloor's max depended on discovery order and
+	// could return go 1.26 when a module carries go 1.26.0 (the x/text
+	// dep-forced shape). Both orders must yield the full floor.
+	first, _ := (&Surface{Modules: []ModuleDirective{
+		{Path: "go.mod", Kind: KindGoMod, Version: "1.26"},
+		{Path: "bridge/go.mod", Kind: KindGoMod, Version: "1.26.0"},
+	}}).FullModuleFloor()
+	second, _ := (&Surface{Modules: []ModuleDirective{
+		{Path: "bridge/go.mod", Kind: KindGoMod, Version: "1.26.0"},
+		{Path: "go.mod", Kind: KindGoMod, Version: "1.26"},
+	}}).FullModuleFloor()
+
+	assert.Equal(t, GoVersion("1.26.0"), first)
+	assert.Equal(t, GoVersion("1.26.0"), second)
+}

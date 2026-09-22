@@ -18,6 +18,7 @@ type majorMinor struct {
 // carries a three-digit minor.
 const (
 	majorMinorParts = 2
+	patchPartIndex  = 2
 	builderDigits   = 3
 )
 
@@ -82,28 +83,38 @@ func MinorForm(v GoVersion) GoVersion {
 }
 
 // GreaterVersion reports whether version a is a strictly higher Go version
-// than b, comparing every dotted component (missing components are zero):
-// "1.26.7" exceeds "1.26", and "1.27" exceeds "1.26.7". Unlike
-// parseMajorMinor the patch component matters here, because the go tool
-// lifts a directive to a dependency's exact patch floor. Versions that do
-// not parse never exceed anything.
+// than b, ranked the way the go tool ranks directives: full patch
+// granularity, with the bare minor ranking BELOW every patch form of the
+// same minor (go 1.26 < go 1.26.0 < go 1.26.7 — probed against the go
+// tool 2026-09-22). Unparseable versions never exceed anything.
 func GreaterVersion(a, b string) bool {
-	aParts, aOK := versionParts(a)
-	bParts, bOK := versionParts(b)
+	return CompareDirective(GoVersion(a), GoVersion(b)) > 0
+}
+
+// CompareDirective orders two Go version strings under the go tool's
+// directive ranking. Returns -1 when a ranks below b, 0 when equal, +1
+// when a ranks above b; comparisons involving unparseable inputs return 0.
+func CompareDirective(a, b GoVersion) int {
+	aParts, aOK := versionParts(string(a))
+	bParts, bOK := versionParts(string(b))
 
 	if !aOK || !bOK {
-		return false
+		return 0
 	}
 
 	for i := range max(len(aParts), len(bParts)) {
-		ai, bi := partAt(aParts, i), partAt(bParts, i)
+		ai, bi := directivePartAt(aParts, i), directivePartAt(bParts, i)
 
 		if ai != bi {
-			return ai > bi
+			if ai > bi {
+				return 1
+			}
+
+			return -1
 		}
 	}
 
-	return false
+	return 0
 }
 
 // versionParts parses a Go version into its dotted numeric components,
@@ -128,6 +139,23 @@ func versionParts(v string) ([]int, bool) {
 // partAt returns the version component at index i, zero past the end.
 func partAt(parts []int, i int) int {
 	if i >= len(parts) {
+		return 0
+	}
+
+	return parts[i]
+}
+
+// directivePartAt returns the version component at index i for go-tool
+// directive ranking. The patch component (index 2) defaults to -1 when
+// absent: the go tool ranks the bare minor (go 1.26) below go 1.26.0,
+// because a directive of go 1.26.0 requires a toolchain that go 1.26 does
+// not guarantee at patch granularity.
+func directivePartAt(parts []int, i int) int {
+	if i >= len(parts) {
+		if i == patchPartIndex {
+			return -1
+		}
+
 		return 0
 	}
 
