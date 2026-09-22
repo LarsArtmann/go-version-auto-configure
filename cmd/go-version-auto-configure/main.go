@@ -21,7 +21,6 @@ import (
 
 	"charm.land/fang/v2"
 	v4 "github.com/larsartmann/cmdguard/v4/pkg/cmdguard/v4"
-
 	"github.com/larsartmann/go-version-auto-configure/pkg/fix"
 	"github.com/larsartmann/go-version-auto-configure/pkg/surface"
 	"github.com/larsartmann/go-version-auto-configure/pkg/version"
@@ -64,7 +63,10 @@ func main() {
 
 func run(args []string, out io.Writer) int {
 	if len(args) == 0 {
-		fmt.Fprint(os.Stderr, "go-version-auto-configure — unify the Go toolchain version surface\n\nRun 'go-version-auto-configure --help' for usage.\n")
+		fmt.Fprint(
+			os.Stderr,
+			"go-version-auto-configure — unify the Go toolchain version surface\n\nRun 'go-version-auto-configure --help' for usage.\n",
+		)
 
 		return exitError
 	}
@@ -103,8 +105,8 @@ func run(args []string, out io.Writer) int {
 // recurses into embedded structs so the names, defaults, and help text
 // cannot drift between commands.
 type CommonFlags struct {
-	JSON     bool `default:"false" flag:"json" help:"emit machine-readable JSON"`
-	Parallel int  `default:"0" flag:"parallel" help:"max repositories analyzed concurrently (0 = auto: CPU count)"`
+	JSON     bool `default:"false" flag:"json"     help:"emit machine-readable JSON"`
+	Parallel int  `default:"0"     flag:"parallel" help:"max repositories analyzed concurrently (0 = auto: CPU count)"`
 }
 
 // QuietFlags is shared by all three analysis commands.
@@ -127,12 +129,14 @@ type fixFlags struct {
 	CommonFlags
 	QuietFlags
 	AnalysisFlags
+
 	DryRun bool `default:"false" flag:"dry-run" help:"report what would change without touching files"`
 }
 
 type whoForcesFlags struct {
 	CommonFlags
 	QuietFlags
+
 	AllowPartial bool `default:"false" flag:"allow-partial" help:"downgrade per-module go list failures from exit 2 to exit 1 (default: fail closed)"`
 }
 
@@ -144,26 +148,32 @@ type appConfig struct{}
 // already-reported failures (their output is the report itself) while
 // printing genuine usage errors plainly.
 func buildCLI(out io.Writer, ver string) (*v4.CLI[appConfig], error) {
-	checkCmd, err := v4.NewCommand("check", &checkFlags{}, func(ctx context.Context, _ *appConfig, f *checkFlags) error {
-		roots := rootsFrom(v4.ArgsFromContext(ctx))
+	checkCmd, err := v4.NewCommand(
+		"check",
+		&checkFlags{},
+		func(ctx context.Context, _ *appConfig, f *checkFlags) error {
+			roots := rootsFrom(v4.ArgsFromContext(ctx))
 
-		opts, code := expectMinorOptions(out, f.ExpectMinor)
-		if code != exitOK {
-			return codeFrom(code)
-		}
+			opts, code := expectMinorOptions(out, f.ExpectMinor)
+			if code != exitOK {
+				return codeFrom(code)
+			}
 
-		analyses := analyzeAll(roots, f.Parallel, opts...)
+			analyses := analyzeAll(roots, f.Parallel, opts...)
 
-		if f.JSON {
-			return codeFrom(emitCheckJSON(out, analyses))
-		}
+			if f.JSON {
+				return codeFrom(emitCheckJSON(out, analyses))
+			}
 
-		if !f.Quiet {
-			printCheckReports(out, analyses)
-		}
+			if !f.Quiet {
+				printCheckReports(out, analyses)
+			}
 
-		return codeFrom(exitFromAnalyses(analyses))
-	}, v4.WithShort("detect version-surface drift, exit 1 when found"), v4.WithMinimumArgs(0))
+			return codeFrom(exitFromAnalyses(analyses))
+		},
+		v4.WithShort("detect version-surface drift, exit 1 when found"),
+		v4.WithMinimumArgs(0),
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -193,20 +203,26 @@ func buildCLI(out io.Writer, ver string) (*v4.CLI[appConfig], error) {
 		return nil, err
 	}
 
-	whoCmd, err := v4.NewCommand("who-forces", &whoForcesFlags{}, func(ctx context.Context, _ *appConfig, f *whoForcesFlags) error {
-		roots := rootsFrom(v4.ArgsFromContext(ctx))
-		results := analyzeFloorsAll(roots, f.Parallel)
+	whoCmd, err := v4.NewCommand(
+		"who-forces",
+		&whoForcesFlags{},
+		func(ctx context.Context, _ *appConfig, f *whoForcesFlags) error {
+			roots := rootsFrom(v4.ArgsFromContext(ctx))
+			results := analyzeFloorsAll(roots, f.Parallel)
 
-		if f.JSON {
-			return codeFrom(emitFloorsJSON(out, results, f.AllowPartial))
-		}
+			if f.JSON {
+				return codeFrom(emitFloorsJSON(out, results, f.AllowPartial))
+			}
 
-		if !f.Quiet {
-			printFloorsReports(out, results)
-		}
+			if !f.Quiet {
+				printFloorsReports(out, results)
+			}
 
-		return codeFrom(exitFromFloors(results, f.AllowPartial))
-	}, v4.WithShort("name the dependencies forcing each go directive"), v4.WithMinimumArgs(0))
+			return codeFrom(exitFromFloors(results, f.AllowPartial))
+		},
+		v4.WithShort("name the dependencies forcing each go directive"),
+		v4.WithMinimumArgs(0),
+	)
 	if err != nil {
 		return nil, err
 	}

@@ -548,7 +548,12 @@ func TestAnalyze_GoWorkPatchRequiredByZeroPatchFloorIsSilent(t *testing.T) {
 	assert.Empty(t, discoverIssues)
 
 	rules := issueRules(Analyze(s))
-	assert.NotContains(t, rules, RuleWorkDirectivePatchForm, "stripping go.work to go 1.26 would break the workspace against the 1.26.0 module floor")
+	assert.NotContains(
+		t,
+		rules,
+		RuleWorkDirectivePatchForm,
+		"stripping go.work to go 1.26 would break the workspace against the 1.26.0 module floor",
+	)
 	assert.NotContains(t, rules, RuleGoWorkBelowFloor, "go 1.26.7 covers go 1.26.0")
 }
 

@@ -3,8 +3,8 @@ package main
 import (
 	"encoding/json"
 	"os"
-	"runtime"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 
@@ -138,7 +138,11 @@ func jsonGolden(t *testing.T, args ...string) map[string]any {
 	require.NotEqual(t, exitError, code, "golden scenario must not hard-fail: %v", args)
 
 	var doc map[string]any
-	require.NoError(t, json.Unmarshal([]byte(strings.ReplaceAll(out.String(), root, "<ROOT>")), &doc), "wire format must be valid JSON")
+	require.NoError(
+		t,
+		json.Unmarshal([]byte(strings.ReplaceAll(out.String(), root, "<ROOT>")), &doc),
+		"wire format must be valid JSON",
+	)
 
 	return doc
 }
@@ -164,10 +168,10 @@ func TestJSONWireContractGoldens(t *testing.T) {
 				},
 				"findings": []any{
 					map[string]any{
-						"rule": "go-directive-patch-form",
+						"rule":    "go-directive-patch-form",
 						"message": "go.mod declares go 1.26.7: the go directive is a floor and must be major.minor only; a patch component pins the toolchain to one exact patch and breaks trailing environments",
-						"file": "go.mod",
-						"line": float64(3),
+						"file":    "go.mod",
+						"line":    float64(3),
 						"fix": map[string]any{
 							"file": "go.mod", "kind": "go.mod",
 							"from": "1.26.7", "to": "1.26", "line": float64(3),
@@ -182,9 +186,17 @@ func TestJSONWireContractGoldens(t *testing.T) {
 		"schema": float64(2),
 		"repos": []any{
 			map[string]any{
-				"root":      "<ROOT>",
-				"applied":   []any{},
-				"heldBack":  []any{map[string]any{"file": "go.mod", "kind": "go.mod", "from": "1.26.7", "to": "1.26", "line": float64(3)}},
+				"root":    "<ROOT>",
+				"applied": []any{},
+				"heldBack": []any{
+					map[string]any{
+						"file": "go.mod",
+						"kind": "go.mod",
+						"from": "1.26.7",
+						"to":   "1.26",
+						"line": float64(3),
+					},
+				},
 				"depForced": []any{},
 				"failures":  []any{},
 				"suggested": []any{},
