@@ -74,9 +74,25 @@ All twelve items shipped (see CHANGELOG Unreleased for the full list):
 - [x] `buildflow doctor` run: the unavailable binaries (bandit, cargo-*, codespell, dprint, eslint, hadolint, jest, lychee, madge, …) are non-Go-ecosystem tools this Go-only repo never triggers ("not applicable", not failing); environment checks (disk, git identity, GOEXPERIMENT) green
 - [x] skip_steps WARN "go-mod-update matches no registered tool" diagnosed: cosmetic, single-step mode only — in full pipeline runs both entries skip correctly ("skipped via skip_steps config"); no tool-name drift
 - [ ] Triage the 366 go-auto-upgrade findings (grew from 265): all are testify → stdlib/testing migration suggestions on test assertions — a fleet-wide policy call (migrate off testify or keep it), not repo debt; needs an owner decision before any mechanical migration
-- [ ] The 3 remaining branching-flow INDEX_OUT_OF_RANGE warnings on the worker-pool `slices[i] = …` pattern are provably safe (index bounded by the range) but unlabeled — either a linter upstream fix or documented nolint
+- [ ] The remaining branching-flow INDEX_OUT_OF_RANGE warnings on the worker-pool `results[i] = …` pattern are provably safe (index bounded by the range) but unlabeled — reduced from 3 sites to 1 by the generic `runSorted` pool (2026-09-22 cmdguard migration); either a linter upstream fix or documented nolint
 - [ ] dependabot-auto-configure 2 findings remain (documented false positive, AGENTS.md known-tool-bugs)
 - [ ] forbidigo vanishing (9 `fmt.Print*` hits gone after `buildflow format`) not reproducible in the 2026-09-22 run (forbidigo findings absent from both pre- and post-format states); watch for recurrence
+
+## T13 — cmdguard CLI surface migration (from the 2026-09-22 dedup session + Pareto plan) — MOSTLY DONE 2026-09-22
+
+Plan: `docs/planning/2026-09-22_22-07_cmdguard-cli-surface-and-verification-plan.md` (spike verdict addendum §6).
+
+- [x] WP-A exit-contract spike: silent exit-1-findings verified through `v4.ExitError` + selective `WithFangErrorHandler` suppression; verdict GO (plan §6)
+- [x] WP-B: all four command surfaces migrated to `github.com/larsartmann/cmdguard/v4`; `runFlags`/`newRunFlagSet`/`parseRoots`/`usage` deleted; shared flags via embedded exported flag structs (`CommonFlags`/`QuietFlags`/`AnalysisFlags` — cmdguard skips unexported embedded types)
+- [x] WP-C: exit-code matrix + `-h` contract tests; JSON wire contract locked by full-document goldens (schema 2)
+- [x] WP-D: guard-rails — shared-flag-contract golden test + `TestNoRawFlagSkeleton` (bans `flag`/cobra imports in `cmd/`)
+- [x] WP-F: `GOTOOLCHAIN=go1.27.1` pinned in flake.nix devShell; AGENTS commands de-prefixed; BuildFlow's global `GOWORK=off` overridden to empty (it broke `go work edit` tests inside `nix develop`)
+- [x] WP-J: `readLines`/`rootsFrom`/`workersFor` unit tests
+- [x] WP-K: [docs/DEDUPLICATION.md](docs/DEDUPLICATION.md) baseline; post-migration art-dupl run shows zero harmful `cmd/` clones
+- [x] WP-L: triplicated worker pools consolidated into the generic `runSorted[I, R]` (also shrinks the branching-flow warning surface)
+- [ ] WP-I: who-forces child-process env — pass/normalize the toolchain so `go list` works on 1.27-floor repos from older shells (reproduce first: known failure from the 2026-09-19 dogfood)
+- [ ] WP-H: reconcile the AGENTS.md floor-policy text with the sibling plan's fleet-minor ADR (T4) outcome
+- [ ] WP-Q: go-atomic-write direct-dep tidy warning (gated on T4/T1 re-tags)
 
 ## T5 — Upstream gomod-checker rule: "tidy revert" detection — WORTH CONSIDERING
 

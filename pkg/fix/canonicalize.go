@@ -55,7 +55,7 @@ func ExecSplitRunner() SplitRunner {
 		cmd.WaitDelay = execWaitDelay
 
 		if moduleScoped(args) {
-			cmd.Env = append(os.Environ(), "GOWORK=off")
+			cmd.Env = append(append(os.Environ(), "GOWORK=off"), moduleScopedExtraEnv()...)
 		}
 
 		var stdoutBuf, stderrBuf strings.Builder

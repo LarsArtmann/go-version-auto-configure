@@ -207,3 +207,47 @@ func TestApply_UnknownDirectiveKindFails(t *testing.T) {
 	require.Len(t, res.Failures, 1)
 	assert.NotEmpty(t, res.Failures[0].Cause, "failure carries a cause")
 }
+
+func TestModuleScopedExtraEnv(t *testing.T) {
+	t.Run("local pin is normalized to auto", func(t *testing.T) {
+		t.Setenv("GOTOOLCHAIN", "local")
+		assert.Equal(t, []string{"GOTOOLCHAIN=auto"}, moduleScopedExtraEnv())
+	})
+
+	t.Run("unset is normalized to auto", func(t *testing.T) {
+		t.Setenv("GOTOOLCHAIN", "")
+		assert.Equal(t, []string{"GOTOOLCHAIN=auto"}, moduleScopedExtraEnv())
+	})
+
+	t.Run("explicit non-local pin is inherited untouched", func(t *testing.T) {
+		t.Setenv("GOTOOLCHAIN", "go1.27.1")
+		assert.Nil(t, moduleScopedExtraEnv())
+	})
+}
+
+// TestModuleScopedListSurvivesLocalOlderShell verifies the WP-I scenario from
+// the 2026-09-22 plan end to end: a parent shell pinned to an OLDER local
+// toolchain must not stop `go list -m` from reading a module whose floor is
+// newer. The child gets GOTOOLCHAIN=auto, resolves the newer toolchain (cached
+// in this environment), and reports the true floor. Skipped when no newer
+// toolchain can be resolved (offline or unpinned CI without the cache).
+func TestModuleScopedListSurvivesLocalOlderShell(t *testing.T) {
+	if _, err := exec.LookPath("go"); err != nil {
+		t.Skip("go binary unavailable")
+	}
+
+	t.Setenv("GOTOOLCHAIN", "local")
+
+	dir := t.TempDir()
+	write := func(name, content string) {
+		t.Helper()
+		require.NoError(t, os.WriteFile(filepath.Join(dir, name), []byte(content), 0o644))
+	}
+	write("go.mod", "module example.com/floorcheck\n\ngo 1.27\n")
+	write("main.go", "package main\n\nfunc main() {}\n")
+
+	run := EditRunner()
+	out, err := run(context.Background(), dir, "list", "-m")
+	require.NoError(t, err, "module-scoped go list must survive a local older shell: %s", out)
+	assert.Contains(t, out, "example.com/floorcheck")
+}

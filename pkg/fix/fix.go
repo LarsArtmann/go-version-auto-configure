@@ -155,7 +155,7 @@ func EditRunner() GoCommandRunner {
 		cmd.Dir = dir
 
 		if moduleScoped(args) {
-			cmd.Env = append(os.Environ(), "GOWORK=off")
+			cmd.Env = append(append(os.Environ(), "GOWORK=off"), moduleScopedExtraEnv()...)
 		}
 
 		out, err := cmd.CombinedOutput()
@@ -177,6 +177,22 @@ func EditRunner() GoCommandRunner {
 // moduleScoped reports whether a go invocation must ignore any enclosing
 // workspace: module edits and module listings resolve the module under dir,
 // never the workspace above it.
+// moduleScopedExtraEnv returns the extra environment module-scoped commands
+// need beyond GOWORK=off. GOTOOLCHAIN=auto is appended when the parent shell
+// pins "local" (or nothing): a `go list -m` must reflect the analyzed
+// module's own floor, and a shell stuck on an older local toolchain would
+// otherwise fail the listing with "go.mod requires go >= X" — the exact
+// drift who-forces exists to surface. An explicit non-local parent pin (the
+// fleet standard, e.g. GOTOOLCHAIN=go1.27.1) is inherited untouched.
+func moduleScopedExtraEnv() []string {
+	switch os.Getenv("GOTOOLCHAIN") {
+	case "", "local":
+		return []string{"GOTOOLCHAIN=auto"}
+	default:
+		return nil
+	}
+}
+
 func moduleScoped(args []string) bool {
 	return len(args) > 0 && (args[0] == "mod" || args[0] == "list")
 }

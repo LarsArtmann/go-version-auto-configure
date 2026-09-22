@@ -15,7 +15,15 @@ The supply-side re-tags (TODO_LIST T1) unblock the consumer half of convergence.
 - Fix flake typos the scan surfaced (`go_256`, `go_1_`)
 - Fleet poisoner matrix: aggregate the per-repo `who-forces` reports (shipped 2026-09-19) across module caches into one fleet-wide table of every published library carrying a patch floor
 
-### 2. Version-surface coverage expansion
+### 2. cmdguard adoption across the auto-configurer family
+
+`go-version-auto-configure` migrated its CLI to `github.com/larsartmann/cmdguard/v4` (2026-09-22, TODO_LIST T13). The raw idea, not yet bounded:
+
+- Migrate the sibling auto-configurers (golangci-lint-autoconfigure, oxlint-auto-configure, dependabot-auto-configure, …) onto cmdguard with the same embedded-shared-flags shape, so `--json`/`--parallel`/`--quiet` behave identically fleet-wide
+- Extract a small shared kit (flag structs, exit-contract sentinels, the silent-findings fang error handler) so each migration is mostly deletion
+- Revisit the styling tradeoff recorded in CHANGELOG (plain `Error:` lines) if cmdguard/fang grows a delegating default error handler
+
+### 3. Version-surface coverage expansion
 
 - Tier-2 pin sources: `.tool-versions`, `mise.toml`, Dockerfiles (the same version declared in yet more places)
 - Per-repo config file (`.goversionrc`) for floor expectations, so policy exceptions are declarative instead of tribal

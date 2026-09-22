@@ -8,6 +8,19 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Added
 
+- `cmd/` migrated to the fleet CLI framework `github.com/larsartmann/cmdguard/v4`: struct-tag flag structs with construction-time validation, shared `--json`/`--parallel`/`--quiet` flags via embedded structs, fang-styled help, and the exit contract (0 clean / 1 findings / 2 errors) mapped through sentinel errors. The hand-rolled `flag`-package skeleton (`runFlags`/`newRunFlagSet`/`parseRoots`/`usage`) is deleted; guard tests ban the raw `flag`/cobra skeleton class from returning and lock the shared flag contract and the `--json` wire documents (schema 2) with golden tests.
+- Generic `runSorted` worker pool: the triplicated bounded-pool-plus-sort plumbing in `analyzeAll`/`applyAll`/`analyzeFloorsAll` is now one helper.
+- flake.nix devShell pins `GOTOOLCHAIN=go1.27.1` (no more command prefixes inside `nix develop`) and clears BuildFlow's global `GOWORK=off`, which silently broke `go work edit` there.
+- `docs/DEDUPLICATION.md`: the accepted-duplication baseline for future art-dupl sweeps.
+
+### Changed
+
+- `--help`/`-h` now render the fang-styled help and exit 0 (previously the hand-rolled skeleton printed plain usage and exited 2). `-h` per subcommand behaves the same way.
+- Hard errors (unknown flags, unknown commands) print as plain `Error: …` lines instead of the fang-styled block — the custom error handler must stay silent for the exit-1 findings sentinel (the report is the output) and therefore replaces the styled default entirely.
+- A `version` subcommand and `--version`/`-version` aliases keep printing the fleet-stamped version line; fang's `--version` shows its own styled output.
+
+### Added
+
 - go.work workspace-floor handling (T0): the new `go-work-below-floor` rule detects a go.work `go` directive sitting below the workspace module floor at FULL patch granularity and restores it mechanically (the go-finding/BuildFlow gotcha-#169 outage class); the `go-work-patch-form` strip is now suppressed when a dep-forced module floor REQUIRES the patch form, so the fixer can no longer invalidate a workspace.
 - `pkg/fix.CanonicalizeGoMod`: byte-preserving go.mod directive canonicalization (patch-form go line rewrite via text surgery, optional `toolchain` directive stripping) guarded by a non-mutating `go mod tidy -diff` dependency-floor gate with atomic revert, plus an installed-toolchain guard. This is the fleet-policy normalizer behind BuildFlow's `go-mod-normalize`.
 - `pkg/fix.SyncGoWorkDirectives`: scoped entry point that applies only the go.work directive fixes (below-floor restorations and floor-safe patch strips) for workspace-arbiter consumers.
