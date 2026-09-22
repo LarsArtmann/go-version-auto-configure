@@ -53,7 +53,7 @@ func formIssues(s *Surface, workspaceFloor majorMinor, hasFloor bool) []Issue {
 
 		parsed, err := parseMajorMinor(string(m.Version))
 		if err != nil {
-			continue //nolint:erraudit // deliberate filter: unparseable directives surface as go-mod-unparseable discovery findings
+			continue //nolint:erraudit // deliberate filter: unparseable directives surface as unparseable discovery findings
 		}
 
 		// go.work must cover every module it lists: when the workspace
