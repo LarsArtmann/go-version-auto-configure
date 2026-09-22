@@ -56,7 +56,12 @@ func TestRun_VersionAndUsage(t *testing.T) {
 	t.Parallel()
 
 	assert.Equal(t, exitOK, run([]string{"version"}, &strings.Builder{}))
-	assert.Equal(t, exitOK, run([]string{"--version"}, &strings.Builder{}), "--version aliases the version subcommand")
+	assert.Equal(
+		t,
+		exitOK,
+		run([]string{"--version"}, &strings.Builder{}),
+		"--version aliases the version subcommand",
+	)
 	assert.Equal(t, exitOK, run([]string{"-version"}, &strings.Builder{}))
 	assert.Equal(t, exitError, run(nil, &strings.Builder{}))
 	assert.Equal(t, exitError, run([]string{"nonsense"}, &strings.Builder{}))
@@ -143,7 +148,11 @@ func TestRun_CheckJSONReportsEachRepo(t *testing.T) {
 	doc := decodeJSON[checkDoc](t, out.String())
 	require.Len(t, doc.Repos, 2)
 
-	assert.Negative(t, strings.Compare(doc.Repos[0].Root, doc.Repos[1].Root), "repos are sorted by root")
+	assert.Negative(
+		t,
+		strings.Compare(doc.Repos[0].Root, doc.Repos[1].Root),
+		"repos are sorted by root",
+	)
 
 	var cleanRepo, driftedRepo *struct {
 		Root   string `json:"root"`
@@ -286,7 +295,12 @@ func TestRun_CheckQuietSuppressesOutput(t *testing.T) {
 
 	code = run([]string{"check", "--quiet", "--json", root}, &jsonOut)
 	assert.Equal(t, exitFindings, code)
-	assert.Contains(t, jsonOut.String(), `"schema"`, "--json still emits the document under --quiet")
+	assert.Contains(
+		t,
+		jsonOut.String(),
+		`"schema"`,
+		"--json still emits the document under --quiet",
+	)
 }
 
 func TestRun_CheckJSONCarriesSchemaVersion(t *testing.T) {
@@ -324,7 +338,12 @@ func TestRun_FixJSONSurfacesDiscoveryIssues(t *testing.T) {
 	var out strings.Builder
 
 	code := run([]string{"fix", "--json", root}, &out)
-	assert.Equal(t, exitFindings, code, "discovery findings keep fix from reporting clean, matching check")
+	assert.Equal(
+		t,
+		exitFindings,
+		code,
+		"discovery findings keep fix from reporting clean, matching check",
+	)
 
 	doc := decodeJSON[fixDoc](t, out.String())
 	require.Len(t, doc.Repos, 1)
@@ -354,11 +373,20 @@ func TestRun_CheckParallelLimitCoversMoreRootsThanWorkers(t *testing.T) {
 	require.Len(t, doc.Repos, repoCount, "every root is analyzed even with a single worker")
 
 	for i := 1; i < len(doc.Repos); i++ {
-		assert.Negative(t, strings.Compare(doc.Repos[i-1].Root, doc.Repos[i].Root), "output stays sorted by root")
+		assert.Negative(
+			t,
+			strings.Compare(doc.Repos[i-1].Root, doc.Repos[i].Root),
+			"output stays sorted by root",
+		)
 	}
 
 	for _, repo := range doc.Repos {
-		assert.Equal(t, 1, repo.Counts.Mechanical, "each seeded repo reports its patch-form directive")
+		assert.Equal(
+			t,
+			1,
+			repo.Counts.Mechanical,
+			"each seeded repo reports its patch-form directive",
+		)
 	}
 }
 
@@ -370,8 +398,18 @@ func TestExitFromFloors_AllowPartialDowngradesModuleErrors(t *testing.T) {
 		rows: []fix.ModuleFloors{{Path: "go.mod", Error: "go list failed"}},
 	}}
 
-	assert.Equal(t, exitError, exitFromFloors(results, false), "default fails closed on module listing errors")
-	assert.Equal(t, exitFindings, exitFromFloors(results, true), "allow-partial downgrades module errors to findings")
+	assert.Equal(
+		t,
+		exitError,
+		exitFromFloors(results, false),
+		"default fails closed on module listing errors",
+	)
+	assert.Equal(
+		t,
+		exitFindings,
+		exitFromFloors(results, true),
+		"allow-partial downgrades module errors to findings",
+	)
 }
 
 func TestSummarizeAndExitContracts(t *testing.T) {
@@ -388,17 +426,36 @@ func TestSummarizeAndExitContracts(t *testing.T) {
 	assert.Equal(t, 1, findingsN)
 	assert.Equal(t, 1, failedN)
 
-	assert.Equal(t, exitError, exitFromAnalyses([]repoAnalysis{drifted, failed}), "hard errors dominate")
+	assert.Equal(
+		t,
+		exitError,
+		exitFromAnalyses([]repoAnalysis{drifted, failed}),
+		"hard errors dominate",
+	)
 	assert.Equal(t, exitFindings, exitFromAnalyses([]repoAnalysis{drifted}))
 	assert.Equal(t, exitOK, exitFromAnalyses([]repoAnalysis{clean}))
 
-	outcomes := []fixOutcome{
-		{root: "/discovery", discovery: []surface.Issue{{Rule: surface.RuleGoModUnparseable}}},
-	}
-	assert.Equal(t, exitFindings, exitFromOutcomes(outcomes), "discovery findings count as findings, matching check")
+	outcomes := make([]fixOutcome, 0, 2)
+
+	outcomes = append(outcomes, fixOutcome{
+		root:      "/discovery",
+		discovery: []surface.Issue{{Rule: surface.RuleGoModUnparseable}},
+	})
+
+	assert.Equal(
+		t,
+		exitFindings,
+		exitFromOutcomes(outcomes),
+		"discovery findings count as findings, matching check",
+	)
 
 	outcomes = append(outcomes, fixOutcome{root: "/err", err: assertError{}})
-	assert.Equal(t, exitError, exitFromOutcomes(outcomes), "hard errors dominate discovery findings")
+	assert.Equal(
+		t,
+		exitError,
+		exitFromOutcomes(outcomes),
+		"hard errors dominate discovery findings",
+	)
 }
 
 // assertError is a distinct error type for exit-contract tests.
@@ -423,7 +480,12 @@ func TestPrintFloorsRendersEveryRowShape(t *testing.T) {
 			Poisoned: true,
 		},
 		{Path: "go.work", Kind: surface.KindGoWork, Directive: "1.26"},
-		{Path: "broken/go.mod", Kind: surface.KindGoMod, Module: "example.com/broken", Error: "go list failed"},
+		{
+			Path:   "broken/go.mod",
+			Kind:   surface.KindGoMod,
+			Module: "example.com/broken",
+			Error:  "go list failed",
+		},
 	}
 
 	var out strings.Builder
@@ -464,7 +526,11 @@ func BenchmarkAnalyzeAll(b *testing.B) {
 	for range repoCount {
 		root := b.TempDir()
 
-		if err := os.WriteFile(filepath.Join(root, "go.mod"), []byte("module example.com/m\n\ngo 1.26.7\n"), 0o644); err != nil {
+		if err := os.WriteFile(
+			filepath.Join(root, "go.mod"),
+			[]byte("module example.com/m\n\ngo 1.26.7\n"),
+			0o644,
+		); err != nil {
 			b.Fatal(err)
 		}
 

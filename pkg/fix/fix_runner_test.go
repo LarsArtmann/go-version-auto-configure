@@ -60,19 +60,37 @@ func TestReport_RendersEverySection(t *testing.T) {
 
 	assert.Equal(t, "no fixes", (*Result)(nil).Report())
 
-	dryRunFix := surface.Fix{Kind: surface.KindGoWork, File: "go.work", From: "1.26.7", To: "1.26", Line: 1}
+	dryRunFix := surface.Fix{
+		Kind: surface.KindGoWork,
+		File: "go.work",
+		From: "1.26.7",
+		To:   "1.26",
+		Line: 1,
+	}
 	res := &Result{
 		Applied: []surface.Fix{
 			{Kind: surface.KindGoMod, File: "go.mod", From: "1.26.7", To: "1.26", Line: 3},
 		},
 		DepForced: []DepForced{
 			{
-				Fix:       surface.Fix{Kind: surface.KindGoMod, File: "sub/go.mod", From: "1.26.7", To: "1.26", Line: 3},
+				Fix: surface.Fix{
+					Kind: surface.KindGoMod,
+					File: "sub/go.mod",
+					From: "1.26.7",
+					To:   "1.26",
+					Line: 3,
+				},
 				Floor:     "1.26.7",
 				Poisoners: []string{"github.com/larsartmann/go-finding"},
 			},
 			{
-				Fix:   surface.Fix{Kind: surface.KindGoMod, File: "other/go.mod", From: "1.26.7", To: "1.26", Line: 3},
+				Fix: surface.Fix{
+					Kind: surface.KindGoMod,
+					File: "other/go.mod",
+					From: "1.26.7",
+					To:   "1.26",
+					Line: 3,
+				},
 				Floor: "1.27",
 			},
 		},
@@ -100,7 +118,11 @@ func TestReport_RendersEverySection(t *testing.T) {
 func TestSelfCheck_FindsLocalToolchain(t *testing.T) {
 	t.Parallel()
 
-	require.NoError(t, SelfCheck(context.Background()), "the test environment always has a go binary")
+	require.NoError(
+		t,
+		SelfCheck(context.Background()),
+		"the test environment always has a go binary",
+	)
 }
 
 // TestApplyOne_RealTool runs one directive rewrite through the production

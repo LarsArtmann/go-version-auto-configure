@@ -421,44 +421,49 @@ func fixOne(ctx context.Context, a repoAnalysis, opts fix.Options) fixOutcome {
 
 // printFixReports renders every repository's fix outcome for humans.
 func printFixReports(out io.Writer, outcomes []fixOutcome, header bool) {
-	for _, o := range outcomes {
-		if o.err != nil {
-			fmt.Fprintf(os.Stderr, "fix: %s: %v\n", o.root, o.err)
+	for _, outcome := range outcomes {
+		if outcome.err != nil {
+			fmt.Fprintf(os.Stderr, "fix: %s: %v\n", outcome.root, outcome.err)
 
 			continue
 		}
 
 		if header {
-			fmt.Fprintf(out, "== %s ==\n", o.root)
+			fmt.Fprintf(out, "== %s ==\n", outcome.root)
 		}
 
-		printFixReport(out, o)
+		printFixReport(out, outcome)
 	}
 }
 
 // printFixReport renders one repository's fix outcome.
-func printFixReport(out io.Writer, o fixOutcome) {
+func printFixReport(out io.Writer, outcome fixOutcome) {
 	switch {
-	case o.result != nil:
-		fmt.Fprintln(out, o.result.Report())
-	case len(o.suggested) > 0:
+	case outcome.result != nil:
+		fmt.Fprintln(out, outcome.result.Report())
+	case len(outcome.suggested) > 0:
 		fmt.Fprintf(
 			out,
 			"%s: %d finding(s) need a maintainer decision; nothing mechanical to fix\n",
-			o.root,
-			len(o.suggested),
+			outcome.root,
+			len(outcome.suggested),
 		)
-	case len(o.discovery) > 0:
-		fmt.Fprintf(out, "%s: %d discovery finding(s); nothing mechanical to fix\n", o.root, len(o.discovery))
+	case len(outcome.discovery) > 0:
+		fmt.Fprintf(
+			out,
+			"%s: %d discovery finding(s); nothing mechanical to fix\n",
+			outcome.root,
+			len(outcome.discovery),
+		)
 	default:
-		fmt.Fprintf(out, "%s: version surface clean: nothing to fix\n", o.root)
+		fmt.Fprintf(out, "%s: version surface clean: nothing to fix\n", outcome.root)
 	}
 
-	for _, issue := range o.discovery {
+	for _, issue := range outcome.discovery {
 		fmt.Fprintf(out, "DISCOVERY  %-22s %s:%d\n           %s\n", issue.Rule, issue.File, issue.Line, issue.Message)
 	}
 
-	for _, issue := range o.suggested {
+	for _, issue := range outcome.suggested {
 		fmt.Fprintf(out, "SUGGEST  %-24s %s:%d\n         %s\n", issue.Rule, issue.File, issue.Line, issue.Suggestion)
 	}
 }
