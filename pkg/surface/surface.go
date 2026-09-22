@@ -85,6 +85,13 @@ const (
 	// rewrites the go.work directive at minor granularity while modules
 	// are dep-forced at a patch.
 	RuleGoWorkBelowFloor Rule = "go-work-below-floor"
+
+	// RuleMinorExceedsExpectation fires when any version surface (a `go` or
+	// `toolchain` directive, a flake pin, or a CI pin) declares a minor
+	// NEWER than the fleet policy minor passed via WithExpectedMinor
+	// (ADR-0001 sets the fleet minor to 1.27). Suggestion-only: moving a
+	// surface down is a maintainer decision and is never auto-applied.
+	RuleMinorExceedsExpectation Rule = "minor-exceeds-expectation"
 )
 
 // DirectiveKind distinguishes which file declares a Go version.

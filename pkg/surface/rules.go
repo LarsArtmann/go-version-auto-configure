@@ -27,8 +27,14 @@ import (
 // Fix; alignment violations carry suggestions only, because which side
 // moves (pin vs floor) is a maintainer decision and downgrades are not
 // auto-applied.
-func Analyze(s *Surface) []Issue {
+func Analyze(s *Surface, opts ...AnalyzeOption) []Issue {
 	var issues []Issue
+
+	policy := analyzePolicy{}
+
+	for _, opt := range opts {
+		opt(&policy)
+	}
 
 	fullFloor, hasFull := s.FullModuleFloor()
 
@@ -36,6 +42,10 @@ func Analyze(s *Surface) []Issue {
 	issues = append(issues, goWorkBelowFloor(s, fullFloor, hasFull)...)
 	issues = append(issues, nonVersionToolchains(s)...)
 	issues = append(issues, staleToolchains(s)...)
+
+	if policy.hasExpectMinor {
+		issues = append(issues, exceedsExpectation(s, policy.expectMinor)...)
+	}
 
 	floor, toolDriver, hasAlign := pinAlignment(s)
 
@@ -45,6 +55,111 @@ func Analyze(s *Surface) []Issue {
 	}
 
 	return issues
+}
+
+// AnalyzeOption adjusts the policy Analyze enforces over a Surface.
+type AnalyzeOption func(*analyzePolicy)
+
+// analyzePolicy carries the policy inputs Analyze applies beyond the
+// structural rules: currently only the fleet-expected minor.
+type analyzePolicy struct {
+	expectMinor    majorMinor
+	hasExpectMinor bool
+}
+
+// WithExpectedMinor sets the fleet-expected Go minor (e.g. "1.27", ADR-0001):
+// any version surface whose minor exceeds it fires RuleMinorExceedsExpectation.
+// The value must parse as a major.minor version; the error names the
+// offending value so CLI flag validation can surface it.
+func WithExpectedMinor(v string) (AnalyzeOption, error) {
+	mm, err := parseMajorMinor(v)
+	if err != nil {
+		return nil, fmt.Errorf("expect-minor %q: %w", v, err)
+	}
+
+	return func(p *analyzePolicy) { p.expectMinor, p.hasExpectMinor = mm, true }, nil
+}
+
+// exceedsExpectation reports every version surface whose minor is NEWER
+// than the expected fleet minor. Patch components are ignored here: minor
+// policy is major.minor (patch-form surfaces have their own rules).
+func exceedsExpectation(s *Surface, expect majorMinor) []Issue {
+	var issues []Issue
+
+	for _, m := range s.Modules {
+		if !minorExceeds(string(m.Version), expect) {
+			continue
+		}
+
+		issues = append(issues, Issue{
+			Rule:    RuleMinorExceedsExpectation,
+			Message: fmt.Sprintf("%s declares go %s, above the expected minor go %s (fleet policy)", m.Path, m.Version, expect.String()),
+			File:    m.Path,
+			Line:    m.Line,
+			Suggestion: fmt.Sprintf(
+				"align the directive down to go %s, or revisit the fleet minor (downgrades are never auto-applied)",
+				expect.String(),
+			),
+		})
+	}
+
+	for _, tc := range s.Toolchains {
+		if !minorExceeds(string(tc.Version), expect) {
+			continue
+		}
+
+		issues = append(issues, Issue{
+			Rule:    RuleMinorExceedsExpectation,
+			Message: fmt.Sprintf("%s pins toolchain %s, above the expected minor go %s (fleet policy)", tc.Path, tc.Version, expect.String()),
+			File:    tc.Path,
+			Line:    tc.Line,
+			Suggestion: fmt.Sprintf(
+				"align the toolchain pin down to a go %s release, or revisit the fleet minor (downgrades are never auto-applied)",
+				expect.String(),
+			),
+		})
+	}
+
+	issues = append(issues, pinExceedsExpectation(s.NixPins, expect)...)
+	issues = append(issues, pinExceedsExpectation(s.CIPins, expect)...)
+
+	return issues
+}
+
+// pinExceedsExpectation reports flake or CI pins above the expected minor.
+func pinExceedsExpectation(pins []Pin, expect majorMinor) []Issue {
+	var issues []Issue
+
+	for _, pin := range pins {
+		if !minorExceeds(string(pin.Version), expect) {
+			continue
+		}
+
+		issues = append(issues, Issue{
+			Rule:    RuleMinorExceedsExpectation,
+			Message: fmt.Sprintf("%s pins %s (%s), above the expected minor go %s (fleet policy)", pin.Path, pin.Raw, pin.Source, expect.String()),
+			File:    pin.Path,
+			Line:    pin.Line,
+			Suggestion: fmt.Sprintf(
+				"align the pin down to go %s, or revisit the fleet minor (downgrades are never auto-applied)",
+				expect.String(),
+			),
+		})
+	}
+
+	return issues
+}
+
+// minorExceeds reports whether v parses and its major.minor is strictly
+// newer than expect. Unparseable versions never exceed: they surface
+// through their own discovery rules.
+func minorExceeds(v string, expect majorMinor) bool {
+	mm, err := parseMajorMinor(v)
+	if err != nil {
+		return false
+	}
+
+	return mm.Major > expect.Major || (mm.Major == expect.Major && mm.Minor > expect.Minor)
 }
 
 // formIssues reports patch-form `go` directives together with their

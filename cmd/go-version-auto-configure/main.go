@@ -34,9 +34,9 @@ const (
 const usage = `go-version-auto-configure — unify the Go toolchain version surface
 
 Usage:
-  go-version-auto-configure check [--json] [--quiet] [--parallel N] [root ...]
+  go-version-auto-configure check [--json] [--quiet] [--expect-minor N] [--parallel N] [root ...]
                                                  detect drift, exit 1 when found
-  go-version-auto-configure fix [--dry-run] [--json] [--quiet] [--parallel N] [root ...]
+  go-version-auto-configure fix [--dry-run] [--json] [--quiet] [--expect-minor N] [--parallel N] [root ...]
                                                  auto-fix directive form,
                                                  suggest the rest
   go-version-auto-configure who-forces [--json] [--quiet] [--allow-partial] [--parallel N] [root ...]
@@ -86,7 +86,7 @@ type report struct {
 }
 
 // analyzeAt discovers and analyzes one repository root.
-func analyzeAt(root string) (*report, error) {
+func analyzeAt(root string, opts ...surface.AnalyzeOption) (*report, error) {
 	surf, discovery, err := surface.Discover(root)
 	if err != nil {
 		return nil, fmt.Errorf("analyze %q: %w", root, err)
@@ -94,7 +94,7 @@ func analyzeAt(root string) (*report, error) {
 
 	r := &report{discovery: discovery}
 
-	for _, issue := range surface.Analyze(surf) {
+	for _, issue := range surface.Analyze(surf, opts...) {
 		if issue.Fix != nil {
 			r.mechanical = append(r.mechanical, issue)
 
@@ -123,7 +123,7 @@ type repoAnalysis struct {
 // analyzeAll analyzes every root with a bounded worker pool and returns the
 // results sorted by root for deterministic output. parallel <= 0 selects the
 // automatic worker count.
-func analyzeAll(roots []string, parallel int) []repoAnalysis {
+func analyzeAll(roots []string, parallel int, opts ...surface.AnalyzeOption) []repoAnalysis {
 	analyses := make([]repoAnalysis, len(roots)) //nolint:makezero // pre-sized for index assignment
 	sem := make(chan struct{}, workersFor(len(roots), parallel))
 
@@ -135,7 +135,7 @@ func analyzeAll(roots []string, parallel int) []repoAnalysis {
 
 			defer func() { <-sem }()
 
-			analyzed, err := analyzeAt(root)
+			analyzed, err := analyzeAt(root, opts...)
 			analyses[i] = repoAnalysis{root: root, report: analyzed, err: err}
 		})
 	}
@@ -217,19 +217,45 @@ func parseRoots(fs *flag.FlagSet, args []string) ([]string, bool) {
 	return rootsFrom(fs.Args()), true
 }
 
+// expectMinorOptions validates the --expect-minor flag value into Analyze
+// options. An invalid value is a usage error: the message names the
+// offending value and the accepted shape, exit 2.
+func expectMinorOptions(out io.Writer, value string) ([]surface.AnalyzeOption, int) {
+	if value == "" {
+		return nil, exitOK
+	}
+
+	opt, err := surface.WithExpectedMinor(value)
+	if err != nil {
+		fmt.Fprintf(out, "--expect-minor: %v (want major.minor, e.g. 1.27)\n", err)
+
+		return nil, exitError
+	}
+
+	return []surface.AnalyzeOption{opt}, exitOK
+}
+
 func cmdCheck(args []string, out io.Writer) int {
 	fs, rf := newRunFlagSet("check")
 
 	var quiet bool
+	var expectMinor string
 
 	fs.BoolVar(&quiet, "quiet", false, "exit-code-only: suppress the human report (JSON is still emitted with --json)")
+	fs.StringVar(&expectMinor, "expect-minor", "",
+		"fleet-expected Go minor (e.g. 1.27): surfaces above it fire alignment findings")
 
 	roots, ok := parseRoots(fs, args)
 	if !ok {
 		return exitError
 	}
 
-	analyses := analyzeAll(roots, rf.parallel)
+	opts, code := expectMinorOptions(out, expectMinor)
+	if code != exitOK {
+		return code
+	}
+
+	analyses := analyzeAll(roots, rf.parallel, opts...)
 
 	if rf.asJSON {
 		return emitCheckJSON(out, analyses)
@@ -363,16 +389,24 @@ func cmdFix(args []string, out io.Writer) int {
 	fs, rf := newRunFlagSet("fix")
 
 	var dryRun, quiet bool
+	var expectMinor string
 
 	fs.BoolVar(&dryRun, "dry-run", false, "report what would change without touching files")
 	fs.BoolVar(&quiet, "quiet", false, "exit-code-only: suppress the human report (JSON is still emitted with --json)")
+	fs.StringVar(&expectMinor, "expect-minor", "",
+		"fleet-expected Go minor (e.g. 1.27): surfaces above it fire alignment findings")
 
 	roots, ok := parseRoots(fs, args)
 	if !ok {
 		return exitError
 	}
 
-	analyses := analyzeAll(roots, rf.parallel)
+	opts, code := expectMinorOptions(out, expectMinor)
+	if code != exitOK {
+		return code
+	}
+
+	analyses := analyzeAll(roots, rf.parallel, opts...)
 
 	outcomes := applyAll(context.Background(), analyses, fix.Options{DryRun: dryRun}, rf.parallel)
 
