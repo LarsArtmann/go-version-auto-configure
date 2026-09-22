@@ -294,33 +294,45 @@ type repoAnalysis struct {
 	err    error
 }
 
-// analyzeAll analyzes every root with a bounded worker pool and returns the
-// results sorted by root for deterministic output. parallel <= 0 selects the
-// automatic worker count.
-func analyzeAll(roots []string, parallel int, opts ...surface.AnalyzeOption) []repoAnalysis {
-	analyses := make([]repoAnalysis, len(roots)) //nolint:makezero // pre-sized for index assignment
-	sem := make(chan struct{}, workersFor(len(roots), parallel))
+// runSorted applies fn to every item with a bounded worker pool and returns
+// the results sorted by key(item) for deterministic output. parallel <= 0
+// selects the automatic worker count. This is the one worker pool in the
+// codebase; analyzeAll, applyAll, and analyzeFloorsAll are thin wrappers.
+func runSorted[I any, R any](items []I, parallel int, key func(R) string, fn func(I) R) []R {
+	results := make([]R, len(items)) //nolint:makezero // pre-sized for index assignment
+	sem := make(chan struct{}, workersFor(len(items), parallel))
 
 	var wg sync.WaitGroup
 
-	for i, root := range roots {
+	for i, item := range items {
 		wg.Go(func() {
 			sem <- struct{}{}
 
 			defer func() { <-sem }()
 
-			analyzed, err := analyzeAt(root, opts...)
-			analyses[i] = repoAnalysis{root: root, report: analyzed, err: err}
+			results[i] = fn(item)
 		})
 	}
 
 	wg.Wait()
 
-	slices.SortFunc(analyses, func(a, b repoAnalysis) int {
-		return strings.Compare(a.root, b.root)
+	slices.SortFunc(results, func(a, b R) int {
+		return strings.Compare(key(a), key(b))
 	})
 
-	return analyses
+	return results
+}
+
+// analyzeAll analyzes every root with a bounded worker pool and returns the
+// results sorted by root for deterministic output. parallel <= 0 selects the
+// automatic worker count.
+func analyzeAll(roots []string, parallel int, opts ...surface.AnalyzeOption) []repoAnalysis {
+	return runSorted(roots, parallel, func(a repoAnalysis) string { return a.root },
+		func(root string) repoAnalysis {
+			analyzed, err := analyzeAt(root, opts...)
+
+			return repoAnalysis{root: root, report: analyzed, err: err}
+		})
 }
 
 // rootsFrom normalizes positional roots to absolute paths, defaulting to
@@ -508,28 +520,9 @@ func applyAll(
 	opts fix.Options,
 	parallel int,
 ) []fixOutcome {
-	outcomes := make([]fixOutcome, len(analyses)) //nolint:makezero // pre-sized for index assignment
-	sem := make(chan struct{}, workersFor(len(analyses), parallel))
-
-	var wg sync.WaitGroup
-
-	for i, a := range analyses {
-		wg.Go(func() {
-			sem <- struct{}{}
-
-			defer func() { <-sem }()
-
-			outcomes[i] = fixOne(ctx, a, opts)
-		})
-	}
-
-	wg.Wait()
-
-	slices.SortFunc(outcomes, func(a, b fixOutcome) int {
-		return strings.Compare(a.root, b.root)
-	})
-
-	return outcomes
+	return runSorted[repoAnalysis, fixOutcome](analyses, parallel,
+		func(o fixOutcome) string { return o.root },
+		func(a repoAnalysis) fixOutcome { return fixOne(ctx, a, opts) })
 }
 
 // fixOne applies one repository's mechanical fixes.
@@ -667,29 +660,12 @@ func exitFromOutcomes(outcomes []fixOutcome) int {
 // bounded worker pool, returning results sorted by root. parallel <= 0
 // selects the automatic worker count.
 func analyzeFloorsAll(roots []string, parallel int) []floorsResult {
-	results := make([]floorsResult, len(roots)) //nolint:makezero // pre-sized for index assignment
-	sem := make(chan struct{}, workersFor(len(roots), parallel))
-
-	var wg sync.WaitGroup
-
-	for i, root := range roots {
-		wg.Go(func() {
-			sem <- struct{}{}
-
-			defer func() { <-sem }()
-
+	return runSorted(roots, parallel, func(r floorsResult) string { return r.root },
+		func(root string) floorsResult {
 			rows, err := fix.AnalyzeFloors(context.Background(), root, nil)
-			results[i] = floorsResult{root: root, rows: rows, err: err}
+
+			return floorsResult{root: root, rows: rows, err: err}
 		})
-	}
-
-	wg.Wait()
-
-	slices.SortFunc(results, func(a, b floorsResult) int {
-		return strings.Compare(a.root, b.root)
-	})
-
-	return results
 }
 
 // floorsResult pairs one root with its dependency-floor matrix or failure.

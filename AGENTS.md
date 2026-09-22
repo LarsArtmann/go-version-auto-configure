@@ -56,6 +56,8 @@ All commands accept multiple roots (parallel, sorted output) and `--json` (stabl
 
 ## Known limitations (v0.2)
 
+- [docs/DEDUPLICATION.md](docs/DEDUPLICATION.md) is the accepted-duplication baseline; diff future art-dupl reports against it instead of re-litigating the intentional groups.
+
 - `check` counts discovery issues (unparseable go.mod) as plain findings; they are never auto-fixable.
 - CI YAML parsing is line-oriented (regex on `go-version:` keys); matrix expressions (`${{ }}`) and ranges (`1.26.x`) are intentionally skipped as non-comparable.
 - `flake.lock` pins are not parsed (flake.nix only) — blocked by design: the lock records a nixpkgs rev, not the Go version it packages; resolving it needs an impure `nix eval`, but `Discover` must stay pure. Right home would be a separate opt-in command or BuildFlow step (TODO_LIST T9).
