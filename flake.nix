@@ -91,6 +91,9 @@
 
         shellExtraEnv = {
           GOEXPERIMENT = "jsonv2";
+          # Pin the exact toolchain so no shell needs GOTOOLCHAIN prefixes:
+          # go_1_27 ships 1.27.1, and modules with a go 1.27 floor build as-is.
+          GOTOOLCHAIN = "go1.27.1";
         };
       };
     };
