@@ -27,14 +27,14 @@ art-dupl --sort total-tokens -t 1 --type-aware
 
 All remaining groups are 2-line intentional similarity, none actionable:
 
-| Where | Shape | Why accepted |
-|-------|-------|--------------|
+| Where                                                               | Shape                                                        | Why accepted                                                                                                                                                          |
+| ------------------------------------------------------------------- | ------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `cmd/` `exitFromAnalyses`/`exitFromOutcomes`/`exitFromFloors` tails | `switch { case errored/fails: … case findings/poisoned: … }` | Each maps a distinct result type onto the shared exit contract; forcing them through one abstraction would hide the per-command semantics this file is meant to show. |
-| `pkg/surface/surface.go` version-collection appends | `versions = append(…)` | Two lines over different types (`m.Version` vs `tc.Version`). |
-| `pkg/surface/rules.go` minor-exceeds guards | identical guard over different vertex types | Table-driven candidate, but the types differ; a helper would need generics for two call sites. |
-| `pkg/surface/discover.go` toolchain nil-guards | `if toolchain != nil` twice | Distinct handling bodies; shared only in the guard token. |
-| `pkg/surface/directive.go` default branches | `default:` switch tails | Trivial. |
-| (138 further non-actionable groups at higher thresholds) | — | Below noise floor. |
+| `pkg/surface/surface.go` version-collection appends                 | `versions = append(…)`                                       | Two lines over different types (`m.Version` vs `tc.Version`).                                                                                                         |
+| `pkg/surface/rules.go` minor-exceeds guards                         | identical guard over different vertex types                  | Table-driven candidate, but the types differ; a helper would need generics for two call sites.                                                                        |
+| `pkg/surface/discover.go` toolchain nil-guards                      | `if toolchain != nil` twice                                  | Distinct handling bodies; shared only in the guard token.                                                                                                             |
+| `pkg/surface/directive.go` default branches                         | `default:` switch tails                                      | Trivial.                                                                                                                                                              |
+| (138 further non-actionable groups at higher thresholds)            | —                                                            | Below noise floor.                                                                                                                                                    |
 
 Rule of thumb: clone reports are lower bounds — flag-order or type differences
 hide real duplicates (the who-forces pool was a third instance art-dupl never

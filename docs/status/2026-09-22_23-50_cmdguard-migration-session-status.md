@@ -2,7 +2,7 @@
 
 - **Repo:** `github.com/larsartmann/go-version-auto-configure` (master, pushed to `baced44`)
 - **Plan executed:** `docs/planning/2026-09-22_22-07_cmdguard-cli-surface-and-verification-plan.md` (15 of 17 WPs; WP-H/Q gated on the sibling plan's fleet-minor ADR)
-- **Final state:** full suite + `-race` green (5/5 packages), `go vet` clean, green *inside* `nix develop` with zero command prefixes, working tree clean.
+- **Final state:** full suite + `-race` green (5/5 packages), `go vet` clean, green _inside_ `nix develop` with zero command prefixes, working tree clean.
 
 ---
 
@@ -12,7 +12,7 @@
 2. **WP-B migration:** all command surfaces on `github.com/larsartmann/cmdguard/v4@v4.0.2`; `runFlags`/`newRunFlagSet`/`parseRoots`/`usage` deleted; shared flags via embedded **exported** structs (cmdguard skips unexported embedded types — found and fixed).
 3. **WP-C verification:** exit-code matrix (0/1/2) locked by test; `--json` wire contract locked by full-document goldens (check/fix/who-forces, schema 2); human output byte-compatible; multi-root sorted deterministic. All 22 pre-existing tests passed unmodified.
 4. **WP-D guard-rails:** `TestNoRawFlagSkeleton` (bans `flag`/cobra imports in `cmd/`) + `TestSharedFlagContract` (names/defaults/help identical across commands).
-5. **WP-E JSON goldens:** goldens reflect the *actual* wire (omitempty fields excluded) — my first golden drafts hallucinated an `error` key; corrected against observed output.
+5. **WP-E JSON goldens:** goldens reflect the _actual_ wire (omitempty fields excluded) — my first golden drafts hallucinated an `error` key; corrected against observed output.
 6. **WP-F flake.nix:** `GOTOOLCHAIN=go1.27.1` pinned in devShell; AGENTS.md Build & Run de-prefixed. **Bonus find:** BuildFlow's global `GOWORK=off` broke `go work edit` inside `nix develop` — overridden with `GOWORK=""`; devShell suite now fully green unprefixed.
 7. **WP-I who-forces toolchain env:** module-scoped commands get `GOTOOLCHAIN=auto` when parent pins `local`/unset; explicit non-local pins inherited. Unit-tested plus an end-to-end test (older local shell lists a 1.27-floor module successfully). AGENTS policy #3 updated.
 8. **WP-J helper tests:** `readLines` (normal/missing/dir), `rootsFrom` (default/relative/absolute), `workersFor`.
@@ -30,7 +30,7 @@
 2. **WP-O:** `FLEET-STANDARD-VERSION-STAMPS.md` cross-ref appended in file-and-image-renamer but left for that repo's daemon to commit — uncommitted foreign-repo edit at session end.
 3. **Race coverage:** `-race` run once on cmd/ post-migration, but not re-run after the WP-L/WP-I changes landed.
 4. **Spike cleanup:** `/tmp/cg-spike` (module, binaries `toy`/`toy2`, `main.go.bak`) left on disk; referenced as evidence in plan §6 but never archived or noted as disposable.
-5. **Commit hygiene:** see d) — the *work* is done but the history is daemon-generated.
+5. **Commit hygiene:** see d) — the _work_ is done but the history is daemon-generated.
 
 ## c) NOT STARTED
 
@@ -43,7 +43,7 @@
 ## d) TOTALLY FUCKED UP
 
 1. **Commit discipline (plan §5 violated):** the plan said "each WP lands as its own commit with a detailed message." I never made a single explicit commit — the auto-commit daemon swept everything into 8 heuristic "chore: auto-commit N changed file(s)" commits (`033c0b1`..`baced44`), and I **pushed that history**. The most significant refactor in the repo's history is archaeologically invisible. Lesson file already committed in crush-config says exactly this ("commit per task… the daemon races explicit commits") and I did it anyway.
-2. **The edit-tool race burned me three times:** `edit` failed twice with "file modified since read" (spike `main.go`, AGENTS.md) and I *proceeded as if it had applied* — the spike's silent exit-0 bug ("huh, cmdguard swallows the error?") was actually my own discarded `*ExitError` that I then misdiagnosed for several tool calls before finding the unapplied edit. Wasted a mini-investigation on a phantom cmdguard bug; nearly wrote a false verdict.
+2. **The edit-tool race burned me three times:** `edit` failed twice with "file modified since read" (spike `main.go`, AGENTS.md) and I _proceeded as if it had applied_ — the spike's silent exit-0 bug ("huh, cmdguard swallows the error?") was actually my own discarded `*ExitError` that I then misdiagnosed for several tool calls before finding the unapplied edit. Wasted a mini-investigation on a phantom cmdguard bug; nearly wrote a false verdict.
 3. **First golden draft asserted invented fields** (`"error": nil` that the wire omits; schema 1 instead of 2) — I wrote expectations from memory instead of dumping the real wire output first, then "fixed the test to match" in two extra cycles.
 4. **`git add -A` before checking daemon state:** staged a tree the daemon had just committed; the intended explicit commit for WP-A/B silently became a no-op and I moved on without correcting it.
 
@@ -61,6 +61,7 @@
 ## f) NEXT (up to 50, ordered by impact)
 
 **Verify & close this session**
+
 1. Run the full `buildflow` gate at `--fail-on=error`; fix whatever the migrated `cmd/` trips.
 2. Re-run `-race` on cmd/ and pkg/fix after WP-L/WP-I; make it part of the standing gate.
 3. Re-measure per-package coverage; update the T11 table.
@@ -103,7 +104,7 @@
 32. Consider an upstream cmdguard issue: unexported embedded flag structs are silently skipped by `ParseFlagTags` — should error at construction.
 33. Consider an upstream cmdguard issue/fang issue: `NewExitError`'s `(value, error)` double return invites the exact discard bug that cost the spike time.
 34. Document `--expect-minor` semantics against the future ADR (what happens when expect-minor < module floor).
-35. `who-forces` I2 follow-up: what should happen when `GOTOOLCHAIN=auto` needs a *download* in offline CI — better error message than raw go output?
+35. `who-forces` I2 follow-up: what should happen when `GOTOOLCHAIN=auto` needs a _download_ in offline CI — better error message than raw go output?
 
 **Docs**
 36. FEATURES.md: add cmdguard migration + guard tests + JSON goldens.
@@ -133,4 +134,5 @@
 3. **Should the `-h`/`--help` exit-code change (2 → 0) be advertised as a fleet-wide breaking-change note to the other auto-configurer users now, or is CHANGELOG enough until the siblings migrate to cmdguard too?**
 
 ---
-*Format note: Markdown per user instruction; status-report skill's HTML default overridden.*
+
+_Format note: Markdown per user instruction; status-report skill's HTML default overridden._

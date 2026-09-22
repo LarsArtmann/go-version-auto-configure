@@ -22,10 +22,10 @@ Concretely:
 
 - **Directive form:** all `go` directives settle at major.minor (`go 1.27`), never a patch component; patch-form floors are the poisoning signature and stay a form finding.
 - **go-finding v1.13.0 stands** — no second re-tag at 1.26. Its head extends 1.27 to the toolsdk/analysis/cmd modules; that ships in its next minor tag.
-- **go-atomic-write** gets a *form fix*, not a downgrade: `go 1.27.1` → `go 1.27` (its deps allow it; nothing is moved down a minor, so the F16 no-auto-downgrade rule is not triggered).
+- **go-atomic-write** gets a _form fix_, not a downgrade: `go 1.27.1` → `go 1.27` (its deps allow it; nothing is moved down a minor, so the F16 no-auto-downgrade rule is not triggered).
 - **Toolchain:** builds and tests run on nixpkgs `go_1_27` (1.27.1 today). `GOTOOLCHAIN=local` remains valid once the PATH toolchain is 1.27; devShells and flakes migrate to `go_1_27` per repo as packaging work touches them (this repo's flake.nix ships with its devShell on `go_1_27`).
 - **CI:** GitHub Actions workflows across the fleet pin Go 1.27.x.
-- **Enforcement:** this tool gains `--expect-minor 1.27` so the decision is machine-checkable: any surface (directive, flake pin, CI pin) whose minor *exceeds* the expectation is an alignment finding; anything below is caught by existing alignment rules.
+- **Enforcement:** this tool gains `--expect-minor 1.27` so the decision is machine-checkable: any surface (directive, flake pin, CI pin) whose minor _exceeds_ the expectation is an alignment finding; anything below is caught by existing alignment rules.
 
 ## Consequences
 
@@ -43,17 +43,17 @@ Concretely:
 
 **Neutral**
 
-- The poisoning *mechanism* (tidy lifting to the highest dependency floor) is unchanged and still fleet-critical: patch-form published floors remain the thing this tool and T1 exist to eliminate.
+- The poisoning _mechanism_ (tidy lifting to the highest dependency floor) is unchanged and still fleet-critical: patch-form published floors remain the thing this tool and T1 exist to eliminate.
 
 ## Evidence appendix (2026-09-22 sweeps)
 
-| Signal                                                     | Value |
-| ---------------------------------------------------------- | ----- |
-| `go.mod` files under `~/projects` declaring `go 1.27*`     | ~407  |
-| `go.mod` files under `~/projects` declaring `go 1.26*`     | ~406  |
-| flakes pinning `go_1_26`                                   | ~205  |
-| flakes pinning `go_1_27`                                   | 47    |
-| go-finding modules at `go 1.27` (head, untagged)           | 4/4   |
-| go-finding v1.13.0 root floor                              | `go 1.27` |
-| nixpkgs `go_1_27`                                          | 1.27.1 |
-| This repo under go.mod `go 1.27` + nixpkgs go_1_27         | build + full test suite green |
+| Signal                                                 | Value                         |
+| ------------------------------------------------------ | ----------------------------- |
+| `go.mod` files under `~/projects` declaring `go 1.27*` | ~407                          |
+| `go.mod` files under `~/projects` declaring `go 1.26*` | ~406                          |
+| flakes pinning `go_1_26`                               | ~205                          |
+| flakes pinning `go_1_27`                               | 47                            |
+| go-finding modules at `go 1.27` (head, untagged)       | 4/4                           |
+| go-finding v1.13.0 root floor                          | `go 1.27`                     |
+| nixpkgs `go_1_27`                                      | 1.27.1                        |
+| This repo under go.mod `go 1.27` + nixpkgs go_1_27     | build + full test suite green |
