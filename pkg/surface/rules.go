@@ -28,7 +28,7 @@ func Analyze(s *Surface) []Issue {
 	workspaceFloor, hasFloor := s.Floor()
 
 	issues = append(issues, formIssues(s, workspaceFloor, hasFloor)...)
-	issues = append(issues, localToolchains(s)...)
+	issues = append(issues, nonVersionToolchains(s)...)
 	issues = append(issues, staleToolchains(s)...)
 
 	floor, toolDriver, hasAlign := pinAlignment(s)
@@ -103,23 +103,24 @@ func formMessage(m ModuleDirective) string {
 	)
 }
 
-// localToolchains reports `toolchain local` directives: legal, but they pin
-// nothing and opt the module out of toolchain resolution, so the surface
-// analysis would otherwise silently ignore the line.
-func localToolchains(s *Surface) []Issue {
+// nonVersionToolchains reports `toolchain` directives that name no explicit
+// toolchain version ("local", "default"): legal, but they pin nothing and
+// opt the module out of toolchain resolution, so floor analysis would
+// otherwise silently ignore the line.
+func nonVersionToolchains(s *Surface) []Issue {
 	var issues []Issue
 
 	for _, tc := range s.Toolchains {
-		if tc.Version != "local" {
+		if _, err := parseMajorMinor(string(tc.Version)); err == nil {
 			continue
 		}
 
 		issues = append(issues, Issue{
-			Rule: RuleToolchainLocal,
+			Rule: RuleToolchainNonVersion,
 			Message: fmt.Sprintf(
-				"%s declares toolchain local: the go command reads this as \"never switch toolchains\", "+
+				"%s declares toolchain %s: this names no explicit toolchain version, "+
 					"so the line pins nothing and is excluded from floor analysis",
-				tc.Path,
+				tc.Path, tc.Version,
 			),
 			File: tc.Path,
 			Line: tc.Line,

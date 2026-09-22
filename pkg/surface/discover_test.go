@@ -325,3 +325,21 @@ func TestAnalyze_CurrentToolchainNotFlagged(t *testing.T) {
 	assert.Empty(t, discoverIssues)
 	assert.Empty(t, Analyze(s))
 }
+
+func TestAnalyze_ToolchainLocalIsSurfaced(t *testing.T) {
+	t.Parallel()
+
+	root := writeRepo(t, map[string]string{
+		"go.mod": "module example.com/root\n\ngo 1.26\n\ntoolchain local\n",
+	})
+
+	s, discoverIssues, err := Discover(root)
+	require.NoError(t, err)
+	assert.Empty(t, discoverIssues)
+
+	issues := Analyze(s)
+	require.Len(t, issues, 1)
+	assert.Equal(t, RuleToolchainLocal, issues[0].Rule)
+	assert.Equal(t, 5, issues[0].Line, "toolchain is on line 5")
+	assert.Empty(t, issues[0].Suggestion, "toolchain local is informational, not actionable")
+}

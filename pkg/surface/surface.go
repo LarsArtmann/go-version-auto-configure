@@ -61,12 +61,19 @@ const (
 	// directive was raised).
 	RuleToolchainBelowDirective Rule = "toolchain-below-directive"
 
-	// RuleToolchainLocal fires when a `toolchain` directive names `local`:
-	// the go command reads it as "never switch toolchains", so it pins
-	// nothing and is invisible to floor analysis. Informational: the line
-	// is legal, but it silently opts the module out of toolchain
-	// resolution, which fleet policy wants surfaced.
-	RuleToolchainLocal Rule = "toolchain-local"
+	// RuleToolchainNonVersion fires when a `toolchain` directive names
+	// something that is not an explicit toolchain version ("local",
+	// "default"): the go command reads these as "never switch toolchains",
+	// so the line pins nothing and is invisible to floor analysis.
+	// Informational: legal, but it silently opts the module out of
+	// toolchain resolution, which fleet policy wants surfaced.
+	RuleToolchainNonVersion Rule = "toolchain-non-version"
+
+	// RuleGoWorkUnparseable fires when a discovered go.work cannot be
+	// parsed (for example a `toolchain local` line, which the go tool
+	// rejects). Without this the file's `go` directive would vanish from
+	// the surface silently.
+	RuleGoWorkUnparseable Rule = "go-work-unparseable"
 )
 
 // DirectiveKind distinguishes which file declares a Go version.

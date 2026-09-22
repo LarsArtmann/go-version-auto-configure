@@ -97,7 +97,11 @@ func (s *Surface) absorbFile(path string, rel FilePath, name string) []Issue {
 			s.Toolchains = append(s.Toolchains, *toolchain)
 		}
 	case name == "go.work":
-		workspace, toolchain := parseGoWork(path, rel)
+		workspace, toolchain, issue := parseGoWork(path, rel)
+
+		if issue != nil {
+			return []Issue{*issue}
+		}
 
 		if workspace != nil {
 			s.Modules = append(s.Modules, *workspace)
@@ -162,21 +166,35 @@ func parseGoMod(path string, rel FilePath) (*ModuleDirective, *ToolchainDirectiv
 }
 
 // parseGoWork extracts the `go` and `toolchain` directives from a go.work
-// file.
-func parseGoWork(path string, rel FilePath) (*ModuleDirective, *ToolchainDirective) {
+// file. Parse failures surface as a discovery issue: dropping the file
+// silently would hide its `go` directive from the whole analysis (a
+// `toolchain local` line, which the go tool rejects, is one such case).
+func parseGoWork(path string, rel FilePath) (*ModuleDirective, *ToolchainDirective, *Issue) {
 	data, err := os.ReadFile(path)
 	if err != nil {
-		return nil, nil
+		return nil, nil, &Issue{
+			Rule:    RuleGoWorkUnparseable,
+			Message: fmt.Sprintf("read go.work: %v", err),
+			File:    string(rel),
+		}
 	}
 
 	version, line, err := ParseDirective(KindGoWork, data)
+	if errors.Is(err, ErrNoDirective) {
+		return nil, parseToolchainOf(KindGoWork, rel, data), nil
+	}
+
 	if err != nil {
-		return nil, nil
+		return nil, nil, &Issue{
+			Rule:    RuleGoWorkUnparseable,
+			Message: err.Error(),
+			File:    string(rel),
+		}
 	}
 
 	workspace := &ModuleDirective{Path: string(rel), Kind: KindGoWork, Version: version, Line: line}
 
-	return workspace, parseToolchainOf(KindGoWork, rel, data)
+	return workspace, parseToolchainOf(KindGoWork, rel, data), nil
 }
 
 // parseToolchainOf extracts the `toolchain` directive from already-read
