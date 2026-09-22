@@ -64,27 +64,192 @@ func main() {
 
 func run(args []string, out io.Writer) int {
 	if len(args) == 0 {
-		fmt.Fprint(os.Stderr, usage)
+		fmt.Fprint(os.Stderr, "go-version-auto-configure — unify the Go toolchain version surface\n\nRun 'go-version-auto-configure --help' for usage.\n")
 
 		return exitError
 	}
 
+	// Aliases kept for byte-compat with the pre-cmdguard surface; fang's
+	// --version renders differently ("tool version X" vs the stamped line).
 	switch args[0] {
 	case "version", "--version", "-version":
 		fmt.Fprintf(out, "go-version-auto-configure %s\n", version.Version)
 
 		return exitOK
-	case "check":
-		return cmdCheck(args[1:], out)
-	case "fix":
-		return cmdFix(args[1:], out)
-	case "who-forces":
-		return cmdWhoForces(args[1:], out)
-	default:
-		fmt.Fprint(os.Stderr, usage)
+	}
+
+	cli, err := buildCLI(out, version.Version)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "go-version-auto-configure: %v\n", err)
 
 		return exitError
 	}
+
+	execErr := cli.ExecuteWithArgs(context.Background(), args)
+	switch {
+	case execErr == nil:
+		return exitOK
+	case errors.Is(execErr, errFindings):
+		return exitFindings
+	default:
+		// Flag, argument, and command errors, plus errSilent: the message
+		// is already on stderr, the contract calls for exit 2.
+		return exitError
+	}
+}
+
+// CommonFlags holds the flags every subcommand shares: output format and
+// worker-pool sizing. Embedded into each command's flag struct; cmdguard
+// recurses into embedded structs so the names, defaults, and help text
+// cannot drift between commands.
+type CommonFlags struct {
+	JSON     bool `default:"false" flag:"json" help:"emit machine-readable JSON"`
+	Parallel int  `default:"0" flag:"parallel" help:"max repositories analyzed concurrently (0 = auto: CPU count)"`
+}
+
+// QuietFlags is shared by all three analysis commands.
+type QuietFlags struct {
+	Quiet bool `default:"false" flag:"quiet" help:"exit-code-only: suppress the human report (JSON is still emitted with --json)"`
+}
+
+// AnalysisFlags is shared by check and fix: fleet-policy expectation.
+type AnalysisFlags struct {
+	ExpectMinor string `default:"" flag:"expect-minor" help:"fleet-expected Go minor (e.g. 1.27): surfaces above it fire alignment findings"`
+}
+
+type checkFlags struct {
+	CommonFlags
+	QuietFlags
+	AnalysisFlags
+}
+
+type fixFlags struct {
+	CommonFlags
+	QuietFlags
+	AnalysisFlags
+	DryRun bool `default:"false" flag:"dry-run" help:"report what would change without touching files"`
+}
+
+type whoForcesFlags struct {
+	CommonFlags
+	QuietFlags
+	AllowPartial bool `default:"false" flag:"allow-partial" help:"downgrade per-module go list failures from exit 2 to exit 1 (default: fail closed)"`
+}
+
+// appConfig carries no configuration file state; the tool is flag-driven.
+type appConfig struct{}
+
+// buildCLI assembles the cmdguard CLI: four commands, the exit-contract
+// sentinels, and a fang error handler that stays silent for findings and
+// already-reported failures (their output is the report itself) while
+// printing genuine usage errors plainly.
+func buildCLI(out io.Writer, ver string) (*v4.CLI[appConfig], error) {
+	checkCmd, err := v4.NewCommand("check", &checkFlags{}, func(ctx context.Context, _ *appConfig, f *checkFlags) error {
+		roots := rootsFrom(v4.ArgsFromContext(ctx))
+
+		opts, code := expectMinorOptions(out, f.ExpectMinor)
+		if code != exitOK {
+			return codeFrom(code)
+		}
+
+		analyses := analyzeAll(roots, f.Parallel, opts...)
+
+		if f.JSON {
+			return codeFrom(emitCheckJSON(out, analyses))
+		}
+
+		if !f.Quiet {
+			printCheckReports(out, analyses)
+		}
+
+		return codeFrom(exitFromAnalyses(analyses))
+	}, v4.WithShort("detect version-surface drift, exit 1 when found"), v4.WithMinimumArgs(0))
+	if err != nil {
+		return nil, err
+	}
+
+	fixCmd, err := v4.NewCommand("fix", &fixFlags{}, func(ctx context.Context, _ *appConfig, f *fixFlags) error {
+		roots := rootsFrom(v4.ArgsFromContext(ctx))
+
+		opts, code := expectMinorOptions(out, f.ExpectMinor)
+		if code != exitOK {
+			return codeFrom(code)
+		}
+
+		analyses := analyzeAll(roots, f.Parallel, opts...)
+		outcomes := applyAll(context.Background(), analyses, fix.Options{DryRun: f.DryRun}, f.Parallel)
+
+		if f.JSON {
+			return codeFrom(emitFixJSON(out, outcomes))
+		}
+
+		if !f.Quiet {
+			printFixReports(out, outcomes, len(analyses) > 1)
+		}
+
+		return codeFrom(exitFromOutcomes(outcomes))
+	}, v4.WithShort("auto-fix directive form, suggest the rest"), v4.WithMinimumArgs(0))
+	if err != nil {
+		return nil, err
+	}
+
+	whoCmd, err := v4.NewCommand("who-forces", &whoForcesFlags{}, func(ctx context.Context, _ *appConfig, f *whoForcesFlags) error {
+		roots := rootsFrom(v4.ArgsFromContext(ctx))
+		results := analyzeFloorsAll(roots, f.Parallel)
+
+		if f.JSON {
+			return codeFrom(emitFloorsJSON(out, results, f.AllowPartial))
+		}
+
+		if !f.Quiet {
+			printFloorsReports(out, results)
+		}
+
+		return codeFrom(exitFromFloors(results, f.AllowPartial))
+	}, v4.WithShort("name the dependencies forcing each go directive"), v4.WithMinimumArgs(0))
+	if err != nil {
+		return nil, err
+	}
+
+	cli, err := v4.NewCLI[appConfig](
+		"go-version-auto-configure",
+		"unify the Go toolchain version surface",
+		appConfig{},
+		v4.WithCLIVersion(ver),
+		v4.WithCLILong(`Detects and repairs Go toolchain version-surface drift across one or more
+repositories: patch components in go.mod/go.work go directives (auto-fixed
+via go mod edit / go work edit), Nix/CI pins that trail the effective floor
+(reported with suggestions), and the dependencies that force a module's floor
+(who-forces).
+
+Roots default to the working directory; multiple roots are analyzed in
+parallel and reported sorted by path.`),
+		v4.WithFangErrorHandler(func(w io.Writer, _ fang.Styles, e error) {
+			if errors.Is(e, errFindings) || errors.Is(e, errSilent) {
+				return
+			}
+
+			fmt.Fprintf(w, "Error: %v\n", e)
+		}),
+		v4.WithSilenceUsage(),
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := v4.AddCommand(cli, checkCmd); err != nil {
+		return nil, err
+	}
+
+	if err := v4.AddCommand(cli, fixCmd); err != nil {
+		return nil, err
+	}
+
+	if err := v4.AddCommand(cli, whoCmd); err != nil {
+		return nil, err
+	}
+
+	return cli, nil
 }
 
 // report is the full analysis of one repository.
@@ -191,46 +356,6 @@ func workersFor(work, limit int) int {
 	return n
 }
 
-// runFlags holds the flags every subcommand shares: output format and
-// worker-pool sizing, registered once so help text cannot drift between
-// commands. The rest of each command's head (its own flag registration,
-// parseRoots, analyzeAll) repeats per command on purpose: it is the flat,
-// idiomatic subcommand skeleton, and abstracting it behind callbacks would
-// cost more than the repeated lines.
-type runFlags struct {
-	asJSON   bool
-	parallel int
-}
-
-// newRunFlagSet builds a subcommand flagset with the shared flags already
-// registered.
-func newRunFlagSet(name string) (*flag.FlagSet, *runFlags) {
-	fs := flag.NewFlagSet(name, flag.ContinueOnError)
-
-	rf := &runFlags{}
-
-	fs.BoolVar(&rf.asJSON, "json", false, "emit machine-readable JSON")
-	fs.IntVar(
-		&rf.parallel,
-		"parallel",
-		0,
-		"max repositories analyzed concurrently (0 = auto: CPU count)",
-	)
-
-	return fs, rf
-}
-
-// parseRoots parses subcommand flags and resolves the positional roots to
-// absolute paths. ok is false on flag errors; the FlagSet has already
-// written the error and usage to stderr.
-func parseRoots(fs *flag.FlagSet, args []string) ([]string, bool) {
-	if err := fs.Parse(args); err != nil {
-		return nil, false
-	}
-
-	return rootsFrom(fs.Args()), true
-}
-
 // expectMinorOptions validates the --expect-minor flag value into Analyze
 // options. An invalid value is a usage error: the message names the
 // offending value and the accepted shape, exit 2.
@@ -247,45 +372,6 @@ func expectMinorOptions(out io.Writer, value string) ([]surface.AnalyzeOption, i
 	}
 
 	return []surface.AnalyzeOption{opt}, exitOK
-}
-
-func cmdCheck(args []string, out io.Writer) int {
-	fs, rf := newRunFlagSet("check")
-
-	var quiet bool
-
-	var expectMinor string
-
-	fs.BoolVar(
-		&quiet,
-		"quiet",
-		false,
-		"exit-code-only: suppress the human report (JSON is still emitted with --json)",
-	)
-	fs.StringVar(&expectMinor, "expect-minor", "",
-		"fleet-expected Go minor (e.g. 1.27): surfaces above it fire alignment findings")
-
-	roots, ok := parseRoots(fs, args)
-	if !ok {
-		return exitError
-	}
-
-	opts, code := expectMinorOptions(out, expectMinor)
-	if code != exitOK {
-		return code
-	}
-
-	analyses := analyzeAll(roots, rf.parallel, opts...)
-
-	if rf.asJSON {
-		return emitCheckJSON(out, analyses)
-	}
-
-	if !quiet {
-		printCheckReports(out, analyses)
-	}
-
-	return exitFromAnalyses(analyses)
 }
 
 // printCheckReports renders every repository's findings for humans.
@@ -410,48 +496,6 @@ type fixOutcome struct {
 	suggested []surface.Issue
 	discovery []surface.Issue
 	err       error
-}
-
-func cmdFix(args []string, out io.Writer) int {
-	fs, rf := newRunFlagSet("fix")
-
-	var dryRun, quiet bool
-
-	var expectMinor string
-
-	fs.BoolVar(&dryRun, "dry-run", false, "report what would change without touching files")
-	fs.BoolVar(
-		&quiet,
-		"quiet",
-		false,
-		"exit-code-only: suppress the human report (JSON is still emitted with --json)",
-	)
-	fs.StringVar(&expectMinor, "expect-minor", "",
-		"fleet-expected Go minor (e.g. 1.27): surfaces above it fire alignment findings")
-
-	roots, ok := parseRoots(fs, args)
-	if !ok {
-		return exitError
-	}
-
-	opts, code := expectMinorOptions(out, expectMinor)
-	if code != exitOK {
-		return code
-	}
-
-	analyses := analyzeAll(roots, rf.parallel, opts...)
-
-	outcomes := applyAll(context.Background(), analyses, fix.Options{DryRun: dryRun}, rf.parallel)
-
-	if rf.asJSON {
-		return emitFixJSON(out, outcomes)
-	}
-
-	if !quiet {
-		printFixReports(out, outcomes, len(analyses) > 1)
-	}
-
-	return exitFromOutcomes(outcomes)
 }
 
 // applyAll applies every repository's mechanical fixes in parallel. Clean
@@ -619,27 +663,12 @@ func exitFromOutcomes(outcomes []fixOutcome) int {
 	}
 }
 
-func cmdWhoForces(args []string, out io.Writer) int {
-	fs, rf := newRunFlagSet("who-forces")
-
-	var allowPartial, quiet bool
-
-	fs.BoolVar(&allowPartial, "allow-partial", false,
-		"downgrade per-module go list failures from exit 2 to exit 1 (default: fail closed)")
-	fs.BoolVar(
-		&quiet,
-		"quiet",
-		false,
-		"exit-code-only: suppress the human report (JSON is still emitted with --json)",
-	)
-
-	roots, ok := parseRoots(fs, args)
-	if !ok {
-		return exitError
-	}
-
+// analyzeFloorsAll runs the who-forces floor analysis over every root with a
+// bounded worker pool, returning results sorted by root. parallel <= 0
+// selects the automatic worker count.
+func analyzeFloorsAll(roots []string, parallel int) []floorsResult {
 	results := make([]floorsResult, len(roots)) //nolint:makezero // pre-sized for index assignment
-	sem := make(chan struct{}, workersFor(len(roots), rf.parallel))
+	sem := make(chan struct{}, workersFor(len(roots), parallel))
 
 	var wg sync.WaitGroup
 
@@ -660,15 +689,7 @@ func cmdWhoForces(args []string, out io.Writer) int {
 		return strings.Compare(a.root, b.root)
 	})
 
-	if rf.asJSON {
-		return emitFloorsJSON(out, results, allowPartial)
-	}
-
-	if !quiet {
-		printFloorsReports(out, results)
-	}
-
-	return exitFromFloors(results, allowPartial)
+	return results
 }
 
 // floorsResult pairs one root with its dependency-floor matrix or failure.
