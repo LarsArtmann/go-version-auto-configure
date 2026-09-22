@@ -74,6 +74,11 @@ What remains is the consumer campaign: repos still requiring the OLD tags keep r
 - **branching-flow INDEX_OUT_OF_RANGE warnings (3) on the worker-pool pattern in cmd/main.go** (`results[i] = ...` inside `for i, root := range roots`): the index is bounded by the range, provably safe; the linter cannot see it. Pre-existing, warning-severity, gate passes at `--fail-on=error`.
 - **branching-flow flags string fields/params without domain types in pkg/ code** ("should use phantom type"). This is fleet policy, not noise — go-finding models everything as named types (`RuleName`, `FilePath`, ...). This repo complies via `surface.Rule`/`GoVersion`/`ModulePath`/`FilePath` and `fix.FailureCause`. Wire DTOs in cmd/ (main package) are exempt.
 
+## Testing policy
+
+- **testify stays** (owner decision 2026-09-22): assertions across the five packages are table-driven testify style, consistent with the fleet. `.go-auto-upgrade.json` excludes `testifyassert` so go-auto-upgrade does not nag about stdlib migration.
+- Future consideration, not scheduled: ginkgo/gomega BDD style per the fleet's bdd-testing conventions for new behavior-spec suites (go-auto-upgrade and golangci-lint-auto-configure already use Ginkgo). Do not mix styles within this repo's existing packages.
+
 ## References
 
 - [TODO_LIST.md](TODO_LIST.md) — actionable work (T-numbers are cited across the fleet)

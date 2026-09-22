@@ -64,6 +64,7 @@ All twelve items shipped (see CHANGELOG Unreleased for the full list):
 - [x] `who-forces` policy: `--allow-partial` downgrades module listing errors to exit 1 (fail-closed default kept); every forcing dependency carried with its own floor (`poisonerFloors`, sorted highest first); go.work rows marked `kind: go.work` and skipped with a note
 - [x] Multi-root pool-contention test (6 repos through `--parallel 1`)
 - [x] Mini-sweep validation: `check --json` across 6 fleet repos on real drift (go-finding 14 alignment suggestions, go-atomic-write/go-error-family/go-output patch-form findings)
+- [x] Benchmark baseline (2026-09-22, go1.27.1, `-benchmem`, Ryzen AI MAX+ 395): `BenchmarkDiscover` 51.3µs / 29.3KB / 435 allocs; `BenchmarkAnalyze` 4.0µs / 3.6KB / 79 allocs; `BenchmarkParseDirective` 1.65µs / 1.5KB / 24 allocs; `BenchmarkAnalyzeAll` (8 seeded repos) 112.6µs / 62.6KB / 855 allocs — re-run before/after hot-path changes
 
 ## T12 — Lint & environment debt (from the 2026-09-19 full-mode run) — PARTIALLY DONE 2026-09-22
 
@@ -96,6 +97,7 @@ Plan: `docs/planning/2026-09-22_22-07_cmdguard-cli-surface-and-verification-plan
 ## T5 — Upstream gomod-checker rule: "tidy revert" detection — WORTH CONSIDERING
 
 - [ ] BuildFlow gomod-checker rule: go directive carrying a patch component after tidy (the poisoning signature) — closes the loop for repos that never run this tool
+- [ ] Test style: ginkgo/gomega BDD suites for NEW behavior specs (owner decision 2026-09-22 keeps testify for the existing table-driven suites; see AGENTS.md Testing policy)
 
 ## T6 — Release-authority drift (Layer-B versioning) — WORTH CONSIDERING
 
