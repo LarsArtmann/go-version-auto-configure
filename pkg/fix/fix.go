@@ -366,7 +366,14 @@ func classifyGateRejection(ctx context.Context, abs string, fx surface.Fix, run 
 func resolveDepFloor(ctx context.Context, dir string, run GoCommandRunner) (surface.GoVersion, []string, error) {
 	out, err := run(ctx, dir, "list", "-m", "-f", "{{.Path}} {{.Version}} {{.GoVersion}}", "all")
 	if err != nil {
-		return "", nil, fmt.Errorf("list dependency floors: %w", err)
+		// The rewritten tree is untidy exactly when tidy is about to
+		// revert the fix, and a plain list refuses to load that graph.
+		// -e lists the module graph anyway, so the floor and the
+		// dependencies carrying it stay nameable in the dep-forced report.
+		out, err = run(ctx, dir, "list", "-m", "-e", "-f", "{{.Path}} {{.Version}} {{.GoVersion}}", "all")
+		if err != nil {
+			return "", nil, fmt.Errorf("list dependency floors: %w", err)
+		}
 	}
 
 	var (
