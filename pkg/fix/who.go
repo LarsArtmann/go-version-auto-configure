@@ -109,20 +109,20 @@ func floorsForModule(ctx context.Context, root string, m surface.ModuleDirective
 	var forcers []PoisonerFloor
 
 	for line := range strings.SplitSeq(strings.TrimSuffix(out, "\n"), "\n") {
-		floor, dep, entry, ok := parseFloorLine(line, m.Module)
+		floor, dep, version, ok := parseFloorLine(line, m.Module)
 
 		if !ok {
 			continue
 		}
 
-		floors[floor] = append(floors[floor], entry)
+		floors[string(floor)] = append(floors[string(floor)], string(dep)+"@"+string(version))
 
-		if row.MaxDepFloor == "" || surface.GreaterVersion(floor, string(row.MaxDepFloor)) {
-			row.MaxDepFloor = surface.GoVersion(floor)
+		if row.MaxDepFloor == "" || surface.GreaterVersion(string(floor), string(row.MaxDepFloor)) {
+			row.MaxDepFloor = floor
 		}
 
-		if surface.GreaterVersion(floor, string(row.Directive)) {
-			forcers = append(forcers, splitFloorEntry(floor, dep, entry))
+		if surface.GreaterVersion(string(floor), string(row.Directive)) {
+			forcers = append(forcers, PoisonerFloor{Module: dep, Version: version, Floor: floor})
 		}
 	}
 
@@ -139,18 +139,6 @@ func floorsForModule(ctx context.Context, root string, m surface.ModuleDirective
 	return row
 }
 
-// splitFloorEntry builds the structured poisoner row from one parsed
-// `go list -m` line: entry is "path@version".
-func splitFloorEntry(floor, dep, entry string) PoisonerFloor {
-	version, _ := strings.CutPrefix(entry, dep+"@")
-
-	return PoisonerFloor{
-		Module:  surface.ModulePath(dep),
-		Version: ModuleVersion(version),
-		Floor:   surface.GoVersion(floor),
-	}
-}
-
 // comparePoisonerFloors orders poisoners by floor (highest first), then by
 // module path for determinism.
 func comparePoisonerFloors(a, b PoisonerFloor) int {
@@ -165,10 +153,10 @@ func comparePoisonerFloors(a, b PoisonerFloor) int {
 }
 
 // parseFloorLine splits one `go list -m` line into its dependency floor,
-// the module carrying it, and a printable "path@version" entry. The main
+// the module carrying it, and the module's released version. The main
 // module itself and unreplaced development versions carry no floor here.
-// Results, in order: floor, carrying module, entry, ok.
-func parseFloorLine(line string, module surface.ModulePath) (string, string, string, bool) {
+// Results, in order: floor, carrying module, version, ok.
+func parseFloorLine(line string, module surface.ModulePath) (surface.GoVersion, surface.ModulePath, ModuleVersion, bool) {
 	fields := strings.Split(line, "\t")
 
 	if len(fields) != 3 || fields[0] == "" || fields[1] == "" || fields[1] == string(module) {
@@ -179,5 +167,5 @@ func parseFloorLine(line string, module surface.ModulePath) (string, string, str
 		return "", "", "", false
 	}
 
-	return fields[0], fields[1], fields[1] + "@" + fields[2], true
+	return surface.GoVersion(fields[0]), surface.ModulePath(fields[1]), ModuleVersion(fields[2]), true
 }
