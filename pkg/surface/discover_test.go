@@ -69,16 +69,24 @@ func TestDiscoverAndAnalyze_PatchFormAcrossModules(t *testing.T) {
 	issues := Analyze(surf)
 	rules := issueRules(issues)
 	assert.Contains(t, rules, RuleGoDirectivePatchForm)
-	assert.Contains(t, rules, RuleWorkDirectivePatchForm)
+	assert.Contains(t, rules, RuleGoWorkBelowFloor,
+		"go.work 1.26.5 is below the full module floor 1.26.7")
+	assert.NotContains(t, rules, RuleWorkDirectivePatchForm,
+		"the patch-form strip is not offered: the floor requires at least 1.26.7")
 	assert.Contains(t, rules, RuleCIPinPatchForm)
 	assert.NotContains(t, rules, RuleCIPinBelowFloor)
 
-	var goModFix *Fix
+	var goModFix, workFix *Fix
 
 	for _, issue := range issues {
 		if issue.Rule == RuleGoDirectivePatchForm {
 			require.NotNil(t, issue.Fix)
 			goModFix = issue.Fix
+		}
+
+		if issue.Rule == RuleGoWorkBelowFloor {
+			require.NotNil(t, issue.Fix)
+			workFix = issue.Fix
 		}
 	}
 
@@ -86,6 +94,10 @@ func TestDiscoverAndAnalyze_PatchFormAcrossModules(t *testing.T) {
 	assert.Equal(t, "go.mod", goModFix.File)
 	assert.Equal(t, GoVersion("1.26.7"), goModFix.From)
 	assert.Equal(t, GoVersion("1.26"), goModFix.To)
+
+	require.NotNil(t, workFix)
+	assert.Equal(t, GoVersion("1.26.5"), workFix.From)
+	assert.Equal(t, GoVersion("1.26.7"), workFix.To, "the below-floor fix raises to the full module floor")
 }
 
 func TestDiscoverAndAnalyze_NixPinBelowFloor(t *testing.T) {
@@ -188,13 +200,16 @@ func TestFloor_NoModules(t *testing.T) {
 	assert.Empty(t, Analyze(s))
 }
 
-func TestAnalyze_GoWorkTargetRespectsWorkspaceFloor(t *testing.T) {
+func TestAnalyze_GoWorkBelowFloorRestoresFullFloor(t *testing.T) {
 	t.Parallel()
 
-	// go-finding shape: root module drifted to 1.27 while go.work still
-	// carries a patch of an older minor. The go.work rewrite must land on
-	// the workspace floor (1.27), not the stripped directive (1.26) — the
-	// latter would leave the workspace unable to resolve its own modules.
+	// go-finding shape: the root module is dep-forced at go 1.27.1 while
+	// go.work sits below it. The fix must restore the FULL patch floor
+	// (1.27.1): raising only to the minor form (1.27) would leave the
+	// workspace unable to resolve its own modules ("module X listed in
+	// go.work file requires go >= 1.27.1, but go.work lists go 1.27").
+	// This is the go-finding 2026-09-20 outage shape (BuildFlow gotcha
+	// #169) reproduced as a rule.
 	root := writeRepo(t, map[string]string{
 		"go.mod":  "module example.com/root\n\ngo 1.27.1\n",
 		"go.work": "go 1.26.7\n\nuse .\n",
@@ -209,7 +224,7 @@ func TestAnalyze_GoWorkTargetRespectsWorkspaceFloor(t *testing.T) {
 	var workFix *Fix
 
 	for _, issue := range issues {
-		if issue.Rule == RuleWorkDirectivePatchForm {
+		if issue.Rule == RuleGoWorkBelowFloor {
 			require.NotNil(t, issue.Fix)
 			workFix = issue.Fix
 		}
@@ -217,7 +232,48 @@ func TestAnalyze_GoWorkTargetRespectsWorkspaceFloor(t *testing.T) {
 
 	require.NotNil(t, workFix)
 	assert.Equal(t, GoVersion("1.26.7"), workFix.From)
-	assert.Equal(t, GoVersion("1.27"), workFix.To, "go.work must cover the workspace floor")
+	assert.Equal(t, GoVersion("1.27.1"), workFix.To, "go.work must cover the full patch floor, not just the minor")
+}
+
+func TestAnalyze_GoWorkPatchFormRequiredByFloorIsSilent(t *testing.T) {
+	t.Parallel()
+
+	// A dep-forced module floor of go 1.27.1 REQUIRES go.work to carry the
+	// patch: stripping it to go 1.27 would invalidate the workspace. That
+	// state is correct, so neither go.work rule may report it. The module's
+	// own patch form still fires (fleet policy: major.minor only); the
+	// tidy-dep-forced classification is the repairer's concern.
+	root := writeRepo(t, map[string]string{
+		"go.mod":  "module example.com/root\n\ngo 1.27.1\n",
+		"go.work": "go 1.27.1\n\nuse .\n",
+	})
+
+	s, discoverIssues, err := Discover(root)
+	require.NoError(t, err)
+	assert.Empty(t, discoverIssues)
+
+	rules := issueRules(Analyze(s))
+	assert.NotContains(t, rules, RuleWorkDirectivePatchForm)
+	assert.NotContains(t, rules, RuleGoWorkBelowFloor)
+}
+
+func TestSurface_FullModuleFloor(t *testing.T) {
+	t.Parallel()
+
+	s := &Surface{Modules: []ModuleDirective{
+		{Path: "a/go.mod", Kind: KindGoMod, Version: "1.26"},
+		{Path: "b/go.mod", Kind: KindGoMod, Version: "1.27.1"},
+		{Path: "c/go.mod", Kind: KindGoMod, Version: "1.27"},
+		{Path: "go.work", Kind: KindGoWork, Version: "1.28.9"},
+	}}
+
+	floor, ok := s.FullModuleFloor()
+	require.True(t, ok)
+	assert.Equal(t, GoVersion("1.27.1"), floor,
+		"the full floor is the max module directive at patch granularity, go.work excluded")
+
+	_, ok = (&Surface{}).FullModuleFloor()
+	assert.False(t, ok)
 }
 
 func TestAnalyze_GoWorkTargetIsDirectiveWhenAboveFloor(t *testing.T) {
