@@ -528,3 +528,56 @@ func TestWithExpectedMinor_RejectsNonVersions(t *testing.T) {
 		assert.Contains(t, err.Error(), bad, "the error names the offending value")
 	}
 }
+
+func TestAnalyze_GoWorkPatchRequiredByZeroPatchFloorIsSilent(t *testing.T) {
+	t.Parallel()
+
+	// The go tool ranks the bare minor BELOW every patch form of the same
+	// minor: go 1.26 does not cover a module floor of go 1.26.0 (probed
+	// 2026-09-22: "module m listed in go.work file requires go >= 1.26.0,
+	// but go.work lists go 1.26"). So a go.work at go 1.26.7 covering a
+	// module at go 1.26.0 must NOT be offered a strip to go 1.26, and it
+	// is not below-floor either (1.26.7 covers 1.26.0).
+	root := writeRepo(t, map[string]string{
+		"go.mod":  "module example.com/m\n\ngo 1.26.0\n",
+		"go.work": "go 1.26.7\n\nuse .\n",
+	})
+
+	s, discoverIssues, err := Discover(root)
+	require.NoError(t, err)
+	assert.Empty(t, discoverIssues)
+
+	rules := issueRules(Analyze(s))
+	assert.NotContains(t, rules, RuleWorkDirectivePatchForm, "stripping go.work to go 1.26 would break the workspace against the 1.26.0 module floor")
+	assert.NotContains(t, rules, RuleGoWorkBelowFloor, "go 1.26.7 covers go 1.26.0")
+}
+
+func TestAnalyze_GoWorkBelowFloorFiresOnZeroPatchGap(t *testing.T) {
+	t.Parallel()
+
+	// Same go-tool ranking, other direction: go.work at the bare minor
+	// under a module floor at .0 patch IS broken and gets the mechanical
+	// restoration to the FULL floor.
+	root := writeRepo(t, map[string]string{
+		"go.mod":  "module example.com/m\n\ngo 1.26.0\n",
+		"go.work": "go 1.26\n\nuse .\n",
+	})
+
+	s, discoverIssues, err := Discover(root)
+	require.NoError(t, err)
+	assert.Empty(t, discoverIssues)
+
+	issues := Analyze(s)
+
+	var workFix *Fix
+
+	for _, issue := range issues {
+		if issue.Rule == RuleGoWorkBelowFloor {
+			require.NotNil(t, issue.Fix)
+			workFix = issue.Fix
+		}
+	}
+
+	require.NotNil(t, workFix, "go 1.26 does not cover the module floor go 1.26.0 under the go tool's rules")
+	assert.Equal(t, GoVersion("1.26.0"), workFix.To, "the fix restores the FULL patch floor")
+}

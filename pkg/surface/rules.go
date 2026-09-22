@@ -194,17 +194,19 @@ func formIssues(s *Surface, fullFloor GoVersion, hasFull bool) []Issue {
 			continue //nolint:erraudit // deliberate filter: unparseable directives surface as unparseable discovery findings
 		}
 
-		// A go.work directive must cover every workspace module at FULL
-		// patch granularity. When a module floor is dep-forced above the
-		// stripped minor form (module at go 1.27.1, minor form go 1.27),
-		// the patch component is REQUIRED: stripping it would leave the
-		// workspace unable to resolve its own modules ("module X listed
-		// in go.work file requires go >= 1.27.1, but go.work lists go
-		// 1.27"). That state is correct, not a violation, so no issue is
-		// reported. A go.work directive already BELOW the full floor is
-		// goWorkBelowFloor's concern instead; its fix restores the floor
+		// A go.work directive must cover every workspace module under the go
+		// tool's FULL-patch comparison: the tool rejects a workspace whose
+		// directive is below any module floor AT PATCH GRANULARITY, and
+		// patch-less minor forms rank below every patch form of the same
+		// minor (go 1.26 < go 1.26.0 — verified against the go tool:
+		// "module m listed in go.work file requires go >= 1.26.0, but
+		// go.work lists go 1.26"). Offer the patch-form strip only when the
+		// stripped minor form still covers the full module floor; a floor
+		// carrying any patch component (including .0) keeps the go.work
+		// patch REQUIRED. A go.work directive already BELOW the full floor
+		// is goWorkBelowFloor's concern instead; its fix restores the floor
 		// rather than stripping the patch.
-		if m.Kind == KindGoWork && hasFull && GreaterVersion(string(fullFloor), parsed.String()) {
+		if m.Kind == KindGoWork && hasFull && !floorCoveredByDirective(GoVersion(parsed.String()), fullFloor) {
 			continue
 		}
 
@@ -245,7 +247,7 @@ func goWorkBelowFloor(s *Surface, fullFloor GoVersion, hasFull bool) []Issue {
 			continue //nolint:erraudit // deliberate filter: unparseable directives surface as unparseable discovery findings
 		}
 
-		if !GreaterVersion(string(fullFloor), string(m.Version)) {
+		if floorCoveredByDirective(m.Version, fullFloor) {
 			continue
 		}
 
@@ -270,6 +272,21 @@ func goWorkBelowFloor(s *Surface, fullFloor GoVersion, hasFull bool) []Issue {
 	}
 
 	return issues
+}
+
+// floorCoveredByDirective reports whether a go.work directive satisfies a
+// module floor under the go tool's comparison rules. The tool compares
+// directives at FULL patch granularity AND ranks the bare minor below
+// every patch form of that minor: go 1.26 does not cover go 1.26.0
+// (verified against the go tool 2026-09-22: "module m listed in go.work
+// file requires go >= 1.26.0, but go.work lists go 1.26"). GreaterVersion
+// alone misses that edge: it reads go 1.26.0 and go 1.26 as equal.
+func floorCoveredByDirective(directive, floor GoVersion) bool {
+	if directive == floor {
+		return true
+	}
+
+	return GreaterVersion(string(directive), string(floor))
 }
 
 // formRule names the patch-form rule for a directive kind.
