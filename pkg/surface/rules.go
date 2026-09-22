@@ -27,7 +27,7 @@ import (
 // Fix; alignment violations carry suggestions only, because which side
 // moves (pin vs floor) is a maintainer decision and downgrades are not
 // auto-applied.
-func Analyze(s *Surface, opts ...AnalyzeOption) []Issue {
+func Analyze(surf *Surface, opts ...AnalyzeOption) []Issue {
 	var issues []Issue
 
 	policy := analyzePolicy{}
@@ -36,22 +36,22 @@ func Analyze(s *Surface, opts ...AnalyzeOption) []Issue {
 		opt(&policy)
 	}
 
-	fullFloor, hasFull := s.FullModuleFloor()
+	fullFloor, hasFull := surf.FullModuleFloor()
 
-	issues = append(issues, formIssues(s, fullFloor, hasFull)...)
-	issues = append(issues, goWorkBelowFloor(s, fullFloor, hasFull)...)
-	issues = append(issues, nonVersionToolchains(s)...)
-	issues = append(issues, staleToolchains(s)...)
+	issues = append(issues, formIssues(surf, fullFloor, hasFull)...)
+	issues = append(issues, goWorkBelowFloor(surf, fullFloor, hasFull)...)
+	issues = append(issues, nonVersionToolchains(surf)...)
+	issues = append(issues, staleToolchains(surf)...)
 
 	if policy.hasExpectMinor {
-		issues = append(issues, exceedsExpectation(s, policy.expectMinor)...)
+		issues = append(issues, exceedsExpectation(surf, policy.expectMinor)...)
 	}
 
-	floor, toolDriver, hasAlign := pinAlignment(s)
+	floor, toolDriver, hasAlign := pinAlignment(surf)
 
 	if hasAlign {
-		issues = append(issues, nixPinIssues(s, floor, toolDriver)...)
-		issues = append(issues, ciPinIssues(s, floor, toolDriver)...)
+		issues = append(issues, nixPinIssues(surf, floor, toolDriver)...)
+		issues = append(issues, ciPinIssues(surf, floor, toolDriver)...)
 	}
 
 	return issues

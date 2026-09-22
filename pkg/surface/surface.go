@@ -207,7 +207,7 @@ func (s *Surface) FullModuleFloor() (GoVersion, bool) {
 		}
 
 		if _, err := parseMajorMinor(string(m.Version)); err != nil {
-			continue
+			continue //nolint:erraudit // deliberate filter: unparseable directives surface as unparseable discovery findings
 		}
 
 		if !found || GreaterVersion(string(m.Version), best) {

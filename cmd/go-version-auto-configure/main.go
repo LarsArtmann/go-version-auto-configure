@@ -244,6 +244,7 @@ func cmdCheck(args []string, out io.Writer) int {
 	fs, rf := newRunFlagSet("check")
 
 	var quiet bool
+
 	var expectMinor string
 
 	fs.BoolVar(
@@ -406,6 +407,7 @@ func cmdFix(args []string, out io.Writer) int {
 	fs, rf := newRunFlagSet("fix")
 
 	var dryRun, quiet bool
+
 	var expectMinor string
 
 	fs.BoolVar(&dryRun, "dry-run", false, "report what would change without touching files")
@@ -453,10 +455,7 @@ func applyAll(
 	opts fix.Options,
 	parallel int,
 ) []fixOutcome {
-	outcomes := make(
-		[]fixOutcome,
-		len(analyses),
-	) //nolint:makezero // pre-sized for index assignment
+	outcomes := make([]fixOutcome, len(analyses)) //nolint:makezero // pre-sized for index assignment
 	sem := make(chan struct{}, workersFor(len(analyses), parallel))
 
 	var wg sync.WaitGroup
