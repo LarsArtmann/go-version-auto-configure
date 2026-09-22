@@ -1,10 +1,11 @@
+package fix
+
 // Canonicalization of one go.mod's toolchain directives: the byte-preserving
 // counterpart to surface.Fix application. Where Apply rewrites one directive
 // recorded by Analyze, CanonicalizeGoMod derives the changes itself from the
 // file (patch-form go line, toolchain line) and guards the downgrade with a
 // `go mod tidy -diff` dependency-floor gate, reverting atomically when the
 // floor forbids it.
-package fix
 
 import (
 	"context"
@@ -21,6 +22,9 @@ import (
 
 	"github.com/larsartmann/go-version-auto-configure/pkg/surface"
 )
+
+// errNoDirectiveToRewrite is wrapped when the go-line regex finds nothing.
+var errNoDirectiveToRewrite = errors.New("no go directive found to rewrite")
 
 // SplitRunner shells out to the go binary and returns stdout and stderr
 // separately, overridable in tests. The split matters for the dependency
@@ -100,14 +104,10 @@ func runTidyDiffGate(ctx context.Context, dir string, run SplitRunner) gateResul
 // version token and any trailing content (e.g. a comment). Anchored to line
 // start so module paths like "go-something" inside require blocks cannot
 // match.
-//
-//nolint:gochecknoglobals // compiled once, read-only
 var goDirectiveLine = regexp.MustCompile(`(?m)^go[ \t]+(\S+)(.*)$`)
 
 // toolchainDirectiveLine matches a full toolchain directive line including
 // its trailing newline, so removal does not leave a blank line behind.
-//
-//nolint:gochecknoglobals // compiled once, read-only
 var toolchainDirectiveLine = regexp.MustCompile(`(?m)^toolchain[ \t]+\S+[^\n]*\n?`)
 
 // rewriteGoDirective rewrites the go directive to the given target version.
@@ -116,7 +116,7 @@ var toolchainDirectiveLine = regexp.MustCompile(`(?m)^toolchain[ \t]+\S+[^\n]*\n
 func rewriteGoDirective(content, target string) (string, error) {
 	loc := goDirectiveLine.FindStringSubmatchIndex(content)
 	if loc == nil {
-		return "", fmt.Errorf("no go directive found to rewrite (target go %s)", target)
+		return "", fmt.Errorf("%w: target go %s", errNoDirectiveToRewrite, target)
 	}
 
 	newGoLine := "go " + target + content[loc[4]:loc[5]]
@@ -223,7 +223,7 @@ func CanonicalizeGoMod(ctx context.Context, goModPath string, opts CanonicalizeO
 	toolchainVersion, _, toolErr := surface.ParseToolchain(surface.KindGoMod, content)
 	hasToolchain := toolErr == nil && toolchainVersion != ""
 
-	if !surface.HasPatch(goVersion) && !(hasToolchain && opts.StripToolchain) {
+	if !surface.HasPatch(goVersion) && (!hasToolchain || !opts.StripToolchain) {
 		res.Skipped, res.SkipReason = true, "directives already canonical"
 
 		return res, nil

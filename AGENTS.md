@@ -11,9 +11,9 @@
 ## Build & Run
 
 ```bash
-GOEXPERIMENT=jsonv2 go build ./...
-GOEXPERIMENT=jsonv2 go test ./...
-go build -o /tmp/gvac ./cmd/go-version-auto-configure
+GOTOOLCHAIN=go1.27.1 GOEXPERIMENT=jsonv2 go build ./...
+GOTOOLCHAIN=go1.27.1 GOEXPERIMENT=jsonv2 go test ./...
+GOTOOLCHAIN=go1.27.1 GOEXPERIMENT=jsonv2 go build -o /tmp/gvac ./cmd/go-version-auto-configure
 /tmp/gvac check ~/projects/<repo>    # exit 1 = drift found
 /tmp/gvac fix  ~/projects/<repo>
 /tmp/gvac who-forces ~/projects/<repo>   # which deps force each go directive
@@ -46,7 +46,7 @@ All commands accept multiple roots (parallel, sorted output) and `--json` (stabl
 
 ## Environment reality
 
-- Installed toolchain: go1.26.7 with `GOTOOLCHAIN=local` — modules with a 1.27 floor do NOT build in this shell (go-finding, go-atomic-write, oxlint-auto-configure at head). That predates this tool; the tool _surfaces_ it as nix-pin/ci-pin alignment findings.
+- Installed toolchain: go1.26.7 with `GOTOOLCHAIN=local` — modules with a 1.27 floor do NOT build in this shell (go-finding, go-atomic-write, oxlint-auto-configure at head). That predates this tool; the tool _surfaces_ it as nix-pin/ci-pin alignment findings. This repo's own head go.mod now also declares `go 1.27` (since e0932b0), so plain `go build`/`go test` fail here with "go.mod requires go >= 1.27"; prefix commands with `GOTOOLCHAIN=go1.27.1` (verified 2026-09-22: that toolchain is already cached under `$(go env GOPATH)/pkg/mod/golang.org/toolchain@v0.0.1-go1.27.1-*`, no download needed).
 - The auto-commit daemon commits changes in fleet repos quickly (heuristic messages). Verify with `git log`, don't assume.
 - `reports/` (coverage output) and `.crush/` (session DB) are gitignored local artifacts — expected to be dirty, nothing to commit.
 

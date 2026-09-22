@@ -1,10 +1,12 @@
+package fix
+
 // Workspace-level go.work directive syncing: the scoped entry point for
 // consumers that own go.work health (BuildFlow's go-work-sync arbiter) and
 // want the version-surface rules applied without touching module files.
-package fix
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/larsartmann/go-version-auto-configure/pkg/surface"
 )
@@ -23,7 +25,7 @@ import (
 func SyncGoWorkDirectives(ctx context.Context, root string, opts Options, run GoCommandRunner) (*Result, error) {
 	s, _, err := surface.Discover(root)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("sync go.work directives in %s: %w", root, err)
 	}
 
 	var fixes []surface.Fix
