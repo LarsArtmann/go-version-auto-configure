@@ -122,6 +122,9 @@ type fixDoc struct {
 		Discovery []struct {
 			Rule string `json:"rule"`
 		} `json:"discovery"`
+		Suggested []struct {
+			Rule string `json:"rule"`
+		} `json:"suggested"`
 	} `json:"repos"`
 }
 
@@ -639,4 +642,64 @@ func BenchmarkAnalyzeAll(b *testing.B) {
 	for b.Loop() {
 		analyzeAll(roots, 0)
 	}
+}
+
+func TestRun_CheckExpectMinorEnforcesFleetPolicy(t *testing.T) {
+	t.Parallel()
+
+	root := t.TempDir()
+	writeFile(t, root, "go.mod", "module example.com/m\n\ngo 1.28\n")
+	writeFile(t, root, "flake.nix", "{ x = pkgs.go_1_28; }\n")
+
+	var out strings.Builder
+
+	code := run([]string{"check", "--json", "--expect-minor", "1.27", root}, &out)
+	assert.Equal(t, exitFindings, code, "surfaces above the fleet policy are findings")
+
+	doc := decodeJSON[checkDoc](t, out.String())
+
+	rules := map[string]int{}
+
+	for _, f := range doc.Repos[0].Findings {
+		rules[f.Rule]++
+	}
+
+	assert.Equal(t, 2, rules["minor-exceeds-expectation"], "directive and flake pin are each named once")
+
+	var clean strings.Builder
+
+	code = run([]string{"check", "--json", "--expect-minor", "1.28", root}, &clean)
+	assert.Equal(t, exitOK, code, "at the policy minor the repo is clean of expectation findings")
+
+	var bad strings.Builder
+
+	code = run([]string{"check", "--expect-minor", "banana", root}, &bad)
+	assert.Equal(t, exitError, code, "an unparseable policy value is a usage error")
+}
+
+func TestRun_FixExpectMinorSurfacesSuggestions(t *testing.T) {
+	t.Parallel()
+
+	root := t.TempDir()
+	writeFile(t, root, "go.mod", "module example.com/m\n\ngo 1.28\n")
+	writeFile(t, root, "flake.nix", "{ x = pkgs.go_1_28; }\n")
+
+	var out strings.Builder
+
+	code := run([]string{"fix", "--dry-run", "--json", "--expect-minor", "1.27", root}, &out)
+	assert.Equal(t, exitOK, code, "suggestions alone do not fail fix")
+
+	doc := decodeJSON[fixDoc](t, out.String())
+
+	found := false
+
+	for _, r := range doc.Repos {
+		for _, s := range r.Suggested {
+			if s.Rule == "minor-exceeds-expectation" {
+				found = true
+			}
+		}
+	}
+
+	assert.True(t, found, "fix --json carries the expectation findings as suggestions")
 }

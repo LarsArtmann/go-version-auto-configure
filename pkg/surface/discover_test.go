@@ -97,7 +97,12 @@ func TestDiscoverAndAnalyze_PatchFormAcrossModules(t *testing.T) {
 
 	require.NotNil(t, workFix)
 	assert.Equal(t, GoVersion("1.26.5"), workFix.From)
-	assert.Equal(t, GoVersion("1.26.7"), workFix.To, "the below-floor fix raises to the full module floor")
+	assert.Equal(
+		t,
+		GoVersion("1.26.7"),
+		workFix.To,
+		"the below-floor fix raises to the full module floor",
+	)
 }
 
 func TestDiscoverAndAnalyze_NixPinBelowFloor(t *testing.T) {
@@ -232,7 +237,12 @@ func TestAnalyze_GoWorkBelowFloorRestoresFullFloor(t *testing.T) {
 
 	require.NotNil(t, workFix)
 	assert.Equal(t, GoVersion("1.26.7"), workFix.From)
-	assert.Equal(t, GoVersion("1.27.1"), workFix.To, "go.work must cover the full patch floor, not just the minor")
+	assert.Equal(
+		t,
+		GoVersion("1.27.1"),
+		workFix.To,
+		"go.work must cover the full patch floor, not just the minor",
+	)
 }
 
 func TestAnalyze_GoWorkPatchFormRequiredByFloorIsSilent(t *testing.T) {
@@ -407,7 +417,11 @@ func TestAnalyze_ToolchainDefaultIsSurfaced(t *testing.T) {
 	require.Len(t, issues, 1)
 	assert.Equal(t, RuleToolchainNonVersion, issues[0].Rule)
 	assert.Equal(t, 5, issues[0].Line, "toolchain is on line 5")
-	assert.Empty(t, issues[0].Suggestion, "a non-version toolchain is informational, not actionable")
+	assert.Empty(
+		t,
+		issues[0].Suggestion,
+		"a non-version toolchain is informational, not actionable",
+	)
 }
 
 func TestDiscover_ToolchainLocalMakesGoWorkUnparseable(t *testing.T) {
@@ -427,4 +441,90 @@ func TestDiscover_ToolchainLocalMakesGoWorkUnparseable(t *testing.T) {
 	assert.Equal(t, RuleGoWorkUnparseable, discoverIssues[0].Rule)
 	assert.Equal(t, "go.work", discoverIssues[0].File)
 	assert.Contains(t, discoverIssues[0].Message, "invalid toolchain version 'local'")
+}
+
+func TestAnalyze_ExpectMinorFlagsSurfacesAbovePolicy(t *testing.T) {
+	t.Parallel()
+
+	// ADR-0001 shape: the fleet minor is 1.27. A directive, toolchain, and
+	// flake pin at 1.28 exceed the policy; a 1.27 directive with a patch
+	// (dep-forced) and the aligned 1.27 pin stay silent.
+	root := writeRepo(t, map[string]string{
+		"go.mod":    "module example.com/m\n\ngo 1.28.1\n\ntoolchain go1.28.3\n",
+		"flake.nix": "{ x = pkgs.go_1_28; }\n",
+	})
+
+	surf, discoverIssues, err := Discover(root)
+	require.NoError(t, err)
+	assert.Empty(t, discoverIssues)
+
+	opt, optErr := WithExpectedMinor("1.27")
+	require.NoError(t, optErr)
+
+	hits := map[Rule]int{}
+	notes := map[Rule]string{}
+
+	for _, issue := range Analyze(surf, opt) {
+		hits[issue.Rule]++
+
+		if notes[issue.Rule] == "" {
+			notes[issue.Rule] = issue.Message
+		}
+	}
+
+	assert.Equal(
+		t,
+		3,
+		hits[RuleMinorExceedsExpectation],
+		"directive, toolchain, and flake pin all exceed 1.27 at minor granularity",
+	)
+
+	rules := issueRules(Analyze(surf, opt))
+	assert.Contains(t, rules, RuleMinorExceedsExpectation)
+	assert.NotContains(
+		t,
+		notes[RuleMinorExceedsExpectation],
+		"1.27.",
+		"the aligned 1.27 flake pin never exceeds the policy",
+	)
+	assert.Contains(t, notes[RuleMinorExceedsExpectation], "1.28")
+}
+
+func TestAnalyze_ExpectMinorBelowFloorStillFires(t *testing.T) {
+	t.Parallel()
+
+	// The enforcement direction: a repo living on go 1.28 while the fleet
+	// policy is 1.27 is flagged even though every pin is aligned, because
+	// the expectation is absolute policy, not a floor comparison.
+	root := writeRepo(t, map[string]string{
+		"go.mod":    "module example.com/m\n\ngo 1.28\n",
+		"flake.nix": "{ x = pkgs.go_1_28; }\n",
+	})
+
+	surf, discoverIssues, err := Discover(root)
+	require.NoError(t, err)
+	assert.Empty(t, discoverIssues)
+
+	opt, optErr := WithExpectedMinor("1.27")
+	require.NoError(t, optErr)
+
+	fired := 0
+
+	for _, issue := range Analyze(surf, opt) {
+		if issue.Rule == RuleMinorExceedsExpectation {
+			fired++
+		}
+	}
+
+	assert.Equal(t, 2, fired, "directive and flake pin both sit above the policy minor")
+}
+
+func TestWithExpectedMinor_RejectsNonVersions(t *testing.T) {
+	t.Parallel()
+
+	for _, bad := range []string{"banana", "1", "one.two"} {
+		_, err := WithExpectedMinor(bad)
+		require.Error(t, err, "value %q must be rejected", bad)
+		assert.Contains(t, err.Error(), bad, "the error names the offending value")
+	}
 }

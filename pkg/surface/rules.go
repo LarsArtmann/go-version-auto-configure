@@ -83,19 +83,24 @@ func WithExpectedMinor(v string) (AnalyzeOption, error) {
 // exceedsExpectation reports every version surface whose minor is NEWER
 // than the expected fleet minor. Patch components are ignored here: minor
 // policy is major.minor (patch-form surfaces have their own rules).
-func exceedsExpectation(s *Surface, expect majorMinor) []Issue {
+func exceedsExpectation(surf *Surface, expect majorMinor) []Issue {
 	var issues []Issue
 
-	for _, m := range s.Modules {
+	for _, m := range surf.Modules {
 		if !minorExceeds(string(m.Version), expect) {
 			continue
 		}
 
 		issues = append(issues, Issue{
-			Rule:    RuleMinorExceedsExpectation,
-			Message: fmt.Sprintf("%s declares go %s, above the expected minor go %s (fleet policy)", m.Path, m.Version, expect.String()),
-			File:    m.Path,
-			Line:    m.Line,
+			Rule: RuleMinorExceedsExpectation,
+			Message: fmt.Sprintf(
+				"%s declares go %s, above the expected minor go %s (fleet policy)",
+				m.Path,
+				m.Version,
+				expect.String(),
+			),
+			File: m.Path,
+			Line: m.Line,
 			Suggestion: fmt.Sprintf(
 				"align the directive down to go %s, or revisit the fleet minor (downgrades are never auto-applied)",
 				expect.String(),
@@ -103,16 +108,21 @@ func exceedsExpectation(s *Surface, expect majorMinor) []Issue {
 		})
 	}
 
-	for _, tc := range s.Toolchains {
+	for _, tc := range surf.Toolchains {
 		if !minorExceeds(string(tc.Version), expect) {
 			continue
 		}
 
 		issues = append(issues, Issue{
-			Rule:    RuleMinorExceedsExpectation,
-			Message: fmt.Sprintf("%s pins toolchain %s, above the expected minor go %s (fleet policy)", tc.Path, tc.Version, expect.String()),
-			File:    tc.Path,
-			Line:    tc.Line,
+			Rule: RuleMinorExceedsExpectation,
+			Message: fmt.Sprintf(
+				"%s pins toolchain %s, above the expected minor go %s (fleet policy)",
+				tc.Path,
+				tc.Version,
+				expect.String(),
+			),
+			File: tc.Path,
+			Line: tc.Line,
 			Suggestion: fmt.Sprintf(
 				"align the toolchain pin down to a go %s release, or revisit the fleet minor (downgrades are never auto-applied)",
 				expect.String(),
@@ -120,8 +130,8 @@ func exceedsExpectation(s *Surface, expect majorMinor) []Issue {
 		})
 	}
 
-	issues = append(issues, pinExceedsExpectation(s.NixPins, expect)...)
-	issues = append(issues, pinExceedsExpectation(s.CIPins, expect)...)
+	issues = append(issues, pinExceedsExpectation(surf.NixPins, expect)...)
+	issues = append(issues, pinExceedsExpectation(surf.CIPins, expect)...)
 
 	return issues
 }
@@ -136,10 +146,16 @@ func pinExceedsExpectation(pins []Pin, expect majorMinor) []Issue {
 		}
 
 		issues = append(issues, Issue{
-			Rule:    RuleMinorExceedsExpectation,
-			Message: fmt.Sprintf("%s pins %s (%s), above the expected minor go %s (fleet policy)", pin.Path, pin.Raw, pin.Source, expect.String()),
-			File:    pin.Path,
-			Line:    pin.Line,
+			Rule: RuleMinorExceedsExpectation,
+			Message: fmt.Sprintf(
+				"%s pins %s (%s), above the expected minor go %s (fleet policy)",
+				pin.Path,
+				pin.Raw,
+				pin.Source,
+				expect.String(),
+			),
+			File: pin.Path,
+			Line: pin.Line,
 			Suggestion: fmt.Sprintf(
 				"align the pin down to go %s, or revisit the fleet minor (downgrades are never auto-applied)",
 				expect.String(),
@@ -328,11 +344,14 @@ func staleToolchains(s *Surface) []Issue {
 		}
 
 		issues = append(issues, Issue{
-			Rule:       RuleToolchainBelowDirective,
-			Message:    staleToolchainMessage(tc, goVersion),
-			File:       tc.Path,
-			Line:       tc.Line,
-			Suggestion: fmt.Sprintf("remove the stale directive: go %s edit -toolchain=none", editVerb(tc.Kind)),
+			Rule:    RuleToolchainBelowDirective,
+			Message: staleToolchainMessage(tc, goVersion),
+			File:    tc.Path,
+			Line:    tc.Line,
+			Suggestion: fmt.Sprintf(
+				"remove the stale directive: go %s edit -toolchain=none",
+				editVerb(tc.Kind),
+			),
 		})
 	}
 
@@ -444,7 +463,13 @@ func nixPinIssues(s *Surface, floor majorMinor, toolDriver *ToolchainDirective) 
 func nixPinMessage(pin Pin, floor majorMinor, toolDriver *ToolchainDirective) string {
 	const tail = "the Nix sandbox builds with (or downloads) a toolchain older than the repo requires"
 
-	return fmt.Sprintf("%s pins Go %s but %s: %s", pin.Path, pin.Version, floorPhrase(floor, toolDriver), tail)
+	return fmt.Sprintf(
+		"%s pins Go %s but %s: %s",
+		pin.Path,
+		pin.Version,
+		floorPhrase(floor, toolDriver),
+		tail,
+	)
 }
 
 // ciPinIssues report workflow pins that trail the effective floor or pin
@@ -461,11 +486,14 @@ func ciPinIssues(s *Surface, floor majorMinor, toolDriver *ToolchainDirective) [
 
 		if parsed.lessThan(floor) {
 			issues = append(issues, Issue{
-				Rule:       RuleCIPinBelowFloor,
-				Message:    ciPinMessage(pin, floor, toolDriver),
-				File:       pin.Path,
-				Line:       pin.Line,
-				Suggestion: fmt.Sprintf("set go-version to %s to match the effective floor", floor.String()),
+				Rule:    RuleCIPinBelowFloor,
+				Message: ciPinMessage(pin, floor, toolDriver),
+				File:    pin.Path,
+				Line:    pin.Line,
+				Suggestion: fmt.Sprintf(
+					"set go-version to %s to match the effective floor",
+					floor.String(),
+				),
 			})
 
 			continue
@@ -492,7 +520,13 @@ func ciPinIssues(s *Surface, floor majorMinor, toolDriver *ToolchainDirective) [
 func ciPinMessage(pin Pin, floor majorMinor, toolDriver *ToolchainDirective) string {
 	const tail = "CI builds with a toolchain older than the repo requires"
 
-	return fmt.Sprintf("%s pins go-version %s but %s: %s", pin.Path, pin.Version, floorPhrase(floor, toolDriver), tail)
+	return fmt.Sprintf(
+		"%s pins go-version %s but %s: %s",
+		pin.Path,
+		pin.Version,
+		floorPhrase(floor, toolDriver),
+		tail,
+	)
 }
 
 // ciPatchPinMessage describes a CI pin that tracks one exact patch.

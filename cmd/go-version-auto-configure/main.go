@@ -201,7 +201,12 @@ func newRunFlagSet(name string) (*flag.FlagSet, *runFlags) {
 	rf := &runFlags{}
 
 	fs.BoolVar(&rf.asJSON, "json", false, "emit machine-readable JSON")
-	fs.IntVar(&rf.parallel, "parallel", 0, "max repositories analyzed concurrently (0 = auto: CPU count)")
+	fs.IntVar(
+		&rf.parallel,
+		"parallel",
+		0,
+		"max repositories analyzed concurrently (0 = auto: CPU count)",
+	)
 
 	return fs, rf
 }
@@ -241,7 +246,12 @@ func cmdCheck(args []string, out io.Writer) int {
 	var quiet bool
 	var expectMinor string
 
-	fs.BoolVar(&quiet, "quiet", false, "exit-code-only: suppress the human report (JSON is still emitted with --json)")
+	fs.BoolVar(
+		&quiet,
+		"quiet",
+		false,
+		"exit-code-only: suppress the human report (JSON is still emitted with --json)",
+	)
 	fs.StringVar(&expectMinor, "expect-minor", "",
 		"fleet-expected Go minor (e.g. 1.27): surfaces above it fire alignment findings")
 
@@ -302,7 +312,14 @@ func printCheckReport(out io.Writer, a repoAnalysis) {
 	all := a.report.all()
 
 	for _, issue := range all {
-		fmt.Fprintf(out, "FOUND  %-26s %s:%d\n       %s\n", issue.Rule, issue.File, issue.Line, issue.Message)
+		fmt.Fprintf(
+			out,
+			"FOUND  %-26s %s:%d\n       %s\n",
+			issue.Rule,
+			issue.File,
+			issue.Line,
+			issue.Message,
+		)
 
 		if issue.Suggestion != "" {
 			fmt.Fprintf(out, "       fix: %s\n", issue.Suggestion)
@@ -392,7 +409,12 @@ func cmdFix(args []string, out io.Writer) int {
 	var expectMinor string
 
 	fs.BoolVar(&dryRun, "dry-run", false, "report what would change without touching files")
-	fs.BoolVar(&quiet, "quiet", false, "exit-code-only: suppress the human report (JSON is still emitted with --json)")
+	fs.BoolVar(
+		&quiet,
+		"quiet",
+		false,
+		"exit-code-only: suppress the human report (JSON is still emitted with --json)",
+	)
 	fs.StringVar(&expectMinor, "expect-minor", "",
 		"fleet-expected Go minor (e.g. 1.27): surfaces above it fire alignment findings")
 
@@ -425,8 +447,16 @@ func cmdFix(args []string, out io.Writer) int {
 // and suggest-only repositories skip the go tool entirely — the fast path
 // that keeps fleet sweeps linear in the drifted-repo count, not the repo
 // count.
-func applyAll(ctx context.Context, analyses []repoAnalysis, opts fix.Options, parallel int) []fixOutcome {
-	outcomes := make([]fixOutcome, len(analyses)) //nolint:makezero // pre-sized for index assignment
+func applyAll(
+	ctx context.Context,
+	analyses []repoAnalysis,
+	opts fix.Options,
+	parallel int,
+) []fixOutcome {
+	outcomes := make(
+		[]fixOutcome,
+		len(analyses),
+	) //nolint:makezero // pre-sized for index assignment
 	sem := make(chan struct{}, workersFor(len(analyses), parallel))
 
 	var wg sync.WaitGroup
@@ -526,11 +556,25 @@ func printFixReport(out io.Writer, outcome fixOutcome) {
 	}
 
 	for _, issue := range outcome.discovery {
-		fmt.Fprintf(out, "DISCOVERY  %-22s %s:%d\n           %s\n", issue.Rule, issue.File, issue.Line, issue.Message)
+		fmt.Fprintf(
+			out,
+			"DISCOVERY  %-22s %s:%d\n           %s\n",
+			issue.Rule,
+			issue.File,
+			issue.Line,
+			issue.Message,
+		)
 	}
 
 	for _, issue := range outcome.suggested {
-		fmt.Fprintf(out, "SUGGEST  %-24s %s:%d\n         %s\n", issue.Rule, issue.File, issue.Line, issue.Suggestion)
+		fmt.Fprintf(
+			out,
+			"SUGGEST  %-24s %s:%d\n         %s\n",
+			issue.Rule,
+			issue.File,
+			issue.Line,
+			issue.Suggestion,
+		)
 	}
 }
 
@@ -574,7 +618,12 @@ func cmdWhoForces(args []string, out io.Writer) int {
 
 	fs.BoolVar(&allowPartial, "allow-partial", false,
 		"downgrade per-module go list failures from exit 2 to exit 1 (default: fail closed)")
-	fs.BoolVar(&quiet, "quiet", false, "exit-code-only: suppress the human report (JSON is still emitted with --json)")
+	fs.BoolVar(
+		&quiet,
+		"quiet",
+		false,
+		"exit-code-only: suppress the human report (JSON is still emitted with --json)",
+	)
 
 	roots, ok := parseRoots(fs, args)
 	if !ok {
@@ -676,7 +725,13 @@ func printFloors(out io.Writer, rows []fix.ModuleFloors) {
 		)
 
 		for _, poisoner := range row.PoisonerFloors {
-			fmt.Fprintf(out, "    %s@%s  (floor go %s)\n", poisoner.Module, poisoner.Version, poisoner.Floor)
+			fmt.Fprintf(
+				out,
+				"    %s@%s  (floor go %s)\n",
+				poisoner.Module,
+				poisoner.Version,
+				poisoner.Floor,
+			)
 		}
 	}
 }
