@@ -2,6 +2,10 @@
 
 Short- and mid-term actionable work. Ordered by impact (Pareto). Harvested from `docs/status/archived/2026-09-18_15-13_fleet-versioning-unification.md` (section f) on 2026-09-18; swept 2026-09-18 (T7 fleet-sweep enablers and T10 repo hygiene shipped — see CHANGELOG Unreleased); re-harvested 2026-09-19 from `docs/status/archived/2026-09-19_06-39_t7-t9-t10-shipped-lint-zero-full-gate-green.md` (section f → T11/T12, T3 additions); T11 fully shipped and T12 mostly dispositioned 2026-09-22 (see CHANGELOG Unreleased).
 
+## T0 — go.work-aware fixer: never strip the go.work patch floor below a module's requirement — NEW (2026-09-22, S87 root cause)
+
+- [ ] **The fixer normalizes go.work's `go` directive to minor-only (`go 1.27.1` → `go 1.27`) without checking module floors.** Under `go.work`, the go line must cover every module's directive at FULL patch granularity (`go work` errors with "module X listed in go.work requires go >= 1.27.1, but go.work lists go 1.27"), so a dep-forced patch floor (deps declaring 1.27.1) makes every `go` subprocess in the workspace fail after a "helpful" normalization. Verified live on the BuildFlow workspace 2026-09-20 (gotcha #169; the whole pipeline's go subprocesses failed until the floor was restored). Required behavior: before rewriting any go.work go line, compute `max(module go directives)` over all `use`'d modules (full patch granularity) and never write a line below it; ideally surface a finding when the fixer wants to go lower and refuses. BuildFlow already defends downstream (go-work-sync `RestoreGoWorkFloor` + `DependsOn: [go-version-auto-configure]` ordering) — this entry tracks the SOURCE-side fix so every consumer stops needing the arbiter.
+
 ## T1 — Supply-side re-tag campaign (BLOCKING for fleet convergence) — PLANNED
 
 Published library versions carry patch-form `go` floors that re-poison every consumer on `go mod tidy` (verified 2026-09-18: stripping this repo's directive to `go 1.26` and running plain `go mod tidy` re-raises it to `go 1.26.7`):
