@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/larsartmann/go-version-auto-configure/pkg/fix"
+	"github.com/larsartmann/go-version-auto-configure/pkg/surface"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -371,6 +372,97 @@ func TestExitFromFloors_AllowPartialDowngradesModuleErrors(t *testing.T) {
 
 	assert.Equal(t, exitError, exitFromFloors(results, false), "default fails closed on module listing errors")
 	assert.Equal(t, exitFindings, exitFromFloors(results, true), "allow-partial downgrades module errors to findings")
+}
+
+func TestSummarizeAndExitContracts(t *testing.T) {
+	t.Parallel()
+
+	clean := repoAnalysis{root: "/clean", report: &report{}}
+	drifted := repoAnalysis{root: "/drifted", report: &report{
+		mechanical: []surface.Issue{{Rule: surface.RuleGoDirectivePatchForm}},
+	}}
+	failed := repoAnalysis{root: "/failed", err: assertError{}}
+
+	cleanN, findingsN, failedN := summarize([]repoAnalysis{clean, drifted, failed})
+	assert.Equal(t, 1, cleanN)
+	assert.Equal(t, 1, findingsN)
+	assert.Equal(t, 1, failedN)
+
+	assert.Equal(t, exitError, exitFromAnalyses([]repoAnalysis{drifted, failed}), "hard errors dominate")
+	assert.Equal(t, exitFindings, exitFromAnalyses([]repoAnalysis{drifted}))
+	assert.Equal(t, exitOK, exitFromAnalyses([]repoAnalysis{clean}))
+
+	outcomes := []fixOutcome{
+		{root: "/discovery", discovery: []surface.Issue{{Rule: surface.RuleGoModUnparseable}}},
+	}
+	assert.Equal(t, exitFindings, exitFromOutcomes(outcomes), "discovery findings count as findings, matching check")
+
+	outcomes = append(outcomes, fixOutcome{root: "/err", err: assertError{}})
+	assert.Equal(t, exitError, exitFromOutcomes(outcomes), "hard errors dominate discovery findings")
+}
+
+// assertError is a distinct error type for exit-contract tests.
+type assertError struct{}
+
+func (assertError) Error() string { return "assert error" }
+
+func TestPrintFloorsRendersEveryRowShape(t *testing.T) {
+	t.Parallel()
+
+	rows := []fix.ModuleFloors{
+		{
+			Path:        "go.mod",
+			Kind:        surface.KindGoMod,
+			Module:      "example.com/m",
+			Directive:   "1.26",
+			MaxDepFloor: "1.26.7",
+			Poisoners:   []string{"github.com/larsartmann/go-finding@v1.12.0"},
+			PoisonerFloors: []fix.PoisonerFloor{
+				{Module: "github.com/larsartmann/go-finding", Version: "v1.12.0", Floor: "1.26.7"},
+			},
+			Poisoned: true,
+		},
+		{Path: "go.work", Kind: surface.KindGoWork, Directive: "1.26"},
+		{Path: "broken/go.mod", Kind: surface.KindGoMod, Module: "example.com/broken", Error: "go list failed"},
+	}
+
+	var out strings.Builder
+
+	printFloors(&out, rows)
+	text := out.String()
+
+	assert.Contains(t, text, "POISONED: tidy re-raises the directive to go 1.26.7, forced by:")
+	assert.Contains(t, text, "github.com/larsartmann/go-finding@v1.12.0  (floor go 1.26.7)")
+	assert.Contains(t, text, "workspace: declares no dependencies; floor analysis skipped")
+	assert.Contains(t, text, "analysis failed: go list failed")
+}
+
+func TestPrintFixReportRendersDiscoveryOnlyRepo(t *testing.T) {
+	t.Parallel()
+
+	var out strings.Builder
+
+	printFixReport(&out, fixOutcome{
+		root: "/repo",
+		discovery: []surface.Issue{
+			{Rule: surface.RuleGoModUnparseable, File: "go.mod", Message: "parse go.mod: broken"},
+		},
+	})
+
+	text := out.String()
+	assert.Contains(t, text, "/repo: 1 discovery finding(s); nothing mechanical to fix")
+	assert.Contains(t, text, "DISCOVERY  go-mod-unparseable          go.mod:0")
+}
+
+func TestPrintFixReportsRoutesErrorsToStderr(t *testing.T) {
+	t.Parallel()
+
+	var out, errOut strings.Builder
+
+	printFixReports(&errOut, []fixOutcome{{root: "/repo", err: assertError{}}}, true)
+
+	assert.Empty(t, out.String())
+	assert.Contains(t, errOut.String(), "fix: /repo: assert error")
 }
 
 // BenchmarkAnalyzeAll measures the parallel discovery sweep over seeded
