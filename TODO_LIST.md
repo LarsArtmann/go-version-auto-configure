@@ -32,15 +32,14 @@ Published library versions carried patch-form `go` floors that re-poisoned every
 - [ ] Add to BuildFlow docs/provider catalog; run `buildflow --dry-run` to confirm discovery
 - [ ] Decide DAG position: after `go-mod-update`, before `nix-checker` (alignment suggestions inform hash repairs)
 
-## T3 — Publish this tool — PARTIALLY DONE (v0.1.0 tagged 2026-09-18)
+## T3 — Publish this tool — DONE 2026-09-22 (v0.2.0; website pending)
 
-- [ ] GitHub Actions CI: lint + test matrix + dogfood `go-version-auto-configure check .` as a gate (remember `GOEXPERIMENT=jsonv2` in the workflow env)
-- [ ] GoReleaser config with ldflags version stamping for `version`
-- [ ] pkg.go.dev verification after the first tag
+- [x] GitHub Actions CI: build + race tests + golangci-lint + dogfood gate (`check --quiet --expect-minor 1.27 .`, exit 0 required; `GOEXPERIMENT=jsonv2` in workflow env) — first run green 2026-09-22 (3m11s)
+- [x] GoReleaser config with ldflags version stamping (`pkg/version.injected={{ .Version }}`); release workflow on `v*` tags — v0.2.0 shipped 6 binaries (linux/darwin/windows × amd64/arm64 + checksums)
+- [x] v0.2.0 cut from the CHANGELOG release section; proxy-verified via `go get @v0.2.0`
+- [ ] pkg.go.dev listing appears (indexed via the proxy — 404 minutes after tagging is normal lag, not a blocker)
 - [ ] Website launch (sibling-project pattern) if it earns one
-- [ ] Branch protection decision for `master`: required status checks would break the auto-commit daemon's direct pushes (owner call)
-- [ ] Repo topics: `go`, `buildflow`, `golangci`, `auto-configure`, `version-surface`
-- [ ] CI badge in README once the workflow lands
+- [ ] Branch protection decision for `master`: required status checks would break the auto-commit daemon's direct pushes (owner call — see open owner questions)
 - [x] Module-path casing check (`github.com/larsartmann/…` vs `LarsArtmann`) with a real `go get` — verified 2026-09-22: lowercase path resolves from the proxy (`go get github.com/larsartmann/go-version-auto-configure@v0.1.0` + the three sibling apps at their new tags)
 - [ ] Verify the README build-from-source steps in a clean environment (container/nix shell)
 

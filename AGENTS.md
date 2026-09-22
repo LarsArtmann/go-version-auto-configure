@@ -5,7 +5,7 @@
 - **Type:** Single-module Go CLI + BuildFlow provider (the "auto-configure" family: golangci-lint, oxlint, dependabot, and now the Go version surface)
 - **Purpose:** Detect Go toolchain version-surface drift (patch components in `go` directives, `go.work` below the workspace floor, Nix/CI pins trailing the module floor) and auto-fix the mechanically safe part
 - **Repo:** `github.com/larsartmann/go-version-auto-configure`
-- **Version:** 0.1.0 (tagged 2026-09-18 for BuildFlow integration; README install stays build-from-source until T1's clean re-tags land)
+- **Version:** v0.2.0 (tagged 2026-09-22; GitHub Release with stamped binaries via GoReleaser; pkg.go.dev listing lags the proxy — `go get @v0.2.0` verified)
 - **Toolchain floor (updated 2026-09-22, post re-tags):** the module `go` directive is `go 1.27` (minor-only) and stays there: every published dependency now carries a minor-form or aligned floor (go-finding v1.13.0 `go 1.27`, toolsdk v1.13.0, linter-autoconfigure-sdk v0.3.0, go-atomic-write v0.6.0). `fix` applied 0 / dep-forced 0 and `tidy` is stable — the T1 supply-side state is fully landed for this repo's graph.
 
 ## Build & Run

@@ -108,3 +108,9 @@
 ---
 
 _Point-in-time snapshot; TODO_LIST.md is the living source. Section (f) is the HARVEST input for docs-health. The 5 owner decisions are recorded in the session transcript; ADR-0001 is their citable artifact._
+
+---
+
+## h) CONTINUATION ADDENDUM (same session, 00:00–00:45) — section (f) executed
+
+Executed after this snapshot: 3 app tags shipped and proxy-verified (v0.8.2 / v0.6.4 / v0.2.1); this repo bumped to go-finding v1.13.0 / sdk v0.3.0 / atomic-write v0.6.0 — `fix` applied 0, dep-forced 0, tidy stable (the AGENTS dogfooding caveat is rewritten: the poison is GONE here); fleet sweep baseline recorded in the ADR appendix (36/48 repos with drift); docs pass (CHANGELOG v0.2.0 entry, TODO T1/T4 closed, FEATURES/DOMAIN_LANGUAGE/README schema-2 + floor-coverage vocabulary); CI + GoReleaser shipped — **v0.2.0 cut**, GitHub Release with 6 stamped binaries, proxy-verified (pkg.go.dev lags, expected); BuildFlow wiring verified live (`buildflow list steps` shows the step; provider blank-import already present); testify keep-policy encoded (`.go-auto-upgrade.json`); 3 benchmarks added + baselines recorded; designs sketched for T5/T6/T9; 3 lessons pushed to crush-config; **3 upstream issues filed with fresh source-level verification**: go-cqrs-lite#42 (toolspec lacks non-consumer guard), dependabot-auto-configure#3 (custom group names false positive), branching-flow#1 (worker-pool index false positive). Section (g)'s two owner questions remain OPEN. Final gate: build + test + race + lint (0 issues) + erraudit (0 violations) + dogfood exit 0.
