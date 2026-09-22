@@ -11,23 +11,29 @@ import (
 //  1. `go` directives (go.mod and go.work) are major.minor only — a patch
 //     component raises the minimum toolchain to one exact patch and breaks
 //     environments that trail the newest release (Nix, CI runners).
-//  2. Nix and CI pins must not trail the repo's effective floor — the
+//  2. A go.work directive must cover every workspace module at FULL patch
+//     granularity: one below the module floor is a mechanical fix (raise
+//     it); one whose patch component is required by a dep-forced module
+//     floor is correct and reported by no rule at all.
+//  3. Nix and CI pins must not trail the repo's effective floor — the
 //     module floor, or a newer `toolchain` minor; otherwise the sandbox
 //     builds with (or downloads) a different toolchain than local.
-//  3. `toolchain` directives below the same file's `go` directive are dead
+//  4. `toolchain` directives below the same file's `go` directive are dead
 //     weight: the go command ignores them.
-//  4. CI patch pins are flagged as suggestions: they silently diverge from
+//  5. CI patch pins are flagged as suggestions: they silently diverge from
 //     the nixpkgs minor the flakes track.
 //
-// Form violations (rule 1) carry a mechanical Fix; alignment violations
-// carry suggestions only, because which side moves (pin vs floor) is a
-// maintainer decision and downgrades are not auto-applied.
+// Form violations (rule 1, the raisable half of rule 2) carry a mechanical
+// Fix; alignment violations carry suggestions only, because which side
+// moves (pin vs floor) is a maintainer decision and downgrades are not
+// auto-applied.
 func Analyze(s *Surface) []Issue {
 	var issues []Issue
 
-	workspaceFloor, hasFloor := s.Floor()
+	fullFloor, hasFull := s.FullModuleFloor()
 
-	issues = append(issues, formIssues(s, workspaceFloor, hasFloor)...)
+	issues = append(issues, formIssues(s, fullFloor, hasFull)...)
+	issues = append(issues, goWorkBelowFloor(s, fullFloor, hasFull)...)
 	issues = append(issues, nonVersionToolchains(s)...)
 	issues = append(issues, staleToolchains(s)...)
 
@@ -42,8 +48,9 @@ func Analyze(s *Surface) []Issue {
 }
 
 // formIssues reports patch-form `go` directives together with their
-// mechanical rewrites.
-func formIssues(s *Surface, workspaceFloor majorMinor, hasFloor bool) []Issue {
+// mechanical rewrites. A go.work patch form is only a violation when the
+// stripped minor form still covers the workspace's full module floor.
+func formIssues(s *Surface, fullFloor GoVersion, hasFull bool) []Issue {
 	var issues []Issue
 
 	for _, m := range s.Modules {
@@ -56,15 +63,18 @@ func formIssues(s *Surface, workspaceFloor majorMinor, hasFloor bool) []Issue {
 			continue //nolint:erraudit // deliberate filter: unparseable directives surface as unparseable discovery findings
 		}
 
-		// go.work must cover every module it lists: when the workspace
-		// floor is higher than this directive's minor, the normalized
-		// target is the workspace floor, not the stripped directive —
-		// otherwise the rewrite would leave the workspace unable to
-		// resolve its own modules.
-		target := parsed
-
-		if m.Kind == KindGoWork && hasFloor && target.lessThan(workspaceFloor) {
-			target = workspaceFloor
+		// A go.work directive must cover every workspace module at FULL
+		// patch granularity. When a module floor is dep-forced above the
+		// stripped minor form (module at go 1.27.1, minor form go 1.27),
+		// the patch component is REQUIRED: stripping it would leave the
+		// workspace unable to resolve its own modules ("module X listed
+		// in go.work file requires go >= 1.27.1, but go.work lists go
+		// 1.27"). That state is correct, not a violation, so no issue is
+		// reported. A go.work directive already BELOW the full floor is
+		// goWorkBelowFloor's concern instead; its fix restores the floor
+		// rather than stripping the patch.
+		if m.Kind == KindGoWork && hasFull && GreaterVersion(string(fullFloor), parsed.String()) {
+			continue
 		}
 
 		issues = append(issues, Issue{
@@ -76,7 +86,53 @@ func formIssues(s *Surface, workspaceFloor majorMinor, hasFloor bool) []Issue {
 				File: m.Path,
 				Kind: m.Kind,
 				From: m.Version,
-				To:   GoVersion(target.String()),
+				To:   GoVersion(parsed.String()),
+				Line: m.Line,
+			},
+		})
+	}
+
+	return issues
+}
+
+// goWorkBelowFloor reports go.work directives sitting below the workspace's
+// full module floor and carries the always-safe mechanical fix: raise the
+// directive to the floor. See RuleGoWorkBelowFloor for the breakage class.
+func goWorkBelowFloor(s *Surface, fullFloor GoVersion, hasFull bool) []Issue {
+	var issues []Issue
+
+	if !hasFull {
+		return issues
+	}
+
+	for _, m := range s.Modules {
+		if m.Kind != KindGoWork {
+			continue
+		}
+
+		if _, err := parseMajorMinor(string(m.Version)); err != nil {
+			continue //nolint:erraudit // deliberate filter: unparseable directives surface as unparseable discovery findings
+		}
+
+		if !GreaterVersion(string(fullFloor), string(m.Version)) {
+			continue
+		}
+
+		issues = append(issues, Issue{
+			Rule: RuleGoWorkBelowFloor,
+			Message: fmt.Sprintf(
+				"%s declares go %s: it does not cover the workspace module floor go %s; "+
+					"every `go` command in the workspace fails with \"module X listed in go.work file "+
+					"requires go >= %s, but go.work lists go %s\" until the floor is restored",
+				m.Path, m.Version, fullFloor, fullFloor, m.Version,
+			),
+			File: m.Path,
+			Line: m.Line,
+			Fix: &Fix{
+				File: m.Path,
+				Kind: KindGoWork,
+				From: m.Version,
+				To:   fullFloor,
 				Line: m.Line,
 			},
 		})

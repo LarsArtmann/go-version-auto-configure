@@ -74,6 +74,17 @@ const (
 	// rejects). Without this the file's `go` directive would vanish from
 	// the surface silently.
 	RuleGoWorkUnparseable Rule = "go-work-unparseable"
+
+	// RuleGoWorkBelowFloor fires when a go.work `go` directive sits BELOW a
+	// workspace module's `go` directive at FULL patch granularity. In that
+	// state every `go` command in the workspace fails with "module X listed
+	// in go.work file requires go >= N, but go.work lists go M". The fix is
+	// mechanical and always safe: raise the go.work directive to the module
+	// floor (raising a floor never invalidates anything). This is the
+	// invalidation class a workspace-mode `go get` produces when it
+	// rewrites the go.work directive at minor granularity while modules
+	// are dep-forced at a patch.
+	RuleGoWorkBelowFloor Rule = "go-work-below-floor"
 )
 
 // DirectiveKind distinguishes which file declares a Go version.
@@ -171,6 +182,33 @@ func (s *Surface) Floor() (majorMinor, bool) {
 	}
 
 	return highestMajorMinor(versions)
+}
+
+// FullModuleFloor returns the highest FULL directive version (patch
+// component included) across the go.mod module directives, e.g. "1.27.1".
+// Unlike Floor, which is major.minor only, the patch component matters
+// here: the go tool lifts a directive to a dependency's exact patch floor,
+// and a go.work directive must cover every module at that granularity or
+// the workspace cannot resolve its own modules. The bool is false when no
+// go.mod module directive parses.
+func (s *Surface) FullModuleFloor() (GoVersion, bool) {
+	best, found := "", false
+
+	for _, m := range s.Modules {
+		if m.Kind != KindGoMod {
+			continue
+		}
+
+		if _, err := parseMajorMinor(string(m.Version)); err != nil {
+			continue
+		}
+
+		if !found || GreaterVersion(string(m.Version), best) {
+			best, found = string(m.Version), true
+		}
+	}
+
+	return GoVersion(best), found
 }
 
 // toolchainFloor returns the highest major.minor pinned by any `toolchain`
