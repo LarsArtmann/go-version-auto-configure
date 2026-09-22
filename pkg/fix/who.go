@@ -44,12 +44,10 @@ type ModuleFloors struct {
 	// MaxDepFloor is the highest `go` floor any dependency declares
 	// ("" when no dependency declares one).
 	MaxDepFloor surface.GoVersion `json:"maxDepFloor,omitempty"`
-	// Poisoners names the dependencies carrying MaxDepFloor when that floor
-	// exceeds the directive (Poisoned); empty otherwise.
-	Poisoners []string `json:"poisoners,omitempty"`
 	// PoisonerFloors lists every dependency whose own floor exceeds the
 	// directive, each with its floor, sorted highest floor first; empty
-	// unless Poisoned.
+	// unless Poisoned. Schema 2 of the wire contract removed the flat
+	// `poisoners` list; every carrier is named here with its floor.
 	PoisonerFloors []PoisonerFloor `json:"poisonerFloors,omitempty"`
 	// Poisoned reports whether `go mod tidy` would re-raise the directive:
 	// the dependency floor exceeds the declared directive.
@@ -104,8 +102,6 @@ func floorsForModule(ctx context.Context, root string, m surface.ModuleDirective
 		return row
 	}
 
-	floors := map[string][]string{}
-
 	var forcers []PoisonerFloor
 
 	for line := range strings.SplitSeq(strings.TrimSuffix(out, "\n"), "\n") {
@@ -114,8 +110,6 @@ func floorsForModule(ctx context.Context, root string, m surface.ModuleDirective
 		if !ok {
 			continue
 		}
-
-		floors[string(floor)] = append(floors[string(floor)], string(dep)+"@"+string(version))
 
 		if row.MaxDepFloor == "" || surface.GreaterVersion(string(floor), string(row.MaxDepFloor)) {
 			row.MaxDepFloor = floor
@@ -129,9 +123,6 @@ func floorsForModule(ctx context.Context, root string, m surface.ModuleDirective
 	row.Poisoned = surface.GreaterVersion(string(row.MaxDepFloor), string(row.Directive))
 
 	if row.Poisoned {
-		row.Poisoners = floors[string(row.MaxDepFloor)]
-		slices.Sort(row.Poisoners)
-
 		row.PoisonerFloors = forcers
 		slices.SortFunc(row.PoisonerFloors, comparePoisonerFloors)
 	}

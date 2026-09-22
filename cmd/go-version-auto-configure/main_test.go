@@ -311,7 +311,7 @@ func TestRun_CheckJSONCarriesSchemaVersion(t *testing.T) {
 	require.Equal(t, exitOK, run([]string{"check", "--json", seedCleanRepo(t)}, &out))
 
 	doc := decodeJSON[checkDoc](t, out.String())
-	assert.Equal(t, 1, doc.Schema, "the schema field pins the wire contract version")
+	assert.Equal(t, 2, doc.Schema, "the schema field pins the wire contract version (2: poisoners dropped)")
 }
 
 // seedBrokenRepo writes a repo whose go.mod cannot be parsed: a discovery
@@ -473,7 +473,6 @@ func TestPrintFloorsRendersEveryRowShape(t *testing.T) {
 			Module:      "example.com/m",
 			Directive:   "1.26",
 			MaxDepFloor: "1.26.7",
-			Poisoners:   []string{"github.com/larsartmann/go-finding@v1.12.0"},
 			PoisonerFloors: []fix.PoisonerFloor{
 				{Module: "github.com/larsartmann/go-finding", Version: "v1.12.0", Floor: "1.26.7"},
 			},

@@ -16,7 +16,10 @@ import (
 
 // jsonSchemaVersion is the version of the --json wire contract. It is
 // bumped only on breaking shape changes; additive fields keep the version.
-const jsonSchemaVersion = 1
+// Schema 2 (2026-09-22, ADR session decision) dropped the superseded
+// `poisoners []string` fields from fix and who-forces documents;
+// `poisonerFloors` / `depForced` carry the same information with floors.
+const jsonSchemaVersion = 2
 
 // jsonFix mirrors surface.Fix.
 type jsonFix struct {
@@ -61,11 +64,12 @@ type checkDocument struct {
 	Repos  []jsonRepo `json:"repos"`
 }
 
-// jsonDepForced is one tidy-reverted fix with its named poisoners.
+// jsonDepForced is one tidy-reverted fix with the floor that forced it.
+// Schema 2 removed `poisoners`; who-forces --json names the carriers with
+// their floors (poisonerFloors).
 type jsonDepForced struct {
-	Fix       jsonFix  `json:"fix"`
-	Floor     string   `json:"floor"`
-	Poisoners []string `json:"poisoners,omitempty"`
+	Fix   jsonFix `json:"fix"`
+	Floor string  `json:"floor"`
 }
 
 // jsonFailure is one fix that could not be applied or verified.
@@ -212,9 +216,8 @@ func toJSONFixRepo(outcome fixOutcome) jsonFixRepo {
 
 	for _, d := range outcome.result.DepForced {
 		repo.DepForced = append(repo.DepForced, jsonDepForced{
-			Fix:       *toFixJSON(&d.Fix),
-			Floor:     string(d.Floor),
-			Poisoners: d.Poisoners,
+			Fix:   *toFixJSON(&d.Fix),
+			Floor: string(d.Floor),
 		})
 	}
 
