@@ -326,11 +326,14 @@ func TestAnalyze_CurrentToolchainNotFlagged(t *testing.T) {
 	assert.Empty(t, Analyze(s))
 }
 
-func TestAnalyze_ToolchainLocalIsSurfaced(t *testing.T) {
+func TestAnalyze_ToolchainDefaultIsSurfaced(t *testing.T) {
 	t.Parallel()
 
+	// `toolchain default` is valid per the go tool but names no explicit
+	// toolchain version: it must surface as informational instead of being
+	// silently excluded from floor analysis.
 	root := writeRepo(t, map[string]string{
-		"go.mod": "module example.com/root\n\ngo 1.26\n\ntoolchain local\n",
+		"go.mod": "module example.com/root\n\ngo 1.26\n\ntoolchain default\n",
 	})
 
 	s, discoverIssues, err := Discover(root)
@@ -339,7 +342,26 @@ func TestAnalyze_ToolchainLocalIsSurfaced(t *testing.T) {
 
 	issues := Analyze(s)
 	require.Len(t, issues, 1)
-	assert.Equal(t, RuleToolchainLocal, issues[0].Rule)
+	assert.Equal(t, RuleToolchainNonVersion, issues[0].Rule)
 	assert.Equal(t, 5, issues[0].Line, "toolchain is on line 5")
-	assert.Empty(t, issues[0].Suggestion, "toolchain local is informational, not actionable")
+	assert.Empty(t, issues[0].Suggestion, "a non-version toolchain is informational, not actionable")
+}
+
+func TestDiscover_ToolchainLocalMakesGoWorkUnparseable(t *testing.T) {
+	t.Parallel()
+
+	// The go tool rejects `toolchain local` ("must match format go1.23.0
+	// or default"), so the whole go.work fails to parse. That must surface
+	// as a discovery issue, not silently drop the file's go directive.
+	root := writeRepo(t, map[string]string{
+		"go.mod":  "module example.com/root\n\ngo 1.26\n",
+		"go.work": "go 1.26\n\ntoolchain local\n\nuse .\n",
+	})
+
+	_, discoverIssues, err := Discover(root)
+	require.NoError(t, err)
+	require.Len(t, discoverIssues, 1)
+	assert.Equal(t, RuleGoWorkUnparseable, discoverIssues[0].Rule)
+	assert.Equal(t, "go.work", discoverIssues[0].File)
+	assert.Contains(t, discoverIssues[0].Message, "invalid toolchain version 'local'")
 }

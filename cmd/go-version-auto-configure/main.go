@@ -34,15 +34,16 @@ const (
 const usage = `go-version-auto-configure — unify the Go toolchain version surface
 
 Usage:
-  go-version-auto-configure check [--json] [root ...]
+  go-version-auto-configure check [--json] [--quiet] [--parallel N] [root ...]
                                                  detect drift, exit 1 when found
-  go-version-auto-configure fix [--dry-run] [--json] [root ...]
+  go-version-auto-configure fix [--dry-run] [--json] [--parallel N] [root ...]
                                                  auto-fix directive form,
                                                  suggest the rest
-  go-version-auto-configure who-forces [--json] [root ...]
+  go-version-auto-configure who-forces [--json] [--allow-partial] [--parallel N] [root ...]
                                                  name the dependencies forcing
                                                  each go directive
   go-version-auto-configure version              print the tool version
+                                                 (--version works too)
 
 Roots default to the working directory; multiple roots are analyzed in
 parallel and reported sorted by path.
@@ -60,7 +61,7 @@ func run(args []string, out io.Writer) int {
 	}
 
 	switch args[0] {
-	case "version":
+	case "version", "--version", "-version":
 		fmt.Fprintf(out, "go-version-auto-configure %s\n", version.Version)
 
 		return exitOK
@@ -120,10 +121,11 @@ type repoAnalysis struct {
 }
 
 // analyzeAll analyzes every root with a bounded worker pool and returns the
-// results sorted by root for deterministic output.
-func analyzeAll(roots []string) []repoAnalysis {
+// results sorted by root for deterministic output. parallel <= 0 selects the
+// automatic worker count.
+func analyzeAll(roots []string, parallel int) []repoAnalysis {
 	analyses := make([]repoAnalysis, len(roots)) //nolint:makezero // pre-sized for index assignment
-	sem := make(chan struct{}, workersFor(len(roots)))
+	sem := make(chan struct{}, workersFor(len(roots), parallel))
 
 	var wg sync.WaitGroup
 
@@ -168,9 +170,14 @@ func rootsFrom(args []string) []string {
 	return roots
 }
 
-// workersFor bounds the pool by both the CPU count and the work size.
-func workersFor(work int) int {
+// workersFor bounds the pool by the CPU count, the work size, and the
+// operator's --parallel limit when one is given (limit <= 0 means auto).
+func workersFor(work, limit int) int {
 	n := max(min(runtime.GOMAXPROCS(0), work), 1)
+
+	if limit > 0 {
+		n = max(min(limit, n), 1)
+	}
 
 	return n
 }
@@ -178,21 +185,27 @@ func workersFor(work int) int {
 func cmdCheck(args []string, out io.Writer) int {
 	fs := flag.NewFlagSet("check", flag.ContinueOnError)
 
-	var asJSON bool
+	var asJSON, quiet bool
+
+	var parallel int
 
 	fs.BoolVar(&asJSON, "json", false, "emit machine-readable JSON")
+	fs.BoolVar(&quiet, "quiet", false, "exit-code-only: suppress the human report (JSON is still emitted with --json)")
+	fs.IntVar(&parallel, "parallel", 0, "max repositories analyzed concurrently (0 = auto: CPU count)")
 
 	if err := fs.Parse(args); err != nil {
 		return exitError
 	}
 
-	analyses := analyzeAll(rootsFrom(fs.Args()))
+	analyses := analyzeAll(rootsFrom(fs.Args()), parallel)
 
 	if asJSON {
 		return emitCheckJSON(out, analyses)
 	}
 
-	printCheckReports(out, analyses)
+	if !quiet {
+		printCheckReports(out, analyses)
+	}
 
 	return exitFromAnalyses(analyses)
 }
@@ -310,6 +323,7 @@ type fixOutcome struct {
 	root      string
 	result    *fix.Result
 	suggested []surface.Issue
+	discovery []surface.Issue
 	err       error
 }
 
@@ -318,16 +332,19 @@ func cmdFix(args []string, out io.Writer) int {
 
 	var dryRun, asJSON bool
 
+	var parallel int
+
 	fs.BoolVar(&dryRun, "dry-run", false, "report what would change without touching files")
 	fs.BoolVar(&asJSON, "json", false, "emit machine-readable JSON")
+	fs.IntVar(&parallel, "parallel", 0, "max repositories analyzed concurrently (0 = auto: CPU count)")
 
 	if err := fs.Parse(args); err != nil {
 		return exitError
 	}
 
-	analyses := analyzeAll(rootsFrom(fs.Args()))
+	analyses := analyzeAll(rootsFrom(fs.Args()), parallel)
 
-	outcomes := applyAll(context.Background(), analyses, fix.Options{DryRun: dryRun})
+	outcomes := applyAll(context.Background(), analyses, fix.Options{DryRun: dryRun}, parallel)
 
 	if asJSON {
 		return emitFixJSON(out, outcomes)
@@ -342,9 +359,9 @@ func cmdFix(args []string, out io.Writer) int {
 // and suggest-only repositories skip the go tool entirely — the fast path
 // that keeps fleet sweeps linear in the drifted-repo count, not the repo
 // count.
-func applyAll(ctx context.Context, analyses []repoAnalysis, opts fix.Options) []fixOutcome {
+func applyAll(ctx context.Context, analyses []repoAnalysis, opts fix.Options, parallel int) []fixOutcome {
 	outcomes := make([]fixOutcome, len(analyses)) //nolint:makezero // pre-sized for index assignment
-	sem := make(chan struct{}, workersFor(len(analyses)))
+	sem := make(chan struct{}, workersFor(len(analyses), parallel))
 
 	var wg sync.WaitGroup
 
@@ -378,6 +395,7 @@ func fixOne(ctx context.Context, a repoAnalysis, opts fix.Options) fixOutcome {
 	}
 
 	out.suggested = a.report.suggested
+	out.discovery = a.report.discovery
 
 	fixes := make([]surface.Fix, 0, len(a.report.mechanical))
 
@@ -430,8 +448,14 @@ func printFixReport(out io.Writer, o fixOutcome) {
 			o.root,
 			len(o.suggested),
 		)
+	case len(o.discovery) > 0:
+		fmt.Fprintf(out, "%s: %d discovery finding(s); nothing mechanical to fix\n", o.root, len(o.discovery))
 	default:
 		fmt.Fprintf(out, "%s: version surface clean: nothing to fix\n", o.root)
+	}
+
+	for _, issue := range o.discovery {
+		fmt.Fprintf(out, "DISCOVERY  %-22s %s:%d\n           %s\n", issue.Rule, issue.File, issue.Line, issue.Message)
 	}
 
 	for _, issue := range o.suggested {
@@ -440,13 +464,19 @@ func printFixReport(out io.Writer, o fixOutcome) {
 }
 
 // exitFromOutcomes maps fix results onto the exit contract: hard errors
-// dominate, then failed repairs, then success.
+// dominate, then failed repairs or discovery findings, then success.
 func exitFromOutcomes(outcomes []fixOutcome) int {
 	errored, failed := false, false
 
 	for _, o := range outcomes {
 		if o.err != nil {
 			errored = true
+
+			continue
+		}
+
+		if len(o.discovery) > 0 {
+			failed = true
 
 			continue
 		}
@@ -469,9 +499,14 @@ func exitFromOutcomes(outcomes []fixOutcome) int {
 func cmdWhoForces(args []string, out io.Writer) int {
 	fs := flag.NewFlagSet("who-forces", flag.ContinueOnError)
 
-	var asJSON bool
+	var asJSON, allowPartial bool
+
+	var parallel int
 
 	fs.BoolVar(&asJSON, "json", false, "emit machine-readable JSON")
+	fs.BoolVar(&allowPartial, "allow-partial", false,
+		"downgrade per-module go list failures from exit 2 to exit 1 (default: fail closed)")
+	fs.IntVar(&parallel, "parallel", 0, "max repositories analyzed concurrently (0 = auto: CPU count)")
 
 	if err := fs.Parse(args); err != nil {
 		return exitError
@@ -480,7 +515,7 @@ func cmdWhoForces(args []string, out io.Writer) int {
 	roots := rootsFrom(fs.Args())
 
 	results := make([]floorsResult, len(roots)) //nolint:makezero // pre-sized for index assignment
-	sem := make(chan struct{}, workersFor(len(roots)))
+	sem := make(chan struct{}, workersFor(len(roots), parallel))
 
 	var wg sync.WaitGroup
 
@@ -502,12 +537,12 @@ func cmdWhoForces(args []string, out io.Writer) int {
 	})
 
 	if asJSON {
-		return emitFloorsJSON(out, results)
+		return emitFloorsJSON(out, results, allowPartial)
 	}
 
 	printFloorsReports(out, results)
 
-	return exitFromFloors(results)
+	return exitFromFloors(results, allowPartial)
 }
 
 // floorsResult pairs one root with its dependency-floor matrix or failure.
@@ -534,10 +569,17 @@ func printFloorsReports(out io.Writer, results []floorsResult) {
 	}
 }
 
-// printFloors renders one repository's floor matrix rows.
+// printFloors renders one repository's floor matrix rows. go.work rows are
+// marked: a workspace declares no dependencies, so there is no graph to list.
 func printFloors(out io.Writer, rows []fix.ModuleFloors) {
 	for _, row := range rows {
 		fmt.Fprintf(out, "%s  %s\n", row.Path, row.Module)
+
+		if row.Kind == surface.KindGoWork {
+			fmt.Fprintln(out, "  workspace: declares no dependencies; floor analysis skipped")
+
+			continue
+		}
 
 		if row.Error != "" {
 			fmt.Fprintf(out, "  analysis failed: %s\n", row.Error)
@@ -564,8 +606,8 @@ func printFloors(out io.Writer, rows []fix.ModuleFloors) {
 			goVersionOrNone(string(row.MaxDepFloor)),
 		)
 
-		for _, poisoner := range row.Poisoners {
-			fmt.Fprintf(out, "    %s\n", poisoner)
+		for _, poisoner := range row.PoisonerFloors {
+			fmt.Fprintf(out, "    %s@%s  (floor go %s)\n", poisoner.Module, poisoner.Version, poisoner.Floor)
 		}
 	}
 }
@@ -581,8 +623,9 @@ func goVersionOrNone(v string) string {
 
 // exitFromFloors maps floor matrices onto the exit contract: hard errors —
 // including a module whose graph could not be listed — dominate, then
-// poisoned directives, then clean.
-func exitFromFloors(results []floorsResult) int {
+// poisoned directives, then clean. allowPartial downgrades per-module listing
+// failures to findings (exit 1) for fleets where some modules cannot resolve.
+func exitFromFloors(results []floorsResult, allowPartial bool) int {
 	errored, poisoned := false, false
 
 	for _, r := range results {
@@ -594,9 +637,9 @@ func exitFromFloors(results []floorsResult) int {
 
 		for _, row := range r.rows {
 			switch {
-			case row.Error != "":
+			case row.Error != "" && !allowPartial:
 				errored = true
-			case row.Poisoned:
+			case row.Error != "" || row.Poisoned:
 				poisoned = true
 			}
 		}

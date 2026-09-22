@@ -10,12 +10,33 @@ import (
 	"github.com/larsartmann/go-version-auto-configure/pkg/surface"
 )
 
+// ModuleVersion is a released module version as listed by `go list -m`,
+// e.g. "v1.10.0". A named type keeps module versions distinct from Go
+// toolchain versions (GoVersion), which parse differently.
+type ModuleVersion string
+
+// PoisonerFloor is one dependency whose own `go` floor exceeds the module's
+// declared directive: it forces the floor upward on tidy. Unlike Poisoners
+// (which names only the carriers of the single highest floor), this list
+// carries every forcing dependency with its own floor.
+type PoisonerFloor struct {
+	// Module is the dependency's module path.
+	Module surface.ModulePath `json:"module"`
+	// Version is the dependency's released version, e.g. "v1.10.0".
+	Version ModuleVersion `json:"version"`
+	// Floor is the `go` directive the dependency declares.
+	Floor surface.GoVersion `json:"floor"`
+}
+
 // ModuleFloors is one module's dependency-floor matrix row: the floor the
 // dependencies collectively force, and which of them carry it. The json
 // tags are the stable machine contract for the who-forces --json output.
 type ModuleFloors struct {
 	// Path is the go.mod path relative to the repository root.
 	Path string `json:"path"`
+	// Kind is "go.mod" or "go.work"; go.work rows declare no dependencies
+	// and carry no floor analysis.
+	Kind surface.DirectiveKind `json:"kind"`
 	// Module is the module path declared in the go.mod.
 	Module surface.ModulePath `json:"module"`
 	// Directive is the declared `go` directive ("" when none).
@@ -26,6 +47,10 @@ type ModuleFloors struct {
 	// Poisoners names the dependencies carrying MaxDepFloor when that floor
 	// exceeds the directive (Poisoned); empty otherwise.
 	Poisoners []string `json:"poisoners,omitempty"`
+	// PoisonerFloors lists every dependency whose own floor exceeds the
+	// directive, each with its floor, sorted highest floor first; empty
+	// unless Poisoned.
+	PoisonerFloors []PoisonerFloor `json:"poisonerFloors,omitempty"`
 	// Poisoned reports whether `go mod tidy` would re-raise the directive:
 	// the dependency floor exceeds the declared directive.
 	Poisoned bool `json:"poisoned"`
@@ -36,9 +61,10 @@ type ModuleFloors struct {
 
 // AnalyzeFloors resolves, for every go.mod under root, the highest `go`
 // floor its dependencies declare and the dependencies carrying it — the
-// poisoner matrix behind dep-forced fixes. Workspace files are skipped:
-// they declare no dependencies. go list failures are recorded per module
-// in Error; a failed Discover aborts.
+// poisoner matrix behind dep-forced fixes. Workspace files appear as marked
+// rows (Kind go.work) without floor analysis: they declare no dependencies.
+// go list failures are recorded per module in Error; a failed Discover
+// aborts.
 func AnalyzeFloors(ctx context.Context, root string, run GoCommandRunner) ([]ModuleFloors, error) {
 	if run == nil {
 		run = EditRunner()
@@ -53,6 +79,8 @@ func AnalyzeFloors(ctx context.Context, root string, run GoCommandRunner) ([]Mod
 
 	for _, m := range s.Modules {
 		if m.Kind != surface.KindGoMod {
+			rows = append(rows, ModuleFloors{Path: m.Path, Kind: m.Kind, Directive: m.Version})
+
 			continue
 		}
 
@@ -65,7 +93,7 @@ func AnalyzeFloors(ctx context.Context, root string, run GoCommandRunner) ([]Mod
 // floorsForModule lists one module's dependency graph and extracts its
 // floor matrix row.
 func floorsForModule(ctx context.Context, root string, m surface.ModuleDirective, run GoCommandRunner) ModuleFloors {
-	row := ModuleFloors{Path: m.Path, Module: m.Module, Directive: m.Version}
+	row := ModuleFloors{Path: m.Path, Kind: m.Kind, Module: m.Module, Directive: m.Version}
 
 	dir := filepath.Join(root, filepath.Dir(m.Path))
 
@@ -78,8 +106,10 @@ func floorsForModule(ctx context.Context, root string, m surface.ModuleDirective
 
 	floors := map[string][]string{}
 
+	var forcers []PoisonerFloor
+
 	for line := range strings.SplitSeq(strings.TrimSuffix(out, "\n"), "\n") {
-		floor, _, entry, ok := parseFloorLine(line, m.Module)
+		floor, dep, entry, ok := parseFloorLine(line, m.Module)
 
 		if !ok {
 			continue
@@ -90,6 +120,10 @@ func floorsForModule(ctx context.Context, root string, m surface.ModuleDirective
 		if row.MaxDepFloor == "" || surface.GreaterVersion(floor, string(row.MaxDepFloor)) {
 			row.MaxDepFloor = surface.GoVersion(floor)
 		}
+
+		if surface.GreaterVersion(floor, string(row.Directive)) {
+			forcers = append(forcers, splitFloorEntry(floor, dep, entry))
+		}
 	}
 
 	row.Poisoned = surface.GreaterVersion(string(row.MaxDepFloor), string(row.Directive))
@@ -97,9 +131,37 @@ func floorsForModule(ctx context.Context, root string, m surface.ModuleDirective
 	if row.Poisoned {
 		row.Poisoners = floors[string(row.MaxDepFloor)]
 		slices.Sort(row.Poisoners)
+
+		row.PoisonerFloors = forcers
+		slices.SortFunc(row.PoisonerFloors, comparePoisonerFloors)
 	}
 
 	return row
+}
+
+// splitFloorEntry builds the structured poisoner row from one parsed
+// `go list -m` line: entry is "path@version".
+func splitFloorEntry(floor, dep, entry string) PoisonerFloor {
+	version, _ := strings.CutPrefix(entry, dep+"@")
+
+	return PoisonerFloor{
+		Module:  surface.ModulePath(dep),
+		Version: ModuleVersion(version),
+		Floor:   surface.GoVersion(floor),
+	}
+}
+
+// comparePoisonerFloors orders poisoners by floor (highest first), then by
+// module path for determinism.
+func comparePoisonerFloors(a, b PoisonerFloor) int {
+	switch {
+	case surface.GreaterVersion(string(a.Floor), string(b.Floor)):
+		return -1
+	case surface.GreaterVersion(string(b.Floor), string(a.Floor)):
+		return 1
+	default:
+		return strings.Compare(string(a.Module), string(b.Module))
+	}
 }
 
 // parseFloorLine splits one `go list -m` line into its dependency floor,

@@ -14,6 +14,10 @@ import (
 // The JSON shapes below are the machine-readable contract of --json: field
 // names and presence (omitempty) are stable for CI consumers.
 
+// jsonSchemaVersion is the version of the --json wire contract. It is
+// bumped only on breaking shape changes; additive fields keep the version.
+const jsonSchemaVersion = 1
+
 // jsonFix mirrors surface.Fix.
 type jsonFix struct {
 	File string `json:"file"`
@@ -53,7 +57,8 @@ type jsonRepo struct {
 
 // checkDocument is the --json payload of check.
 type checkDocument struct {
-	Repos []jsonRepo `json:"repos"`
+	Schema int        `json:"schema"`
+	Repos  []jsonRepo `json:"repos"`
 }
 
 // jsonDepForced is one tidy-reverted fix with its named poisoners.
@@ -78,11 +83,13 @@ type jsonFixRepo struct {
 	DepForced []jsonDepForced `json:"depForced"`
 	Failures  []jsonFailure   `json:"failures"`
 	Suggested []jsonIssue     `json:"suggested"`
+	Discovery []jsonIssue     `json:"discovery"`
 }
 
 // fixDocument is the --json payload of fix.
 type fixDocument struct {
-	Repos []jsonFixRepo `json:"repos"`
+	Schema int           `json:"schema"`
+	Repos  []jsonFixRepo `json:"repos"`
 }
 
 // jsonFloorsRepo is one repository's who-forces report.
@@ -94,7 +101,8 @@ type jsonFloorsRepo struct {
 
 // floorsDocument is the --json payload of who-forces.
 type floorsDocument struct {
-	Repos []jsonFloorsRepo `json:"repos"`
+	Schema int              `json:"schema"`
+	Repos  []jsonFloorsRepo `json:"repos"`
 }
 
 func toFixJSON(f *surface.Fix) *jsonFix {
@@ -162,7 +170,7 @@ func toJSONRepo(a repoAnalysis) jsonRepo {
 // emitCheckJSON writes the check document, preserving the findings exit
 // contract for machines.
 func emitCheckJSON(out io.Writer, analyses []repoAnalysis) int {
-	doc := checkDocument{Repos: make([]jsonRepo, 0, len(analyses))}
+	doc := checkDocument{Schema: jsonSchemaVersion, Repos: make([]jsonRepo, 0, len(analyses))}
 
 	for _, a := range analyses {
 		doc.Repos = append(doc.Repos, toJSONRepo(a))
@@ -186,6 +194,7 @@ func toJSONFixRepo(outcome fixOutcome) jsonFixRepo {
 		DepForced: []jsonDepForced{},
 		Failures:  []jsonFailure{},
 		Suggested: toIssuesJSON(outcome.suggested),
+		Discovery: toIssuesJSON(outcome.discovery),
 	}
 
 	if outcome.err != nil {
@@ -219,7 +228,7 @@ func toJSONFixRepo(outcome fixOutcome) jsonFixRepo {
 // emitFixJSON writes the fix document, preserving the failures exit
 // contract for machines.
 func emitFixJSON(out io.Writer, outcomes []fixOutcome) int {
-	doc := fixDocument{Repos: make([]jsonFixRepo, 0, len(outcomes))}
+	doc := fixDocument{Schema: jsonSchemaVersion, Repos: make([]jsonFixRepo, 0, len(outcomes))}
 
 	for _, o := range outcomes {
 		doc.Repos = append(doc.Repos, toJSONFixRepo(o))
@@ -234,8 +243,8 @@ func emitFixJSON(out io.Writer, outcomes []fixOutcome) int {
 
 // emitFloorsJSON writes the who-forces document, preserving the poisoned
 // exit contract for machines.
-func emitFloorsJSON(out io.Writer, results []floorsResult) int {
-	doc := floorsDocument{Repos: make([]jsonFloorsRepo, 0, len(results))}
+func emitFloorsJSON(out io.Writer, results []floorsResult, allowPartial bool) int {
+	doc := floorsDocument{Schema: jsonSchemaVersion, Repos: make([]jsonFloorsRepo, 0, len(results))}
 
 	for _, r := range results {
 		repo := jsonFloorsRepo{Root: r.root, Modules: r.rows}
@@ -255,7 +264,7 @@ func emitFloorsJSON(out io.Writer, results []floorsResult) int {
 		return code
 	}
 
-	return exitFromFloors(results)
+	return exitFromFloors(results, allowPartial)
 }
 
 // emitJSON writes doc as indented JSON on stdout.

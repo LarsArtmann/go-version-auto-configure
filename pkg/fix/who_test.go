@@ -50,6 +50,7 @@ func TestAnalyzeFloors_NamesPoisoners(t *testing.T) {
 
 	row := rows[0]
 	assert.Equal(t, "go.mod", row.Path)
+	assert.Equal(t, surface.KindGoMod, row.Kind)
 	assert.Equal(t, surface.ModulePath("example.com/m"), row.Module)
 	assert.Equal(t, surface.GoVersion("1.26"), row.Directive)
 	assert.Equal(t, surface.GoVersion("1.26.7"), row.MaxDepFloor)
@@ -95,7 +96,7 @@ func TestAnalyzeFloors_NoDependencies(t *testing.T) {
 	assert.Empty(t, rows[0].Poisoners)
 }
 
-func TestAnalyzeFloors_SkipsWorkspaceAndMainModule(t *testing.T) {
+func TestAnalyzeFloors_MarksWorkspaceRowWithoutAnalysis(t *testing.T) {
 	t.Parallel()
 
 	root := t.TempDir()
@@ -110,8 +111,63 @@ func TestAnalyzeFloors_SkipsWorkspaceAndMainModule(t *testing.T) {
 
 	rows, err := AnalyzeFloors(context.Background(), root, run)
 	require.NoError(t, err)
-	require.Len(t, rows, 1, "go.work declares no dependencies and is skipped")
-	assert.Empty(t, rows[0].MaxDepFloor, "neither the main module nor (devel) replacements force a floor")
+	require.Len(t, rows, 2, "go.work appears as a marked row: it declares no dependencies")
+
+	var moduleRow, workRow *ModuleFloors
+
+	for i := range rows {
+		switch rows[i].Kind {
+		case surface.KindGoMod:
+			moduleRow = &rows[i]
+		case surface.KindGoWork:
+			workRow = &rows[i]
+		}
+	}
+
+	require.NotNil(t, moduleRow)
+	require.NotNil(t, workRow)
+	assert.Empty(t, moduleRow.MaxDepFloor, "neither the main module nor (devel) replacements force a floor")
+	assert.Equal(t, "go.work", workRow.Path)
+	assert.False(t, workRow.Poisoned, "a workspace row is never poisoned: no dependency graph")
+	assert.Empty(t, workRow.Error)
+}
+
+func TestAnalyzeFloors_PoisonerFloorsCarryEachForcersFloor(t *testing.T) {
+	t.Parallel()
+
+	root := t.TempDir()
+	seedGoMod(t, root, "1.26")
+
+	// Two dependencies force above the directive at different floors: the
+	// matrix must carry each with its own floor, highest first, not only
+	// the carriers of the single highest floor.
+	run := fakeList(strings.Join([]string{
+		"1.26\texample.com/m\t(devel)",
+		"1.26.7\tgithub.com/larsartmann/go-finding\tv1.12.0",
+		"1.27\tgithub.com/larsartmann/go-atomic-write\tv0.5.0",
+		"1.25\tgithub.com/gofrs/flock\tv0.13.1",
+	}, "\n"))
+
+	rows, err := AnalyzeFloors(context.Background(), root, run)
+	require.NoError(t, err)
+	require.Len(t, rows, 1)
+
+	row := rows[0]
+	assert.True(t, row.Poisoned)
+	assert.Equal(t, surface.GoVersion("1.27"), row.MaxDepFloor)
+	assert.Equal(t, []string{"github.com/larsartmann/go-atomic-write@v0.5.0"}, row.Poisoners)
+
+	require.Len(t, row.PoisonerFloors, 2, "every forcing dependency is listed, not only the max carriers")
+	assert.Equal(t, PoisonerFloor{
+		Module:  "github.com/larsartmann/go-atomic-write",
+		Version: "v0.5.0",
+		Floor:   "1.27",
+	}, row.PoisonerFloors[0])
+	assert.Equal(t, PoisonerFloor{
+		Module:  "github.com/larsartmann/go-finding",
+		Version: "v1.12.0",
+		Floor:   "1.26.7",
+	}, row.PoisonerFloors[1])
 }
 
 func TestAnalyzeFloors_ListFailureRecordedPerModule(t *testing.T) {
