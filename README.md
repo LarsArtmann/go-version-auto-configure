@@ -2,6 +2,7 @@
 
 One policy for the Go toolchain version surface across the LarsArtmann fleet — detected and auto-fixed everywhere, wired into BuildFlow like every other auto-configurer.
 
+[![CI](https://github.com/LarsArtmann/go-version-auto-configure/actions/workflows/ci.yml/badge.svg)](https://github.com/LarsArtmann/go-version-auto-configure/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
 ## Why?
