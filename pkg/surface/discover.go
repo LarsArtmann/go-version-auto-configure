@@ -212,16 +212,22 @@ func parseToolchainOf(kind DirectiveKind, rel FilePath, data []byte) *ToolchainD
 // buildGo126Module builder function names (3-digit encoding of major.minor).
 var nixGoPinRe = regexp.MustCompile(`\bgo_([0-9]+)_([0-9]+)\b|\bbuildGo([0-9]{3})Module\b`)
 
-// scanNixPins extracts every nixpkgs Go pin with its line number.
-func scanNixPins(path string, rel FilePath) []Pin {
+// readLines returns path's content split into lines, or nil when the file
+// cannot be read: a missing flake.nix or workflow simply carries no pins.
+func readLines(path string) []string {
 	data, err := os.ReadFile(path)
 	if err != nil {
 		return nil
 	}
 
+	return strings.Split(string(data), "\n")
+}
+
+// scanNixPins extracts every nixpkgs Go pin with its line number.
+func scanNixPins(path string, rel FilePath) []Pin {
 	var pins []Pin
 
-	for lineNo, line := range strings.Split(string(data), "\n") {
+	for lineNo, line := range readLines(path) {
 		for _, match := range nixGoPinRe.FindAllStringSubmatch(line, -1) {
 			var parsed majorMinor
 
@@ -253,14 +259,9 @@ var ciGoVersionRe = regexp.MustCompile(`^\s*go-version:\s*(.+?)\s*$`)
 // scanCIPins extracts every comparable CI go-version pin. Expression pins
 // (${{ matrix.go }}) and ranges are skipped: they carry no fixed floor.
 func scanCIPins(path string, rel FilePath) []Pin {
-	data, err := os.ReadFile(path)
-	if err != nil {
-		return nil
-	}
-
 	var pins []Pin
 
-	for lineNo, line := range strings.Split(string(data), "\n") {
+	for lineNo, line := range readLines(path) {
 		match := ciGoVersionRe.FindStringSubmatch(line)
 		if match == nil {
 			continue

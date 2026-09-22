@@ -182,24 +182,53 @@ func workersFor(work, limit int) int {
 	return n
 }
 
-func cmdCheck(args []string, out io.Writer) int {
-	fs := flag.NewFlagSet("check", flag.ContinueOnError)
+// runFlags holds the flags every subcommand shares: output format and
+// worker-pool sizing, registered once so help text cannot drift between
+// commands. Command-specific flags stay at each call site on purpose.
+type runFlags struct {
+	asJSON   bool
+	parallel int
+}
 
-	var asJSON, quiet bool
+// newRunFlagSet builds a subcommand flagset with the shared flags already
+// registered.
+func newRunFlagSet(name string) (*flag.FlagSet, *runFlags) {
+	fs := flag.NewFlagSet(name, flag.ContinueOnError)
 
-	var parallel int
+	rf := &runFlags{}
 
-	fs.BoolVar(&asJSON, "json", false, "emit machine-readable JSON")
-	fs.BoolVar(&quiet, "quiet", false, "exit-code-only: suppress the human report (JSON is still emitted with --json)")
-	fs.IntVar(&parallel, "parallel", 0, "max repositories analyzed concurrently (0 = auto: CPU count)")
+	fs.BoolVar(&rf.asJSON, "json", false, "emit machine-readable JSON")
+	fs.IntVar(&rf.parallel, "parallel", 0, "max repositories analyzed concurrently (0 = auto: CPU count)")
 
+	return fs, rf
+}
+
+// parseRoots parses subcommand flags and resolves the positional roots to
+// absolute paths. ok is false on flag errors; the FlagSet has already
+// written the error and usage to stderr.
+func parseRoots(fs *flag.FlagSet, args []string) (roots []string, ok bool) {
 	if err := fs.Parse(args); err != nil {
+		return nil, false
+	}
+
+	return rootsFrom(fs.Args()), true
+}
+
+func cmdCheck(args []string, out io.Writer) int {
+	fs, rf := newRunFlagSet("check")
+
+	var quiet bool
+
+	fs.BoolVar(&quiet, "quiet", false, "exit-code-only: suppress the human report (JSON is still emitted with --json)")
+
+	roots, ok := parseRoots(fs, args)
+	if !ok {
 		return exitError
 	}
 
-	analyses := analyzeAll(rootsFrom(fs.Args()), parallel)
+	analyses := analyzeAll(roots, rf.parallel)
 
-	if asJSON {
+	if rf.asJSON {
 		return emitCheckJSON(out, analyses)
 	}
 
@@ -328,25 +357,22 @@ type fixOutcome struct {
 }
 
 func cmdFix(args []string, out io.Writer) int {
-	fs := flag.NewFlagSet("fix", flag.ContinueOnError)
+	fs, rf := newRunFlagSet("fix")
 
-	var dryRun, asJSON bool
-
-	var parallel int
+	var dryRun bool
 
 	fs.BoolVar(&dryRun, "dry-run", false, "report what would change without touching files")
-	fs.BoolVar(&asJSON, "json", false, "emit machine-readable JSON")
-	fs.IntVar(&parallel, "parallel", 0, "max repositories analyzed concurrently (0 = auto: CPU count)")
 
-	if err := fs.Parse(args); err != nil {
+	roots, ok := parseRoots(fs, args)
+	if !ok {
 		return exitError
 	}
 
-	analyses := analyzeAll(rootsFrom(fs.Args()), parallel)
+	analyses := analyzeAll(roots, rf.parallel)
 
-	outcomes := applyAll(context.Background(), analyses, fix.Options{DryRun: dryRun}, parallel)
+	outcomes := applyAll(context.Background(), analyses, fix.Options{DryRun: dryRun}, rf.parallel)
 
-	if asJSON {
+	if rf.asJSON {
 		return emitFixJSON(out, outcomes)
 	}
 
@@ -502,25 +528,20 @@ func exitFromOutcomes(outcomes []fixOutcome) int {
 }
 
 func cmdWhoForces(args []string, out io.Writer) int {
-	fs := flag.NewFlagSet("who-forces", flag.ContinueOnError)
+	fs, rf := newRunFlagSet("who-forces")
 
-	var asJSON, allowPartial bool
+	var allowPartial bool
 
-	var parallel int
-
-	fs.BoolVar(&asJSON, "json", false, "emit machine-readable JSON")
 	fs.BoolVar(&allowPartial, "allow-partial", false,
 		"downgrade per-module go list failures from exit 2 to exit 1 (default: fail closed)")
-	fs.IntVar(&parallel, "parallel", 0, "max repositories analyzed concurrently (0 = auto: CPU count)")
 
-	if err := fs.Parse(args); err != nil {
+	roots, ok := parseRoots(fs, args)
+	if !ok {
 		return exitError
 	}
 
-	roots := rootsFrom(fs.Args())
-
 	results := make([]floorsResult, len(roots)) //nolint:makezero // pre-sized for index assignment
-	sem := make(chan struct{}, workersFor(len(roots), parallel))
+	sem := make(chan struct{}, workersFor(len(roots), rf.parallel))
 
 	var wg sync.WaitGroup
 
@@ -541,7 +562,7 @@ func cmdWhoForces(args []string, out io.Writer) int {
 		return strings.Compare(a.root, b.root)
 	})
 
-	if asJSON {
+	if rf.asJSON {
 		return emitFloorsJSON(out, results, allowPartial)
 	}
 

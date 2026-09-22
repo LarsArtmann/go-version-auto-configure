@@ -22,35 +22,17 @@ func fakeRunner(rewrite func(dir string, args []string) (string, error)) GoComma
 	}
 }
 
-// scriptRunner dispatches on the go subcommand, simulating tidy behavior.
-type scriptRunner struct {
-	dir     string
-	onEdit  func(dir string) // after `mod edit` / `work edit`
-	tidy    func(dir string) // after `mod tidy`; may rewrite the directive back
-	listOut string           // output for `go list`
-}
-
-func (s *scriptRunner) call(_ context.Context, dir string, args ...string) (string, error) {
-	switch {
-	case len(args) >= 2 && args[0] == "mod" && args[1] == "edit":
-		s.onEdit(dir)
-	case len(args) >= 2 && args[0] == "work" && args[1] == "edit":
-		s.onEdit(dir)
-	case len(args) >= 2 && args[0] == "mod" && args[1] == "tidy":
-		if s.tidy != nil {
-			s.tidy(dir)
-		}
-	case len(args) >= 1 && args[0] == "list":
-		return s.listOut, nil
+// fakeGate adapts a directory-keyed function into a SplitRunner for the
+// dependency gate.
+func fakeGate(fn func(dir string, args []string) (string, string, error)) SplitRunner {
+	return func(_ context.Context, dir string, args ...string) (string, string, error) {
+		return fn(dir, args)
 	}
-
-	return "", nil
 }
 
-func rewriteGoMod(dir, directive string) {
-	path := filepath.Join(dir, "go.mod")
-	content := "module example.com/m\n\ngo " + directive + "\n"
-	_ = os.WriteFile(path, []byte(content), 0o644)
+// noopGate is the always-clean dependency gate: exit 0, no diff.
+func noopGate() SplitRunner {
+	return fakeGate(func(string, []string) (string, string, error) { return "", "", nil })
 }
 
 func TestApply_DryRunHoldsBack(t *testing.T) {
@@ -73,27 +55,20 @@ func TestApply_VerificationCatchesNoOpEdit(t *testing.T) {
 		os.WriteFile(filepath.Join(root, "go.mod"), []byte("module example.com/m\n\ngo 1.26.7\n"), 0o644),
 	)
 
-	run := fakeRunner(func(dir string, args []string) (string, error) {
-		if len(args) >= 2 && args[1] == "tidy" {
-			return "", nil
-		}
-
-		rewriteGoMod(dir, "1.26.7") // edit leaves the file untouched
-
-		return "", nil
-	})
-
+	// The file drifted since detection: the fix targets 1.26 but the
+	// directive on disk is still 1.26.7. Rewriting anyway would silently
+	// apply a different change than the one Analyze recorded.
 	res, err := Apply(
 		context.Background(),
 		root,
-		[]surface.Fix{{File: "go.mod", Kind: surface.KindGoMod, From: "1.26.7", To: "1.26", Line: 3}},
+		[]surface.Fix{{File: "go.mod", Kind: surface.KindGoMod, From: "1.26", To: "1.25", Line: 3}},
 		Options{},
-		run,
+		nil,
 	)
 	require.NoError(t, err, "a failed fix is reported in the result, not as an error")
 	assert.Empty(t, res.Applied)
 	require.Len(t, res.Failures, 1)
-	assert.Contains(t, res.Failures[0].Cause, "directive mismatch: got go 1.26.7, want go 1.26")
+	assert.Contains(t, res.Failures[0].Cause, "changed since detection: got go 1.26.7, want go 1.26")
 }
 
 func TestApply_SuccessWhenFileActuallyChanges(t *testing.T) {
@@ -101,22 +76,15 @@ func TestApply_SuccessWhenFileActuallyChanges(t *testing.T) {
 
 	root := t.TempDir()
 	path := filepath.Join(root, "go.mod")
-	require.NoError(t, os.WriteFile(path, []byte("module example.com/m\n\ngo 1.26.7\n"), 0o644))
-
-	run := fakeRunner(func(dir string, args []string) (string, error) {
-		if len(args) >= 1 && args[0] == "mod" {
-			rewriteGoMod(dir, "1.26")
-		}
-
-		return "", nil
-	})
+	original := "module example.com/m\n\ngo 1.26.7\n\nrequire foo v1.0.0 // kept byte-for-byte\n"
+	require.NoError(t, os.WriteFile(path, []byte(original), 0o644))
 
 	res, err := Apply(
 		context.Background(),
 		root,
 		[]surface.Fix{{File: "go.mod", Kind: surface.KindGoMod, From: "1.26.7", To: "1.26", Line: 3}},
-		Options{},
-		run,
+		Options{Gate: noopGate()},
+		nil,
 	)
 	require.NoError(t, err)
 	require.Len(t, res.Applied, 1)
@@ -125,32 +93,36 @@ func TestApply_SuccessWhenFileActuallyChanges(t *testing.T) {
 	data, err := os.ReadFile(path)
 	require.NoError(t, err)
 	assert.Contains(t, string(data), "go 1.26\n")
+	assert.Contains(t, string(data), "// kept byte-for-byte",
+		"the rewrite is byte-preserving text surgery, not a modfile reformat")
 }
 
 func TestApply_DepForcedFloorIsNamed(t *testing.T) {
 	t.Parallel()
 
 	root := t.TempDir()
-	require.NoError(
-		t,
-		os.WriteFile(filepath.Join(root, "go.mod"), []byte("module example.com/m\n\ngo 1.26.7\n"), 0o644),
-	)
+	goModPath := filepath.Join(root, "go.mod")
+	original := "module example.com/m\n\ngo 1.26.7\n"
+	require.NoError(t, os.WriteFile(goModPath, []byte(original), 0o644))
 
-	run := &scriptRunner{
-		dir:    root,
-		onEdit: func(dir string) { rewriteGoMod(dir, "1.26") },
-		tidy:   func(dir string) { rewriteGoMod(dir, "1.26.7") }, // tidy re-poisons
-		listOut: "example.com/m (devel) 1.26.7\n" +
+	run := fakeRunner(func(string, []string) (string, error) {
+		return "example.com/m (devel) 1.26\n" +
 			"github.com/larsartmann/go-finding v1.10.0 1.26.7\n" +
-			"github.com/x/other v1.0.0 1.25\n",
-	}
+			"github.com/x/other v1.0.0 1.25\n", nil
+	})
+
+	// The gate rejects the downgrade: tidy -diff wants changes (the
+	// dependency floor re-raises the directive).
+	gate := fakeGate(func(string, []string) (string, string, error) {
+		return "\ndiff of what tidy would change\n", "", nil
+	})
 
 	res, err := Apply(
 		context.Background(),
 		root,
 		[]surface.Fix{{File: "go.mod", Kind: surface.KindGoMod, From: "1.26.7", To: "1.26", Line: 3}},
-		Options{},
-		run.call,
+		Options{Gate: gate},
+		run,
 	)
 	require.NoError(t, err)
 	require.Len(t, res.DepForced, 1)
@@ -162,8 +134,12 @@ func TestApply_DepForcedFloorIsNamed(t *testing.T) {
 		t,
 		[]string{"github.com/larsartmann/go-finding"},
 		d.Poisoners,
-		"only the dep whose floor matches is named",
+		"only the published dep whose floor matches is named; the (devel) main module is not",
 	)
+
+	data, readErr := os.ReadFile(goModPath)
+	require.NoError(t, readErr)
+	assert.Equal(t, original, string(data), "a rejected fix is reverted, not left half-applied")
 
 	report := res.Report()
 	assert.Contains(t, report, "dep-forced 1")
@@ -209,25 +185,20 @@ func TestApply_SubdirectoryModuleRunsInItsDirectory(t *testing.T) {
 
 	var gotDir string
 
-	run := fakeRunner(func(dir string, args []string) (string, error) {
-		if len(args) >= 2 && args[1] == "edit" {
-			gotDir = dir
-			rewriteGoMod(dir, "1.27")
-		}
+	// The dependency gate is the only subprocess a go.mod fix needs: it
+	// must run inside the module's own directory, never the repo root.
+	gate := fakeGate(func(dir string, _ []string) (string, string, error) {
+		gotDir = dir
 
-		if len(args) >= 2 && args[1] == "tidy" {
-			rewriteGoMod(dir, "1.27")
-		}
-
-		return "", nil
+		return "", "", nil
 	})
 
 	res, err := Apply(
 		context.Background(),
 		root,
 		[]surface.Fix{{File: rel, Kind: surface.KindGoMod, From: "1.27.1", To: "1.27", Line: 3}},
-		Options{},
-		run,
+		Options{Gate: gate},
+		nil,
 	)
 	require.NoError(t, err)
 	require.Len(t, res.Applied, 1)
@@ -240,18 +211,30 @@ var errFakeGo = errors.New("go: exit 1")
 func TestApply_RunnerErrorBecomesFailure(t *testing.T) {
 	t.Parallel()
 
-	run := fakeRunner(func(_ string, _ []string) (string, error) { return "", errFakeGo })
+	root := t.TempDir()
+	goModPath := filepath.Join(root, "go.mod")
+	original := "module example.com/m\n\ngo 1.26.7\n"
+	require.NoError(t, os.WriteFile(goModPath, []byte(original), 0o644))
+
+	run := fakeRunner(func(string, []string) (string, error) { return "", errFakeGo })
+	gate := fakeGate(func(string, []string) (string, string, error) {
+		return "", "", errFakeGo
+	})
 
 	res, err := Apply(
 		context.Background(),
-		t.TempDir(),
+		root,
 		[]surface.Fix{{File: "go.mod", Kind: surface.KindGoMod, From: "1.26.7", To: "1.26", Line: 3}},
-		Options{},
+		Options{Gate: gate},
 		run,
 	)
 	require.NoError(t, err)
 	require.Len(t, res.Failures, 1)
 	assert.Contains(t, res.Failures[0].Cause, "exit 1")
+
+	data, readErr := os.ReadFile(goModPath)
+	require.NoError(t, readErr)
+	assert.Equal(t, original, string(data), "a failed fix restores the original content")
 }
 
 func TestApply_UnknownKindFails(t *testing.T) {
