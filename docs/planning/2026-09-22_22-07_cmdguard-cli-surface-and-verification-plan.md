@@ -261,3 +261,18 @@ Critical path: **A → B → C → M**. Parallelizable at any time: E, F, I, P. 
 3. Never touch the sibling session's in-flight files; supply-side work is referenced, not duplicated.
 
 *Format note: user requested `.md` with mermaid; pareto-planning skill's HTML default overridden per explicit instruction.*
+
+---
+
+## 6. WP-A Spike Verdict (2026-09-22, verified in `/tmp/cg-spike`) — **GO**
+
+| Question | Answer |
+|----------|--------|
+| Silent exit-1-findings? | **YES.** Handler returns `v4.NewExitError(1, errFindings)`; suppress printing via `v4.WithFangErrorHandler(func(w, s, e) { if errors.Is(e, errFindings) { return }; ... })`. Verified: no error text, exit 1. |
+| Hard errors still print? | **YES**, but the custom handler prints plain `Error: <msg>` — fang's styled block is lost for hard errors (the custom handler replaces the default entirely). Accepted tradeoff: hard errors are rare; text identical. |
+| Exit-code mapping | `v4.ExitCode(err)` returns the `ExitError` code through cmdguard's wrap (`failed to execute CLI: %w` — chain preserved, `errors.Is` works). |
+| Gotcha | `NewExitError(code, err)` returns `(*ExitError, error)` — the **first** value is the error; discarding it silently yields a nil error and exit 0 (bit the spike itself). |
+| Positional multi-root args | `v4.ArgsFromContext(ctx)` in handlers; `v4.WithMinimumArgs(1)` for validation. |
+| Embedded shared flags | `ParseFlagTags` recurses: `CommonFlags{JSON, Parallel}` embedded in per-command flag structs parses correctly. |
+| Version | `--version` handled by fang; stamp via `v4.WithCLIVersion`. |
+| Migration pattern | `cli.Execute(ctx)` + `v4.ExitCode(err)` + `os.Exit` (erraudit pattern), NOT `ExecuteAndExit` — keeps the exit contract explicit. |
