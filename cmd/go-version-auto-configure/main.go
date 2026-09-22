@@ -184,7 +184,10 @@ func workersFor(work, limit int) int {
 
 // runFlags holds the flags every subcommand shares: output format and
 // worker-pool sizing, registered once so help text cannot drift between
-// commands. Command-specific flags stay at each call site on purpose.
+// commands. The rest of each command's head (its own flag registration,
+// parseRoots, analyzeAll) repeats per command on purpose: it is the flat,
+// idiomatic subcommand skeleton, and abstracting it behind callbacks would
+// cost more than the repeated lines.
 type runFlags struct {
 	asJSON   bool
 	parallel int

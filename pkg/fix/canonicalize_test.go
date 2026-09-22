@@ -5,6 +5,7 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -130,7 +131,8 @@ func writeGoModFixture(t *testing.T, content string) string {
 func TestCanonicalizeGoMod_DowngradesPatchPinAndStripsToolchain(t *testing.T) {
 	t.Parallel()
 
-	installed := probeInstalledMinor(t)
+	installed := probeInstalledVersion(t)
+	minor := string(surface.MinorForm(surface.GoVersion(installed)))
 
 	path := writeGoModFixture(t,
 		"module example.com/norm\n\ngo "+installed+"\n\ntoolchain go"+installed+"\n")
@@ -143,7 +145,7 @@ func TestCanonicalizeGoMod_DowngradesPatchPinAndStripsToolchain(t *testing.T) {
 	assert.True(t, res.Changed)
 	assert.Equal(t,
 		[]string{
-			"go line " + installed + " -> " + surface.MinorForm(surface.GoVersion(installed)).String(),
+			"go line " + installed + " -> " + minor,
 			"remove toolchain directive go" + installed,
 		},
 		res.Changes)
@@ -151,17 +153,18 @@ func TestCanonicalizeGoMod_DowngradesPatchPinAndStripsToolchain(t *testing.T) {
 	data, readErr := os.ReadFile(path)
 	require.NoError(t, readErr)
 	assert.Equal(t,
-		"module example.com/norm\n\ngo "+surface.MinorForm(surface.GoVersion(installed)).String()+"\n",
+		"module example.com/norm\n\ngo "+minor+"\n",
 		string(data))
 }
 
 func TestCanonicalizeGoMod_ToolchainStripOnMinorLineNeedsNoGate(t *testing.T) {
 	t.Parallel()
 
-	installed := probeInstalledMinor(t)
+	installed := probeInstalledVersion(t)
+	minor := string(surface.MinorForm(surface.GoVersion(installed)))
 
 	path := writeGoModFixture(t,
-		"module example.com/norm\n\ngo "+surface.MinorForm(surface.GoVersion(installed)).String()+"\n\ntoolchain go"+installed+"\n")
+		"module example.com/norm\n\ngo "+minor+"\n\ntoolchain go"+installed+"\n")
 
 	gate := fakeGate(func(string, []string) (string, string, error) {
 		return "", "", errors.New("the gate must not run for a toolchain-only strip")
@@ -177,7 +180,7 @@ func TestCanonicalizeGoMod_ToolchainStripOnMinorLineNeedsNoGate(t *testing.T) {
 	data, readErr := os.ReadFile(path)
 	require.NoError(t, readErr)
 	assert.Equal(t,
-		"module example.com/norm\n\ngo "+surface.MinorForm(surface.GoVersion(installed)).String()+"\n",
+		"module example.com/norm\n\ngo "+minor+"\n",
 		string(data))
 }
 
@@ -274,9 +277,9 @@ func TestCanonicalizeGoMod_MissingFileIsError(t *testing.T) {
 	require.Error(t, err)
 }
 
-// probeInstalledMinor resolves the test environment's installed Go version
-// (minor form) so fixtures never exceed the local toolchain.
-func probeInstalledMinor(t *testing.T) string {
+// probeInstalledVersion resolves the test environment's installed Go version
+// (full form, e.g. "1.27.1") so fixtures never exceed the local toolchain.
+func probeInstalledVersion(t *testing.T) string {
 	t.Helper()
 
 	run := ExecSplitRunner()
@@ -284,13 +287,5 @@ func probeInstalledMinor(t *testing.T) string {
 	stdout, _, err := run(context.Background(), t.TempDir(), "env", "GOVERSION")
 	require.NoError(t, err, "the test environment always has a go binary")
 
-	return string(surface.MinorForm(surface.GoVersion(trimGoPrefix(stdout))))
-}
-
-func trimGoPrefix(v string) string {
-	for len(v) > 0 && (v[0] == 'g' || v[0] == 'o' || v[0] == ' ' || v[0] == '\n' || v[0] == '\t') {
-		v = v[1:]
-	}
-
-	return v
+	return strings.TrimSpace(strings.TrimPrefix(strings.TrimSpace(stdout), "go"))
 }
