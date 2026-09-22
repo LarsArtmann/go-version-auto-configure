@@ -43,11 +43,17 @@ go-version-auto-configure fix --dry-run .               # report without touchin
 go-version-auto-configure who-forces .                  # name the deps forcing each go directive
 ```
 
-Built for fleet sweeps: every command accepts multiple roots (analyzed in parallel, reported sorted), `--parallel N` caps the worker pool (default: CPU count), `check --quiet` runs exit-code-only for scripting, `fix` skips clean repos entirely, and `--json` emits a stable machine-readable report for CI:
+Built for fleet sweeps: every command accepts multiple roots (analyzed in parallel, reported sorted), `--parallel N` caps the worker pool (default: CPU count), `--quiet` runs exit-code-only on all three analysis commands, `check --expect-minor 1.27` encodes the fleet policy (any surface naming a higher minor is a policy finding), `fix` skips clean repos entirely, and `--json` emits a stable machine-readable report for CI:
 
 ```bash
 go-version-auto-configure check --json ~/projects/*/ | jq '.repos[] | select(.clean == false)'
-go-version-auto-configure check --quiet ~/projects/*/ ; echo $?   # 0 clean, 1 findings, 2 errors
+go-version-auto-configure check --quiet --expect-minor 1.27 ~/projects/*/ ; echo $?   # 0 clean, 1 findings, 2 errors
+```
+
+Scheduled enforcement as a cron job (nightly sweep, non-zero exit alerts through your usual failure channel):
+
+```cron
+17 4 * * * $HOME/go/bin/go-version-auto-configure check --quiet --expect-minor 1.27 $HOME/projects/*/ >> $HOME/.cache/gvac-sweep.log 2>&1
 ```
 
 When a form fix cannot stick, the tool says so truthfully and names the dependencies that force the floor — the supply-side re-tag targets:
@@ -64,13 +70,13 @@ applied 0, dep-forced 1, held back 0, failed 0
 
 #### JSON contract
 
-The `--json` documents are a stable machine contract, versioned by the top-level `"schema": 1` field: field names and presence (`omitempty`) are guaranteed, and list fields are empty, never null.
+The `--json` documents are a stable machine contract, versioned by the top-level `"schema": 2` field: field names and presence (`omitempty`) are guaranteed, and list fields are empty, never null. Schema 2 dropped the redundant `poisoners` strings — forcing dependencies are named by `poisonerFloors` (module, version, own floor).
 
 | Command      | Per-repo fields                                                                                                                                              |
 | ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `check`      | `root`, `error?`, `clean`, `counts` (`total`, `mechanical`, `suggested`, `discovery`), `findings` (`rule`, `message`, `file`, `line`, `suggestion?`, `fix?`) |
-| `fix`        | `root`, `error?`, `applied`, `heldBack`, `depForced` (`fix`, `floor`, `poisoners?`), `failures`, `suggested`, `discovery`                                    |
-| `who-forces` | `root`, `error?`, `modules` (`path`, `kind`, `module`, `directive?`, `maxDepFloor?`, `poisoners?`, `poisonerFloors?`, `poisoned`, `error?`)                  |
+| `fix`        | `root`, `error?`, `applied`, `heldBack`, `depForced` (`fix`, `floor`), `failures`, `suggested`, `discovery`                                                 |
+| `who-forces` | `root`, `error?`, `modules` (`path`, `kind`, `module`, `directive?`, `maxDepFloor?`, `poisonerFloors?`, `poisoned`, `error?`)                               |
 
 ### BuildFlow provider
 

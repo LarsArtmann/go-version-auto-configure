@@ -41,9 +41,8 @@ Published library versions carried patch-form `go` floors that re-poisoned every
 - [ ] Branch protection decision for `master`: required status checks would break the auto-commit daemon's direct pushes (owner call)
 - [ ] Repo topics: `go`, `buildflow`, `golangci`, `auto-configure`, `version-surface`
 - [ ] CI badge in README once the workflow lands
-- [ ] Module-path casing check (`github.com/larsartmann/…` vs `LarsArtmann`) with a real `go get` after the next tag
+- [x] Module-path casing check (`github.com/larsartmann/…` vs `LarsArtmann`) with a real `go get` — verified 2026-09-22: lowercase path resolves from the proxy (`go get github.com/larsartmann/go-version-auto-configure@v0.1.0` + the three sibling apps at their new tags)
 - [ ] Verify the README build-from-source steps in a clean environment (container/nix shell)
-- [ ] Cut v0.2.0 from CHANGELOG `[Unreleased]` once CI + GoReleaser + pkg.go.dev land
 
 ## T9 — Parser coverage — PARTIALLY DONE (toolchain directives shipped; flake.lock blocked by design)
 
