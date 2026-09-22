@@ -209,7 +209,7 @@ func newRunFlagSet(name string) (*flag.FlagSet, *runFlags) {
 // parseRoots parses subcommand flags and resolves the positional roots to
 // absolute paths. ok is false on flag errors; the FlagSet has already
 // written the error and usage to stderr.
-func parseRoots(fs *flag.FlagSet, args []string) (roots []string, ok bool) {
+func parseRoots(fs *flag.FlagSet, args []string) ([]string, bool) {
 	if err := fs.Parse(args); err != nil {
 		return nil, false
 	}
