@@ -126,8 +126,9 @@ func TestSelfCheck_FindsLocalToolchain(t *testing.T) {
 }
 
 // TestApplyOne_RealTool runs one directive rewrite through the production
-// EditRunner against a dependency-free temp module: it covers edit, verify,
-// and the tidy stability check without network access.
+// runners against a dependency-free temp module: it covers the text
+// surgery, re-parse verification, and the tidy -diff gate (clean for a
+// dependency-free module) without network access.
 func TestApplyOne_RealTool(t *testing.T) {
 	t.Parallel()
 
@@ -136,7 +137,7 @@ func TestApplyOne_RealTool(t *testing.T) {
 	require.NoError(t, os.WriteFile(goMod, []byte("module example.com/m\n\ngo 1.26.7\n"), 0o644))
 
 	fx := surface.Fix{File: "go.mod", Kind: surface.KindGoMod, From: "1.26.7", To: "1.26", Line: 3}
-	require.NoError(t, applyOne(context.Background(), root, fx, EditRunner()))
+	require.NoError(t, applyOne(context.Background(), root, fx, EditRunner(), ExecSplitRunner()))
 
 	data, err := os.ReadFile(goMod)
 	require.NoError(t, err)

@@ -14,6 +14,8 @@ import (
 	"path/filepath"
 	"strings"
 
+	atomicwrite "github.com/larsartmann/go-atomic-write"
+
 	"github.com/larsartmann/go-version-auto-configure/pkg/surface"
 )
 
@@ -21,6 +23,9 @@ import (
 type Options struct {
 	// DryRun reports what would change without touching files.
 	DryRun bool
+	// Gate is the SplitRunner for the `go mod tidy -diff` dependency-floor
+	// gate on go.mod rewrites; nil uses the production exec runner.
+	Gate SplitRunner
 }
 
 // Result summarizes one Apply run.
@@ -175,11 +180,23 @@ func moduleScoped(args []string) bool {
 	return len(args) > 0 && (args[0] == "mod" || args[0] == "list")
 }
 
+// gateRunner resolves the dependency-gate runner for these options: the
+// injected one when set, the production exec runner otherwise.
+func gateRunner(opts Options) SplitRunner {
+	if opts.Gate != nil {
+		return opts.Gate
+	}
+
+	return ExecSplitRunner()
+}
+
 // Apply executes every mechanical fix under root.
 func Apply(ctx context.Context, root string, fixes []surface.Fix, opts Options, run GoCommandRunner) (*Result, error) {
 	if run == nil {
 		run = EditRunner()
 	}
+
+	gate := gateRunner(opts)
 
 	res := &Result{}
 
@@ -190,7 +207,7 @@ func Apply(ctx context.Context, root string, fixes []surface.Fix, opts Options, 
 			continue
 		}
 
-		if err := applyOne(ctx, root, fx, run); err != nil {
+		if err := applyOne(ctx, root, fx, run, gate); err != nil {
 			if depForced, ok := errors.AsType[*DepForcedError](err); ok {
 				res.DepForced = append(res.DepForced, DepForced{
 					Fix:       fx,
@@ -212,20 +229,22 @@ func Apply(ctx context.Context, root string, fixes []surface.Fix, opts Options, 
 	return res, nil
 }
 
-// applyOne rewrites one directive via the go tool and verifies the result
-// survives `go mod tidy` (for go.mod: since Go 1.21 the directive must stay
-// at or above the highest dependency floor, so a stripped directive that
-// tidy re-raises is dep-forced, not mechanically fixable). Command success
-// alone proves nothing; the file is re-parsed as the oracle.
-func applyOne(ctx context.Context, root string, fx surface.Fix, run GoCommandRunner) error {
+// applyOne rewrites one directive and verifies the result survives the
+// `go mod tidy -diff` dependency-floor gate (for go.mod: since Go 1.21 the
+// directive must stay at or above the highest dependency floor, so a
+// stripped directive the gate rejects is dep-forced, not mechanically
+// fixable). go.mod rewrites are byte-preserving text surgery — `go mod
+// edit` would reflow the whole file and churn unrelated lines — and the
+// gate is non-mutating, so a rejected fix leaves the file untouched. go.work
+// rewrites go through `go work edit`, which needs workspace discovery. The
+// file is re-parsed as the oracle on every path.
+func applyOne(ctx context.Context, root string, fx surface.Fix, run GoCommandRunner, gate SplitRunner) error {
 	abs := filepath.Join(root, fx.File)
 	dir := filepath.Dir(abs)
 
 	switch fx.Kind {
 	case surface.KindGoMod:
-		if _, err := run(ctx, dir, "mod", "edit", "-go="+string(fx.To)); err != nil {
-			return err
-		}
+		return applyGoModFix(ctx, abs, fx, run, gate)
 	case surface.KindGoWork:
 		if _, err := run(ctx, dir, "work", "edit", "-go="+string(fx.To)); err != nil {
 			return err
@@ -243,75 +262,114 @@ func applyOne(ctx context.Context, root string, fx surface.Fix, run GoCommandRun
 		return fmt.Errorf("%w: got go %s, want go %s", errDirectiveMismatch, got, fx.To)
 	}
 
-	if fx.Kind == surface.KindGoMod {
-		if err := ensureTidyStable(ctx, dir, fx, run); err != nil {
-			return err
-		}
-	}
-
 	return nil
 }
 
-// ensureTidyStable re-runs tidy and re-reads the directive: when tidy
-// raises it back above the target, the floor is dep-forced. The poisoners
-// — dependencies whose own go.mod floor equals the raised directive — are
-// resolved with `go list -m` and named in the error so the fix surfaces as
-// an actionable supply-side re-tag instead of a silently reverted edit.
-func ensureTidyStable(ctx context.Context, dir string, fx surface.Fix, run GoCommandRunner) error {
-	if _, err := run(ctx, dir, "mod", "tidy"); err != nil {
-		return fmt.Errorf("tidy stability check: %w", err)
-	}
-
-	got, err := currentDirective(surface.FilePath(filepath.Join(dir, "go.mod")), surface.KindGoMod)
+// applyGoModFix performs one byte-preserving go-directive rewrite on a
+// go.mod and classifies a dirty dependency gate: the module floor forced by
+// the dependency graph (the highest dependency go line, which is what tidy
+// enforces) above the fix target means dep-forced; anything else is a
+// plain failure. The original content is restored before classifying.
+func applyGoModFix(ctx context.Context, abs string, fx surface.Fix, run GoCommandRunner, gate SplitRunner) error {
+	original, err := os.ReadFile(abs)
 	if err != nil {
-		return fmt.Errorf("verify tidy stability: %w", err)
+		return fmt.Errorf("read %s: %w", abs, err)
 	}
 
-	if got == fx.To {
-		return nil
+	got, _, err := surface.ParseDirective(surface.KindGoMod, original)
+	switch {
+	case errors.Is(err, surface.ErrNoDirective):
+		return fmt.Errorf("%s declares no go directive", abs)
+	case err != nil:
+		return fmt.Errorf("parse %s: %w", abs, err)
+	case got != fx.From:
+		return fmt.Errorf("directive changed since detection: got go %s, want go %s", got, fx.From)
 	}
 
-	poisoners, err := resolvePoisoners(ctx, dir, run, got)
+	updated, err := rewriteGoDirective(string(original), string(fx.To))
 	if err != nil {
-		return &DepForcedError{
-			Fix:       fx,
-			Floor:     got,
-			Poisoners: nil,
-			Cause: fmt.Sprintf(
-				"go mod tidy re-raises the directive to go %s (poisoner resolution failed: %v)",
-				got,
-				err,
-			),
+		return err
+	}
+
+	if err := atomicwrite.Write(abs, []byte(updated)); err != nil {
+		return fmt.Errorf("write %s: %w", abs, err)
+	}
+
+	now, _, err := surface.ParseDirective(surface.KindGoMod, []byte(updated))
+	if err == nil && now != fx.To {
+		err = fmt.Errorf("%w: got go %s, want go %s", errDirectiveMismatch, now, fx.To)
+	}
+
+	if err == nil {
+		if g := runTidyDiffGate(ctx, filepath.Dir(abs), gate); g.Dirty() {
+			err = classifyGateRejection(ctx, abs, fx, run, g)
 		}
 	}
 
-	return &DepForcedError{Fix: fx, Floor: got, Poisoners: poisoners}
-}
-
-// resolvePoisoners lists modules whose go floor equals the forced floor
-// (the value tidy enforces, which is the highest dependency floor).
-func resolvePoisoners(ctx context.Context, dir string, run GoCommandRunner, floor surface.GoVersion) ([]string, error) {
-	out, err := run(ctx, dir, "list", "-m", "-f", "{{.Path}} {{.Version}} {{.GoVersion}}", "all")
 	if err != nil {
-		return nil, fmt.Errorf("list dependency floors: %w", err)
+		if revertErr := atomicwrite.Write(abs, original); revertErr != nil {
+			return fmt.Errorf("%w (AND revert of %s failed: %v)", err, abs, revertErr)
+		}
 	}
 
-	var poisoners []string
+	return err
+}
+
+// classifyGateRejection reverts-context classification of a dirty gate: it
+// names the dependency floor and its carriers when the module is
+// dep-forced, and falls back to the gate output otherwise.
+func classifyGateRejection(ctx context.Context, abs string, fx surface.Fix, run GoCommandRunner, g gateResult) error {
+	floor, poisoners, listErr := resolveDepFloor(ctx, filepath.Dir(abs), run)
+	switch {
+	case listErr != nil:
+		return fmt.Errorf("go mod tidy -diff is not clean after the rewrite and the dependency graph could not be listed: %v; gate: %s", listErr, g.Detail)
+	case floor != "" && surface.GreaterVersion(string(floor), string(fx.To)):
+		return &DepForcedError{Fix: fx, Floor: floor, Poisoners: poisoners}
+	default:
+		return fmt.Errorf(
+			"go mod tidy -diff is not clean after the rewrite (dependency floor %s does not exceed the target): %s",
+			floor, g.Detail,
+		)
+	}
+}
+
+// resolveDepFloor lists the module's dependency graph and returns the
+// highest dependency `go` floor — the value tidy enforces — together with
+// the published dependencies carrying it. Replaced development versions
+// ("(devel)") count toward the floor but are never named as poisoners,
+// since there is nothing to re-tag.
+func resolveDepFloor(ctx context.Context, dir string, run GoCommandRunner) (surface.GoVersion, []string, error) {
+	out, err := run(ctx, dir, "list", "-m", "-f", "{{.Path}} {{.Version}} {{.GoVersion}}", "all")
+	if err != nil {
+		return "", nil, fmt.Errorf("list dependency floors: %w", err)
+	}
+
+	var (
+		floor     surface.GoVersion
+		poisoners []string
+	)
 
 	for line := range strings.SplitSeq(out, "\n") {
 		fields := strings.Fields(strings.TrimSpace(line))
-		if len(fields) != 3 || fields[2] != string(floor) {
+		if len(fields) != 3 || fields[0] == "" || fields[2] == "" {
 			continue
+		}
+
+		if floor == "" || surface.GreaterVersion(fields[2], string(floor)) {
+			floor = surface.GoVersion(fields[2])
+			poisoners = nil
 		}
 
 		if fields[1] == "(devel)" || fields[1] == "" {
 			continue
 		}
 
-		poisoners = append(poisoners, fields[0])
+		if fields[2] == string(floor) {
+			poisoners = append(poisoners, fields[0])
+		}
 	}
 
-	return poisoners, nil
+	return floor, poisoners, nil
 }
 
 // DepForcedError reports a form fix that tidy reverts because a dependency

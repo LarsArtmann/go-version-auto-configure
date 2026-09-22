@@ -63,6 +63,24 @@ func hasPatch(v string) bool {
 	return len(strings.Split(v, ".")) > majorMinorParts
 }
 
+// HasPatch reports whether the version string carries a patch component
+// (three or more dot-separated numeric parts). RC and expression forms are
+// rejected: callers only pass module-parsed versions.
+func HasPatch(v GoVersion) bool {
+	return hasPatch(string(v))
+}
+
+// MinorForm returns the major.minor form of the version ("1.26.7" and
+// "1.26" both yield "1.26"). Unparseable versions are returned unchanged.
+func MinorForm(v GoVersion) GoVersion {
+	parsed, err := parseMajorMinor(string(v))
+	if err != nil {
+		return v
+	}
+
+	return GoVersion(parsed.String())
+}
+
 // GreaterVersion reports whether version a is a strictly higher Go version
 // than b, comparing every dotted component (missing components are zero):
 // "1.26.7" exceeds "1.26", and "1.27" exceeds "1.26.7". Unlike

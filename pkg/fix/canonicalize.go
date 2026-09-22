@@ -8,9 +8,11 @@ package fix
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"regexp"
 	"strings"
 	"time"
@@ -203,12 +205,123 @@ func CanonicalizeGoMod(ctx context.Context, goModPath string, opts CanonicalizeO
 		return CanonicalizeResult{}, fmt.Errorf("canonicalize: read %s: %w", goModPath, err)
 	}
 
-	res := CanonicalizeGoModContent(ctx, filepath.Dir(goModPath), content, opts, gate)
-	if res.rewritten != "" {
-		if writeErr := atomicwrite.Write(goModPath, []byte(res.rewritten)); writeErr != nil {
-			return CanonicalizeResult{}, fmt.Errorf("canonicalize: write %s: %w", goModPath, writeErr)
+	dir := filepath.Dir(goModPath)
+	res := CanonicalizeResult{}
+
+	goVersion, _, parseErr := surface.ParseDirective(surface.KindGoMod, content)
+	switch {
+	case errors.Is(parseErr, surface.ErrNoDirective):
+		res.Skipped, res.SkipReason = true, "no go directive"
+
+		return res, nil
+	case parseErr != nil:
+		res.Skipped, res.SkipReason = true, fmt.Sprintf("unparseable go.mod: %v", parseErr)
+
+		return res, nil
+	}
+
+	toolchainVersion, _, toolErr := surface.ParseToolchain(surface.KindGoMod, content)
+	hasToolchain := toolErr == nil && toolchainVersion != ""
+
+	if !surface.HasPatch(goVersion) && !(hasToolchain && opts.StripToolchain) {
+		res.Skipped, res.SkipReason = true, "directives already canonical"
+
+		return res, nil
+	}
+
+	installed, err := resolveInstalledToolchain(ctx, dir, opts.InstalledToolchain, gate)
+	if err != nil {
+		return CanonicalizeResult{}, err
+	}
+
+	// The installed toolchain guards pointless rewrites: when the module's
+	// minor floor exceeds it, the gate could not resolve anything anyway.
+	// Comparison at minor granularity; an unparseable installed version
+	// compares as "not exceeding", leaving the verdict to the gate.
+	if surface.GreaterVersion(string(surface.MinorForm(goVersion)), string(surface.MinorForm(installed))) {
+		res.Skipped, res.SkipReason = true, fmt.Sprintf(
+			"go line %s exceeds installed toolchain %s; keeping patch floor",
+			goVersion, installed,
+		)
+
+		return res, nil
+	}
+
+	minor := surface.MinorForm(goVersion)
+
+	if surface.HasPatch(goVersion) {
+		res.Changes = append(res.Changes, "go line "+string(goVersion)+" -> "+string(minor))
+	}
+
+	if hasToolchain && opts.StripToolchain {
+		res.Changes = append(res.Changes, "remove toolchain directive "+string(toolchainVersion))
+	}
+
+	if opts.DryRun {
+		res.HeldBack = true
+
+		return res, nil
+	}
+
+	updated := string(content)
+
+	if surface.HasPatch(goVersion) {
+		updated, err = rewriteGoDirective(updated, string(minor))
+		if err != nil {
+			return CanonicalizeResult{}, fmt.Errorf("canonicalize %s: %w", goModPath, err)
 		}
 	}
 
+	if hasToolchain && opts.StripToolchain {
+		updated = stripToolchainDirective(updated)
+	}
+
+	if writeErr := atomicwrite.Write(goModPath, []byte(updated)); writeErr != nil {
+		return CanonicalizeResult{}, fmt.Errorf("canonicalize: write %s: %w", goModPath, writeErr)
+	}
+
+	// Only the go-line downgrade can invalidate module resolution, so only
+	// it pays for the gate; a toolchain strip alone needs none. The gate
+	// covers the combination: a failure reverts the whole file.
+	if surface.HasPatch(goVersion) {
+		g := runTidyDiffGate(ctx, dir, gate)
+		if g.Dirty() {
+			if revertErr := atomicwrite.Write(goModPath, content); revertErr != nil {
+				return CanonicalizeResult{}, fmt.Errorf(
+					"canonicalize %s: downgrade was not dependency-floor-safe AND revert failed: %w",
+					goModPath, revertErr,
+				)
+			}
+
+			res.HeldBackByDepFloor = true
+			res.GateDetail = g.Detail
+
+			return res, nil
+		}
+	}
+
+	res.Changed = true
+
 	return res, nil
+}
+
+// resolveInstalledToolchain returns the installed Go version: the explicit
+// option when set, otherwise a `go env GOVERSION` probe through the gate
+// runner. The result keeps or drops the "go" prefix as written.
+func resolveInstalledToolchain(ctx context.Context, dir string, explicit surface.GoVersion, gate SplitRunner) (surface.GoVersion, error) {
+	if explicit != "" {
+		return explicit, nil
+	}
+
+	stdout, _, err := gate(ctx, dir, "env", "GOVERSION")
+	if err != nil {
+		return "", fmt.Errorf("canonicalize: resolve installed toolchain: %w", err)
+	}
+
+	installed := surface.GoVersion(strings.TrimSpace(stdout))
+	if installed == "" {
+		return "", errEmptyGoVersion
+	}
+
+	return installed, nil
 }
