@@ -13,7 +13,7 @@ Published library versions carried patch-form `go` floors that re-poisoned every
 - [x] `go-finding` **v1.13.0** (root floor `go 1.27`; all 4 modules at minor form on head)
 - [x] `go-atomic-write` **v0.6.0** (floor raise to `go 1.27` shipped as a 0.x minor, not v0.5.3 — the directive had already moved past v0.5.2's `go 1.26.7`)
 - [x] `go-error-family` **7-tag coordinated release** (root v0.10.2, agent/bridge/diagnose/git/postgres/examples at true floors: minor form except x/text-forced `1.26.0`)
-- [x] `go-output` **v0.38.2** (17 modules; supersedes broken v0.38.1 — retraction question open with the owner)
+- [x] `go-output` **v0.38.2** (17 modules; supersedes broken v0.38.1 — owner decided 2026-09-22: NO retraction, v0.38.1 stays documented-only)
 - [x] `go-branded-id` **v0.6.0**, `linter-autoconfigure-sdk` **v0.3.0**
 - [x] Sibling autoconfigurers re-tagged: v0.8.2 / v0.6.4 / v0.2.1 (go-finding v1.13.0, directive `go 1.27`)
 - [x] Consumer bumps for this repo's graph: `fix` applied 0 / dep-forced 0; `tidy` stable
@@ -39,7 +39,7 @@ Published library versions carried patch-form `go` floors that re-poisoned every
 - [x] v0.2.0 cut from the CHANGELOG release section; proxy-verified via `go get @v0.2.0`
 - [ ] pkg.go.dev listing appears (indexed via the proxy — 404 minutes after tagging is normal lag, not a blocker)
 - [ ] Website launch (sibling-project pattern) if it earns one
-- [ ] Branch protection decision for `master`: required status checks would break the auto-commit daemon's direct pushes (owner call — see open owner questions)
+- [x] Branch protection decision for `master`: owner decided 2026-09-22 — master stays UNPROTECTED, CI runs informational (required checks would break the auto-commit daemon's direct pushes)
 - [x] Module-path casing check (`github.com/larsartmann/…` vs `LarsArtmann`) with a real `go get` — verified 2026-09-22: lowercase path resolves from the proxy (`go get github.com/larsartmann/go-version-auto-configure@v0.1.0` + the three sibling apps at their new tags)
 - [ ] Verify the README build-from-source steps in a clean environment (container/nix shell)
 

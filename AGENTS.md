@@ -52,6 +52,8 @@ The supply-side campaign has now shipped (2026-09-22): go-atomic-write v0.6.0, g
 
 What remains is the consumer campaign: repos still requiring the OLD tags keep re-poisoning until they bump. Baseline and progress live in the ADR appendix (`docs/adr/0001-fleet-go-minor.md`). This tool fixes form; tidy reverts form only while a consumer's graph still holds a poisoner.
 
+Owner decisions recorded 2026-09-22: go-output v0.38.1 is NOT retracted (documented-only; v0.38.2 is the good release — do not re-litigate), and `master` stays UNPROTECTED with informational CI (the auto-commit daemon's direct pushes win over required status checks).
+
 ## Environment reality
 
 - **Primary toolchain: the repo's own `flake.nix` devShell** (`nix develop`, go1.27.1 pinned) — see Build & Run. Outside nix, prefix with `GOTOOLCHAIN=go1.27.1 GOEXPERIMENT=jsonv2`; the shell's go1.26.7 + `GOTOOLCHAIN=local` cannot load this module (`go.mod requires go >= 1.27`). BuildFlow gates must run inside the devShell (`nix develop -c buildflow ...`) for the same reason.
