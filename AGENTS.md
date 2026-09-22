@@ -10,14 +10,18 @@
 
 ## Build & Run
 
+Inside `nix develop` the toolchain is pinned (`GOTOOLCHAIN=go1.27.1`, `GOEXPERIMENT=jsonv2`, `GOWORK` cleared so `go work edit` finds the workspace) — plain commands work:
+
 ```bash
-GOTOOLCHAIN=go1.27.1 GOEXPERIMENT=jsonv2 go build ./...
-GOTOOLCHAIN=go1.27.1 GOEXPERIMENT=jsonv2 go test ./...
-GOTOOLCHAIN=go1.27.1 GOEXPERIMENT=jsonv2 go build -o /tmp/gvac ./cmd/go-version-auto-configure
+go build ./...
+go test ./...
+go build -o /tmp/gvac ./cmd/go-version-auto-configure
 /tmp/gvac check ~/projects/<repo>    # exit 1 = drift found
 /tmp/gvac fix  ~/projects/<repo>
 /tmp/gvac who-forces ~/projects/<repo>   # which deps force each go directive
 ```
+
+Outside nix, prefix every command with `GOTOOLCHAIN=go1.27.1 GOEXPERIMENT=jsonv2` (go1.27.1 is cached in the module cache).
 
 All commands accept multiple roots (parallel, sorted output) and `--json` (stable machine contract). `fix` skips clean repos entirely, so fleet sweeps scale with drifted repos, not repo count.
 

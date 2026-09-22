@@ -581,3 +581,28 @@ func TestAnalyze_GoWorkBelowFloorFiresOnZeroPatchGap(t *testing.T) {
 	require.NotNil(t, workFix, "go 1.26 does not cover the module floor go 1.26.0 under the go tool's rules")
 	assert.Equal(t, GoVersion("1.26.0"), workFix.To, "the fix restores the FULL patch floor")
 }
+
+func TestReadLines(t *testing.T) {
+	t.Parallel()
+
+	t.Run("normal file returns lines", func(t *testing.T) {
+		t.Parallel()
+
+		path := filepath.Join(t.TempDir(), "go.mod")
+		require.NoError(t, os.WriteFile(path, []byte("module m\n\ngo 1.26\n"), 0o644))
+
+		assert.Equal(t, []string{"module m", "", "go 1.26", ""}, readLines(path))
+	})
+
+	t.Run("unreadable path yields nil without panicking", func(t *testing.T) {
+		t.Parallel()
+
+		assert.Nil(t, readLines(filepath.Join(t.TempDir(), "missing.txt")))
+	})
+
+	t.Run("directory yields nil without panicking", func(t *testing.T) {
+		t.Parallel()
+
+		assert.Nil(t, readLines(t.TempDir()))
+	})
+}

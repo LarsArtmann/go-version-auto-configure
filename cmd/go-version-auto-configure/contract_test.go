@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"os"
+	"runtime"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -209,4 +210,45 @@ func TestJSONWireContractGoldens(t *testing.T) {
 			},
 		},
 	}, jsonGolden(t, "who-forces", "--json", clean), "who-forces --json golden")
+}
+
+// TestRootsFromNormalizesPositionalArgs locks the root normalization:
+// empty → working directory, relative → absolute, existing behavior.
+func TestRootsFromNormalizesPositionalArgs(t *testing.T) {
+	t.Parallel()
+
+	t.Run("empty defaults to working directory", func(t *testing.T) {
+		t.Parallel()
+
+		wd, err := os.Getwd()
+		require.NoError(t, err)
+		assert.Equal(t, []string{wd}, rootsFrom(nil))
+	})
+
+	t.Run("relative paths become absolute", func(t *testing.T) {
+		t.Parallel()
+
+		roots := rootsFrom([]string{"pkg", "./cmd"})
+		require.Len(t, roots, 2)
+		assert.True(t, filepath.IsAbs(roots[0]), "pkg → %q", roots[0])
+		assert.True(t, filepath.IsAbs(roots[1]), "./cmd → %q", roots[1])
+	})
+
+	t.Run("absolute paths pass through", func(t *testing.T) {
+		t.Parallel()
+
+		abs, err := filepath.Abs("some/repo")
+		require.NoError(t, err)
+		assert.Equal(t, []string{abs}, rootsFrom([]string{"some/repo"}))
+	})
+}
+
+// TestWorkersFor locks the pool-sizing clamp.
+func TestWorkersFor(t *testing.T) {
+	t.Parallel()
+
+	assert.Equal(t, 1, workersFor(0, 0), "no work still yields one worker")
+	assert.Equal(t, 3, workersFor(3, 0), "work below CPU count caps at work")
+	assert.Equal(t, 1, workersFor(10, 1), "operator limit 1 is honored")
+	assert.LessOrEqual(t, workersFor(10, -5), runtime.GOMAXPROCS(0), "negative limit means auto: CPU-count bound")
 }
