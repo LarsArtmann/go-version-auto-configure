@@ -9,7 +9,7 @@ package main
 
 import (
 	"context"
-	"flag"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -18,6 +18,9 @@ import (
 	"slices"
 	"strings"
 	"sync"
+
+	"charm.land/fang/v2"
+	v4 "github.com/larsartmann/cmdguard/v4/pkg/cmdguard/v4"
 
 	"github.com/larsartmann/go-version-auto-configure/pkg/fix"
 	"github.com/larsartmann/go-version-auto-configure/pkg/surface"
@@ -31,23 +34,29 @@ const (
 	exitError    = 2
 )
 
-const usage = `go-version-auto-configure — unify the Go toolchain version surface
+// errFindings is the sentinel returned by command handlers when the exit
+// contract says exit 1 (findings / failed repairs). The CLI's error handler
+// suppresses it — the report itself IS the user-facing output — and run/main
+// map it onto exitFindings.
+var errFindings = errors.New("drift found")
 
-Usage:
-  go-version-auto-configure check [--json] [--quiet] [--expect-minor N] [--parallel N] [root ...]
-                                                 detect drift, exit 1 when found
-  go-version-auto-configure fix [--dry-run] [--json] [--quiet] [--expect-minor N] [--parallel N] [root ...]
-                                                 auto-fix directive form,
-                                                 suggest the rest
-  go-version-auto-configure who-forces [--json] [--quiet] [--allow-partial] [--parallel N] [root ...]
-                                                 name the dependencies forcing
-                                                 each go directive
-  go-version-auto-configure version              print the tool version
-                                                 (--version works too)
+// errSilent is the sentinel for exit-2 conditions whose diagnostics have
+// already been written by the report printers (per-root analysis failures,
+// invalid --expect-minor). It must not be printed again.
+var errSilent = errors.New("failed")
 
-Roots default to the working directory; multiple roots are analyzed in
-parallel and reported sorted by path.
-`
+// codeFrom maps an internal exit code onto the handler error contract:
+// nil for clean, errFindings for exit 1, errSilent for exit 2.
+func codeFrom(code int) error {
+	switch code {
+	case exitOK:
+		return nil
+	case exitFindings:
+		return fmt.Errorf("%w", errFindings)
+	default:
+		return fmt.Errorf("%w", errSilent)
+	}
+}
 
 func main() {
 	os.Exit(run(os.Args[1:], os.Stdout))

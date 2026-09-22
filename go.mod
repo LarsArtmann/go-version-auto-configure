@@ -13,6 +13,7 @@ require (
 require (
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/gofrs/flock v0.13.1 // indirect
+	github.com/larsartmann/cmdguard/v4 v4.0.2 // indirect
 	github.com/larsartmann/go-atomic-write v0.5.1 // indirect
 	github.com/larsartmann/go-error-family v0.10.1 // indirect
 	go.yaml.in/yaml/v3 v3.0.5 // indirect
