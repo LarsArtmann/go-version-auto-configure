@@ -53,7 +53,7 @@ func formIssues(s *Surface, workspaceFloor majorMinor, hasFloor bool) []Issue {
 
 		parsed, err := parseMajorMinor(string(m.Version))
 		if err != nil {
-			continue //nolint:erraudit // deliberate filter: unparseable directives surface as go-mod-unparseable discovery issues instead
+			continue //nolint:erraudit // deliberate filter: unparseable directives surface as go-mod-unparseable discovery findings
 		}
 
 		// go.work must cover every module it lists: when the workspace
@@ -247,7 +247,7 @@ func nixPinIssues(s *Surface, floor majorMinor, toolDriver *ToolchainDirective) 
 	for _, pin := range s.NixPins {
 		parsed, err := parseMajorMinor(string(pin.Version))
 		if err != nil {
-			continue //nolint:erraudit // deliberate filter: the scanner records only comparable pins, so this cannot fire in practice
+			continue //nolint:erraudit // deliberate filter: the scanner records only comparable pins
 		}
 
 		if !parsed.lessThan(floor) {

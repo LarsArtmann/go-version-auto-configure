@@ -156,7 +156,10 @@ func comparePoisonerFloors(a, b PoisonerFloor) int {
 // the module carrying it, and the module's released version. The main
 // module itself and unreplaced development versions carry no floor here.
 // Results, in order: floor, carrying module, version, ok.
-func parseFloorLine(line string, module surface.ModulePath) (surface.GoVersion, surface.ModulePath, ModuleVersion, bool) {
+func parseFloorLine(
+	line string,
+	module surface.ModulePath,
+) (surface.GoVersion, surface.ModulePath, ModuleVersion, bool) {
 	fields := strings.Split(line, "\t")
 
 	if len(fields) != 3 || fields[0] == "" || fields[1] == "" || fields[1] == string(module) {
