@@ -196,7 +196,7 @@ func highestMajorMinor(versions []GoVersion) (majorMinor, bool) {
 	for _, v := range versions {
 		parsed, err := parseMajorMinor(string(v))
 		if err != nil {
-			continue
+			continue //nolint:erraudit // deliberate filter: unparseable entries carry no floor, documented on highestMajorMinor
 		}
 
 		if !found || parsed.greaterThan(best) {
