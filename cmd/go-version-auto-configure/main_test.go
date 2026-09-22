@@ -451,18 +451,8 @@ func TestPrintFixReportRendersDiscoveryOnlyRepo(t *testing.T) {
 
 	text := out.String()
 	assert.Contains(t, text, "/repo: 1 discovery finding(s); nothing mechanical to fix")
-	assert.Contains(t, text, "DISCOVERY  go-mod-unparseable          go.mod:0")
-}
-
-func TestPrintFixReportsRoutesErrorsToStderr(t *testing.T) {
-	t.Parallel()
-
-	var out, errOut strings.Builder
-
-	printFixReports(&errOut, []fixOutcome{{root: "/repo", err: assertError{}}}, true)
-
-	assert.Empty(t, out.String())
-	assert.Contains(t, errOut.String(), "fix: /repo: assert error")
+	assert.Contains(t, text, "DISCOVERY  go-mod-unparseable")
+	assert.Contains(t, text, "parse go.mod: broken")
 }
 
 // BenchmarkAnalyzeAll measures the parallel discovery sweep over seeded

@@ -326,6 +326,13 @@ func TestAnalyze_CurrentToolchainNotFlagged(t *testing.T) {
 	assert.Empty(t, Analyze(s))
 }
 
+func TestFixDescribe(t *testing.T) {
+	t.Parallel()
+
+	fx := Fix{Kind: KindGoMod, File: "go.mod", From: "1.26.7", To: "1.26"}
+	assert.Equal(t, "rewrite go.mod directive in go.mod: go 1.26.7 → go 1.26", fx.Describe())
+}
+
 func TestAnalyze_ToolchainDefaultIsSurfaced(t *testing.T) {
 	t.Parallel()
 

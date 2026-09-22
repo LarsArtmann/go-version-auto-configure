@@ -187,6 +187,23 @@ func TestAnalyzeFloors_ListFailureRecordedPerModule(t *testing.T) {
 	assert.False(t, rows[0].Poisoned, "an unanalyzable module is not claimed as poisoned")
 }
 
+func TestComparePoisonerFloorsOrdersByFloorThenModule(t *testing.T) {
+	t.Parallel()
+
+	high, low := PoisonerFloor{Module: "b", Floor: "1.27"}, PoisonerFloor{Module: "a", Floor: "1.26.7"}
+	sameFloorA, sameFloorB := PoisonerFloor{Module: "z", Floor: "1.26"}, PoisonerFloor{Module: "a", Floor: "1.26"}
+
+	assert.Negative(t, comparePoisonerFloors(high, low), "higher floor sorts first")
+	assert.Positive(t, comparePoisonerFloors(low, high))
+	assert.Positive(
+		t,
+		comparePoisonerFloors(sameFloorA, sameFloorB),
+		"same floor orders by module path (z after a)",
+	)
+	assert.Negative(t, comparePoisonerFloors(sameFloorB, sameFloorA))
+	assert.Equal(t, 0, comparePoisonerFloors(sameFloorB, sameFloorB))
+}
+
 func TestAnalyzeFloors_DiscoverFailureAborts(t *testing.T) {
 	t.Parallel()
 
