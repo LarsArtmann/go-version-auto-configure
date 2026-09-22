@@ -1,0 +1,110 @@
+# Status Report — Supply-Side Execution: ADR, Fleet Re-Tags, Schema 2, `--expect-minor`
+
+**When:** 2026-09-22 23:03 CEST · **Repo:** go-version-auto-configure @ `2342f54` (25 commits since the execution plan `775b967`) · **Prior state:** see `docs/status/2026-09-22_20-25_t11-complete-t12-triaged-full-status.md`
+
+**Context:** this session executed `docs/planning/2026-09-22_20-31_supply-side-unblock-and-ship-plan.md`. It began by asking the 5 blocking owner questions, then executed the answer-gated plan while **two parallel sessions** (T0 go.work-aware fixer ~20:37, cmdguard plan ~21:00, dedup session ~21:28) worked the same fleet. Fleet minor = **1.27** (Option B) is now recorded and partly executed.
+
+> Format note: `.md` written at the user's explicit request — overrides the status-report skill's HTML dashboard default.
+
+---
+
+## a) FULLY DONE
+
+| # | Item | Evidence |
+|---|------|----------|
+| 1 | **All 5 owner decisions obtained** via structured questions | ① Fleet minor **1.27** (adopt) · ② testify **keep** (+ future bdd-testing note) · ③ schema-2 **drop `poisoners`** · ④ tag+push **authorized** · ⑤ flake.nix **yes** |
+| 2 | **WP-01: ADR-0001 recorded + toolchain restored** | `docs/adr/0001-fleet-go-minor.md` (context, options, decision, evidence appendix). BuildFlow was RED (go.mod `go 1.27` vs local go1.26.7): builds/tests/gate all green again under nixpkgs `go_1_27` (1.27.1). Gate `✓ BuildFlow passed`, 0 findings; erraudit 0 violations; `nolint-audit: 7 needed, 0 stale` |
+| 3 | **WP-18: flake.nix shipped** | `buildGoModule` via go-standard module, `goPkgAttr = "go_1_27"`, ldflags stamp. Version triple verified: derivation = binary `version` = `nix eval` = `0cc0f45-dirty`. devShell: go1.27.1 + `GOEXPERIMENT=jsonv2` — the durable toolchain fix |
+| 4 | **WP-16a: schema 2 wire contract** | `poisoners []string` dropped from `fix --json` AND from who-forces rows (`poisonerFloors` supersedes); `schema: 2` asserted in tests; usage text updated |
+| 5 | **WP-16b: `--quiet` symmetry** | `fix --quiet` + `who-forces --quiet` implemented (JSON still emitted); `TestRun_FixAndWhoForcesQuietSymmetry` |
+| 6 | **WP-17: `--expect-minor` enforcement flag** | `surface.WithExpectedMinor` option + `minor-exceeds-expectation` rule (directives, toolchains, flake pins, CI pins) + CLI flag on check/fix with usage-error validation + 5 tests incl. e2e policy enforcement. `--expect-minor 1.27 .` on this repo: exit 0, clean |
+| 7 | **WP-13: test micro-gaps closed** | who-forces JSON: `schema` + `kind:"go.work"` rows decode through the wire; `check --parallel 0` parity; provider `go-work-unparseable` fixture; `PoisonerFloors` content + ordering asserted through public `AnalyzeFloors` |
+| 8 | **WP-03: go-atomic-write v0.6.0 released** | Directive `go 1.27` (form fix, not downgrade — F16 not triggered); CHANGELOG entry documents the floor raise; annotated tag pushed; `go get …@v0.6.0` proxy-verified |
+| 9 | **WP-04 (libs): go-error-family — 7-tag coordinated release** | Root v0.10.2 (re-affirm), diagnose v0.2.4 (floor 1.26.7→1.26), agent v0.2.4, bridge v0.3.4 (1.26.0, x/text-dep-forced), diagnose/git v0.5.4, diagnose/postgres v0.5.4, examples v0.3.2. All pushed, tidy-verified post-push |
+| 10 | **WP-04 (libs): go-output — v0.38.1 + corrected v0.38.2, 17 tags each** | Root + 16 sub-modules re-tagged; see (d)#1 for why v0.38.1 was wrong and v0.38.2 is the good one. `go-branded-id v0.6.0` (its own clean re-tag) pushed first |
+| 11 | **WP-04 (libs): linter-autoconfigure-sdk v0.3.0** | go-finding v1.10.0→v1.13.0 + toolsdk; tidy settles directive at `go 1.27` (minor form); build+test green; pushed; proxy `go get @v0.3.0` verified |
+| 12 | **REAL BUG found by dogfooding: go-tool version ranking** | `GreaterVersion("1.26.0","1.26")` said equal, but the go tool ranks `go 1.26` **below** `go 1.26.0` (probed: *"module m listed in go.work file requires go >= 1.26.0, but go.work lists go 1.26"*). Fixed: new `CompareDirective` (missing patch ranks −1), `FullModuleFloor` now order-independent, `floorCoveredByDirective` guards both go.work rules, fixer's dep-forced classification gained `go list -e` fallback. Regression tests for both shapes + order independence |
+| 13 | **Dep-forced naming works on real graphs** | `/tmp/gvac fix` on go-error-family now reports: *floor go 1.26.0 is forced by: golang.org/x/text* — the T5 poisoning signature, named automatically (this is exactly what the tool is for) |
+| 14 | **Parallel-session work respected & integrated** | T0 go.work-aware fixer (5c28485/bb3c04e) kept; its missing erraudit nolint added; dedup session's status report untouched |
+
+## b) PARTIALLY DONE
+
+1. **WP-04 (apps): the 3 autoconfigure binaries** — go-finding bumped to v1.13.0 + tidy + directive fixed to `go 1.27` (golangci-lint-auto-configure confirmed `applied 1`; oxlint + dependabot in the still-running background job). Daemons committed (golangci `ahead 2`, dependabot `ahead 1`, oxlint pushed). **Tags v0.8.2 / v0.6.4 / v0.2.1 + proxy verification pending** — a background job is finishing the build/test leg.
+2. **WP-05: consumer bumps** — sdk bumped (done); **this repo still requires go-finding v1.12.0 + sdk v0.2.0** (needs v1.13.0/v0.3.0 + tidy + gate).
+3. **WP-06: finish line** — `check --expect-minor 1.27 .` exit 0 ✓; but `fix .` (expect applied-1/dep-forced-0), real-graph `who-forces` dogfood, and the AGENTS.md dogfooding-caveat rewrite are open.
+4. **Fleet pin campaign (ADR follow-up)** — oxlint's `ci.yml` pin and golangci-lint's `flake.nix` pin flagged below-floor; ~205 flakes fleet-wide still pin `go_1_26`. Not started.
+5. **Fleet inventory doc** — before/after floor table (plan task 4.5) not yet written; ADR has raw evidence counts only.
+
+## c) NOT STARTED
+
+- **WP-07** GitHub Actions CI (go 1.27, race, lint gate, dogfood check gate, erraudit)
+- **WP-08** GoReleaser config + cut v0.2.0 + pkg.go.dev + GitHub Release
+- **WP-09** repo meta: topics, CI badge, branch-protection decision doc, module-casing `go get`
+- **WP-10** BuildFlow blank-import wiring + `--dry-run` discovery + provider catalog entry
+- **WP-11** testify keep-policy note + go-auto-upgrade suppression (decision made, writing pending)
+- **WP-12** docs polish: DOMAIN_LANGUAGE.md new vocabulary (poisonerFloors, schema 2, minor-exceeds-expectation, *std floor*), README flag/cron recipes, ROADMAP POSIX note
+- **WP-14** benchmarks (`-benchmem`, parallel 1/4/auto table, full-fleet baseline sweep)
+- **WP-15** three upstream bug reports (verify-before-filing → github-voice)
+- **WP-19** cross-project lessons (crush-config `references/lessons.md`)
+- **WP-20–23** long-tail designs (T5 gomod-checker rule spec, T6 release-authority drift, T9 flake.lock design, watch items)
+- Docs debt: CHANGELOG (schema-2 breaking entry!), TODO_LIST (T1/T4 progress), FEATURES (flags table), AGENTS.md (toolchain reality)
+
+## d) TOTALLY FUCKED UP
+
+1. **go-output v0.38.1 published with wrong floors.** I computed target floors by static analysis (1.26/1.26.0-for-x-text) and tagged 17 modules — missing that `serialization` imports std **`encoding/json/v2`**, whose floor is the toolchain patch (**1.27.1**); tidy therefore lifts every json/v2-touching consumer. Consumers building the v0.38.1 tags for those modules fail. **Fixed same-session** with coordinated v0.38.2 (true tidy-computed floors; 3 genuinely-independent modules at 1.26) — but v0.38.1 is permanently in the proxy. Recovery options in (g).
+2. **My require-bump script was a foot-gun twice.** The regex `go-output[a-z/]*` truncated `d2`→`d`, fabricating a bogus `go-output/d v0.38.1` require in 3 go.mods; worse, the same pattern matched each module's own path, adding self-requires to all 18 modules. Both were caught pre-push (build failure → droprequire sweep → green build+test), but the tags nearly carried garbage.
+3. **Tag batch race with the pre-commit hook.** go-output's BuildFlow hook ran its full auto-fix pipeline during my release commit and *rewrote go.mods* (auto-configure "3 fixed" — toward 1.27.1!). First tag batch created 1/17 tags with errors swallowed by `2>/dev/null`, the push aborted on the missing `tui` refspec, and I had to audit the tagged tree (`git show 622a0b6:<mod>/go.mod`) to confirm which state actually shipped. Released tags are verified correct; master tip churn was committed by the daemon and superseded.
+4. **Parallel-session collision at session start.** A parallel session had already moved go-finding to v1.13.0 (`go 1.27`) and lifted this repo's go.mod, leaving the repo unbuildable under the local 1.26.7 toolchain — the session began red until the owner decision + toolchain restore. The 3 blocking questions became 5, and the critical path ran concurrently with other sessions doing overlapping T1 work (coordination is tribal right now).
+5. **Formatting with the wrong config.** Running raw `golines -w` (default 100-col) split `outcomes := make(...)` so its `//nolint:makezero` landed on the wrong line — the gate then flagged both a makezero hit and an unused directive. Fixed by restoring the single line; lesson: use `buildflow format` (repo-configured) instead of raw formatters.
+
+## e) WHAT WE SHOULD IMPROVE
+
+1. **`fix` should name std-package floors** (e.g. "encoding/json/v2 (std) forces go 1.27.1") instead of leaving the lift source mysterious — the v0.38.1 incident was exactly this blind spot.
+2. **A coordinated multi-module release script** (inventory modules → requires bump → directive plan → tags → push → post-push tidy → verify). go-output by hand = 17 tags, two errors class.
+3. **Never `2>/dev/null` a tag batch**; assert `git tag -l | wc -l` matches the plan before pushing; push tags only after the hook's auto-fix pipeline is known-idle.
+4. **Library repos should skip auto-fix pipelines on release commits** (BuildFlow `skip_steps` for `pre-commit` mode or a release marker) — the hook rewriting go.mods mid-release is a foot-gun.
+5. **`--expect-minor` should compare at minor granularity but the output should also note dep-forced patch floors** so ADR alignment and std floors don't look contradictory.
+6. **ADR evidence should be regenerated by the tool itself** (`check --json` fleet sweep) instead of grep counts — dogfooding as documentation.
+7. **`resolveDepFloor` should parse the tidy `-diff` floor as a last resort** when even `-e` fails, so poisoner naming has no dead ends.
+8. **Document the flake `vendorHash` first-build ritual** in AGENTS.md (first `nix build` fails by design; take `got:` hash).
+9. **Docs must land in the same session as wire changes** — CHANGELOG still says nothing about schema 2 (guardrail #8 was violated by the parallel-session pace).
+10. **Session-start fleet-state snapshot**: `git log` sibling repos + this repo's directive before executing a plan — this session's red start was predictable from go-finding's re-tag hours earlier.
+
+## f) Top 25 things to do next (ranked by impact)
+
+| # | Task | Why now |
+|---|------|---------|
+| 1 | Finish the 3 app releases: tags v0.8.2 / v0.6.4 / v0.2.1 + push + proxy `go get` each | Background job mid-flight; supply side must land before consumer bumps |
+| 2 | Bump THIS repo: go-finding v1.13.0, toolsdk v1.13.0, sdk v0.3.0; tidy; full gate | This repo is the reference consumer; unblocks WP-06 |
+| 3 | WP-06 finish line: `fix .` → expect applied-1/dep-forced-0; `check` exit 0; real-graph `who-forces`; rewrite AGENTS.md dogfooding caveat | The tool's own repo becomes the showcase |
+| 4 | Fleet re-check: `check --quiet --json --parallel ~/projects/go-*`; record before/after mechanical-finding counts in ADR appendix | The convergence metric the whole campaign exists for |
+| 5 | CHANGELOG: schema 2 (breaking), `--expect-minor`, `--quiet` symmetry, comparator fix, flake.nix, fleet re-tags | Wire changes undocumented = guardrail violation |
+| 6 | TODO_LIST: T1 items → done-with-evidence; T4 → ADR link; T0 note; new T13 std-floor watch | TODO_LIST is the living source; plan says harvest after execution |
+| 7 | WP-07 GitHub Actions CI (go 1.27.x, `-race`, buildflow lint gate, dogfood `check .`, erraudit) | Every push verified; drift regression-proofed |
+| 8 | WP-08 GoReleaser + cut v0.2.0 (CHANGELOG cut → tag → proxy → GitHub Release → pkg.go.dev) | Tool becomes installable, not build-from-source |
+| 9 | WP-12 docs polish: DOMAIN_LANGUAGE (poisonerFloors, schema 2, minor-exceeds-expectation, *std floor*, floorCoveredByDirective semantics), README machine-contract table (schema 2!), cron recipe | Next session must not re-derive the wire contract |
+| 10 | WP-10 BuildFlow blank-import wiring + provider catalog + `--dry-run` discovery | Zero-touch fleet adoption |
+| 11 | WP-11 testify policy note + go-auto-upgrade suppression + bdd-testing future note (decision: keep) | 366 findings stop being ambient noise |
+| 12 | AGENTS.md toolchain reality rewrite: devShell go_1_27 is the way to run; `GOTOOLCHAIN=local` caveat now means "use the flake" | Session-start red was toolchain confusion |
+| 13 | WP-14 benchmarks: `-benchmem`, parallel 1/4/auto table on seeded repos, full-fleet baseline sweep with timing | "Scales with drifted repos" claim gets numbers |
+| 14 | WP-15 upstream reports (verify-before-filing → github-voice): cqrs-lint A018 with zero imports; branching-flow INDEX_OUT_OF_RANGE; BuildFlow single-step skip_steps WARN | Fixes benefit every fleet repo |
+| 15 | ADR-0001 appendix: json/v2 std-floor term + the v0.38.1→v0.38.2 incident as the worked example | The most expensive lesson of the session, written down |
+| 16 | Fleet flake-pin campaign plan: ~205 `go_1_26` pins → `go_1_27`, ordered by consumer count (start: 3 autoconfigure apps' own pins flagged today) | Option B follow-up the ADR commits us to |
+| 17 | WP-19 lessons: "probe the real toolchain before encoding tool behavior"; "capture exit codes before pipes"; "compute floors with the real toolchain, never static analysis" | Three concrete session failures → fleet-wide prevention |
+| 18 | T5 design: gomod-checker rule "directive below tidy-computed floor" with the x/text + json/v2 fixtures | Closes the loop for repos that never run this tool |
+| 19 | BuildFlow/provider idea: flag PUBLISHED tags whose directive is below their graph's tidy floor (the v0.38.1 class) — provider detect-time check or release-time script | Supply-side regression net |
+| 20 | WP-09 repo meta: topics, CI badge (post-#7), branch-protection note, module-casing `go get` check | Public presence hygiene |
+| 21 | WP-21 T6 release-authority drift design (VERSION vs CHANGELOG top vs newest tag) | New drift class; known offender exists |
+| 22 | WP-22 T9 design: opt-in impure flake.lock effective-Go-revision command (Discover stays pure) | Blocked-by-design item gets a real design |
+| 23 | WP-23 watch items: forbidigo-vanishing recurrence; dependabot-auto-configure upstream status | Ambient findings stay dispositioned |
+| 24 | `fix --expect-minor` docs: suggestions only, never downgrade (F16) + std-floor interaction | Operator clarity before anyone scripts against it |
+| 25 | Post-WP-05/06 re-sweep + next status report with convergence delta | closes the loop on the campaign's promise |
+
+## g) Questions I can NOT answer myself (top 2)
+
+1. **go-output v0.38.1 retraction:** v0.38.1's json/v2-touching modules are permanently broken in the proxy (published floors below the std floor). Do you want `retract v0.38.1` directives in the v0.39.0 go.mods (the go-release Phase 9 recovery tool) so `go get …@latest` never selects them — or leave them documented-only? Retraction touches all 17 module go.mods and ships in the next minor, so it's an owner call.
+2. **Branch protection vs the auto-commit daemon (T3 owner call):** now that CI is imminent (WP-07) — required status checks would block the daemon's direct pushes to master. Keep master unprotected with CI informational, or move the daemon (and releases) to a PR-based flow?
+
+---
+
+*Point-in-time snapshot; TODO_LIST.md is the living source. Section (f) is the HARVEST input for docs-health. The 5 owner decisions are recorded in the session transcript; ADR-0001 is their citable artifact.*
