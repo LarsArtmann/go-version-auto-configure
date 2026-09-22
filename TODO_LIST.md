@@ -6,25 +6,25 @@ Short- and mid-term actionable work. Ordered by impact (Pareto). Harvested from 
 
 - [x] **SHIPPED:** the fixer no longer normalizes a go.work `go` directive below any module's requirement. Under `go.work`, the go line must cover every module's directive at FULL patch granularity (`go work` errors with "module X listed in go.work requires go >= 1.27.1, but go.work lists go 1.27"); verified live on the BuildFlow workspace 2026-09-20 (BuildFlow gotcha #169). Implementation: `surface.Analyze` offers the patch-form strip only when the stripped minor form still covers `Surface.FullModuleFloor()` (max module go directive, patch included); when a module floor requires the patch, no strip is offered (that state is correct, not a violation). A go.work directive already BELOW the floor is the new `go-work-below-floor` rule with the always-safe mechanical fix (raise to the full floor); `fix.SyncGoWorkDirectives` is the scoped entry BuildFlow's go-work-sync arbiter calls. Regression tests: `TestAnalyze_GoWorkBelowFloorRestoresFullFloor` (S82 shape), `TestAnalyze_GoWorkPatchFormRequiredByFloorIsSilent`, `TestSyncGoWorkDirectives_*`. BuildFlow's downstream arbiter (`RestoreGoWorkFloor`) remains as defense-in-depth; its `DependsOn` ordering is now a safety net rather than a required repair.
 
-## T1 — Supply-side re-tag campaign (BLOCKING for fleet convergence) — PLANNED
+## T1 — Supply-side re-tag campaign (BLOCKING for fleet convergence) — DONE 2026-09-22
 
-Published library versions carry patch-form `go` floors that re-poison every consumer on `go mod tidy` (verified 2026-09-18: stripping this repo's directive to `go 1.26` and running plain `go mod tidy` re-raises it to `go 1.26.7`):
+Published library versions carried patch-form `go` floors that re-poisoned every consumer on `go mod tidy`. The campaign shipped 2026-09-22:
 
-- [ ] `go-finding` (local root `go 1.27` after form fix; decide 1.26 vs 1.27 — its toolsdk module is `go 1.26`, flake pins `go_1_26`): re-tag with major.minor-only directives
-- [ ] `go-atomic-write`: floor is accidental (`go 1.27.1`; deps allow 1.26 — xxhash 1.11, flock 1.25.0). Downgrade candidate, needs owner confirmation (F16), then re-tag
-- [ ] `go-error-family`, remaining go-* libraries with published patch-form floors
-- [ ] After re-tags: bump the autoconfigure family + fleet consumers to clean versions (go-ecosystem-upgrade protocol: baseline → sweep → test → commit per repo)
-- [ ] Re-run `go-version-auto-configure check` fleet-wide; expect ~0 mechanical findings that survive `go mod tidy`
-- [ ] Re-tag hygiene: verify no `replace` directives leak into any re-tagged go.mod (go-release Phase 3)
-- [ ] Post-release: `go get @vX.Y.Z` clean-module verification per re-tag (proxy check)
+- [x] `go-finding` **v1.13.0** (root floor `go 1.27`; all 4 modules at minor form on head)
+- [x] `go-atomic-write` **v0.6.0** (floor raise to `go 1.27` shipped as a 0.x minor, not v0.5.3 — the directive had already moved past v0.5.2's `go 1.26.7`)
+- [x] `go-error-family` **7-tag coordinated release** (root v0.10.2, agent/bridge/diagnose/git/postgres/examples at true floors: minor form except x/text-forced `1.26.0`)
+- [x] `go-output` **v0.38.2** (17 modules; supersedes broken v0.38.1 — retraction question open with the owner)
+- [x] `go-branded-id` **v0.6.0**, `linter-autoconfigure-sdk` **v0.3.0**
+- [x] Sibling autoconfigurers re-tagged: v0.8.2 / v0.6.4 / v0.2.1 (go-finding v1.13.0, directive `go 1.27`)
+- [x] Consumer bumps for this repo's graph: `fix` applied 0 / dep-forced 0; `tidy` stable
+- [x] Re-tag hygiene: no `replace` directives leaked (go-release Phase 3 checks)
+- [x] Post-release `go get @vX.Y.Z` proxy verification per tag
+- [ ] Remaining: consumer repos still requiring the old tags keep re-poisoning until they bump — ADR appendix holds the 2026-09-22 fleet baseline (36/48 repos with drift); sweep them with `check`/`fix` fleet-wide
 
-## T4 — Decide the fleet minor: 1.26 vs 1.27 — PLANNED (owner decision)
+## T4 — Decide the fleet minor: 1.26 vs 1.27 — DONE 2026-09-22 (Option B: adopt 1.27)
 
-- [ ] 62 modules declare 1.27/1.27.1 (accidental, floor-copied; go-atomic-write is the identified source; installed toolchain + 241 flakes are go_1_26 with `GOTOOLCHAIN=local`)
-- [ ] Option A (recommended): downgrade floors to `go 1.26` fleet-wide (supply-side first), keeping nixpkgs 1.26 as the single toolchain
-- [ ] Option B: adopt 1.27 — bump nixpkgs + CI pins fleet-wide (42 flakes already do)
-- [ ] Record the decision and rationale as an ADR so the fleet policy is citable
-- [ ] Whichever wins, encode it: this tool reports minors above the environment as alignment findings; a `--expect-minor` flag could enforce the decision
+- [x] Decision recorded as [ADR-0001](docs/adr/0001-fleet-go-minor.md) (Option B, owner-confirmed; evidence appendix with fleet counts and the post-campaign consumer baseline)
+- [x] Encoded in the tool: `--expect-minor N` on `check`/`fix` (dogfooded: `check --expect-minor 1.27 .` exit 0)
 
 ## T2 — BuildFlow blank-import wiring — PLANNED (BuildFlow dev task)
 
@@ -91,8 +91,8 @@ Plan: `docs/planning/2026-09-22_22-07_cmdguard-cli-surface-and-verification-plan
 - [x] WP-K: [docs/DEDUPLICATION.md](docs/DEDUPLICATION.md) baseline; post-migration art-dupl run shows zero harmful `cmd/` clones
 - [x] WP-L: triplicated worker pools consolidated into the generic `runSorted[I, R]` (also shrinks the branching-flow warning surface)
 - [ ] WP-I: who-forces child-process env — pass/normalize the toolchain so `go list` works on 1.27-floor repos from older shells (reproduce first: known failure from the 2026-09-19 dogfood)
-- [ ] WP-H: reconcile the AGENTS.md floor-policy text with the sibling plan's fleet-minor ADR (T4) outcome
-- [ ] WP-Q: go-atomic-write direct-dep tidy warning (gated on T4/T1 re-tags)
+- [x] WP-H: reconcile the AGENTS.md floor-policy text with the sibling plan's fleet-minor ADR (T4) outcome — done 2026-09-22 (AGENTS floor-poisoning section rewritten for the post-campaign state)
+- [x] WP-Q: go-atomic-write direct-dep tidy warning — resolved by the v0.6.0 bump (listed direct in go.mod, imported in pkg/fix)
 
 ## T5 — Upstream gomod-checker rule: "tidy revert" detection — WORTH CONSIDERING
 
