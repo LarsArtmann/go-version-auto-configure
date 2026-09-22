@@ -105,6 +105,64 @@ func TestRepair_DryRunLeavesFileUntouched(t *testing.T) {
 	assert.Contains(t, string(data), "go 1.26.7\n", "dry-run must not modify the file")
 }
 
+func TestDetect_ReportsStaleToolchain(t *testing.T) {
+	t.Parallel()
+
+	// Provider tests predate toolchain modeling: a toolchain below the same
+	// file's go directive must surface as toolchain-below-directive.
+	root := t.TempDir()
+	require.NoError(
+		t,
+		os.WriteFile(
+			filepath.Join(root, "go.mod"),
+			[]byte("module example.com/m\n\ngo 1.27\n\ntoolchain go1.25.0\n"),
+			0o644,
+		),
+	)
+
+	ctx := finding.WithWorkingDir(context.Background(), root)
+	findings, err := Provider.Detect.Detect(ctx)
+	require.NoError(t, err)
+
+	rules := map[string]bool{}
+	for _, f := range findings {
+		rules[string(f.Rule)] = true
+	}
+
+	assert.Contains(t, rules, "toolchain-below-directive")
+}
+
+func TestDetect_ToolchainRaisingFloorFlagsTrailingNixPin(t *testing.T) {
+	t.Parallel()
+
+	// A toolchain naming a newer minor raises the effective floor: a flake
+	// pinned to the go directive's minor trails it and must be flagged.
+	root := t.TempDir()
+	require.NoError(
+		t,
+		os.WriteFile(
+			filepath.Join(root, "go.mod"),
+			[]byte("module example.com/m\n\ngo 1.26\n\ntoolchain go1.27.1\n"),
+			0o644,
+		),
+	)
+	require.NoError(
+		t,
+		os.WriteFile(filepath.Join(root, "flake.nix"), []byte("{ x = pkgs.go_1_26; }\n"), 0o644),
+	)
+
+	ctx := finding.WithWorkingDir(context.Background(), root)
+	findings, err := Provider.Detect.Detect(ctx)
+	require.NoError(t, err)
+
+	rules := map[string]bool{}
+	for _, f := range findings {
+		rules[string(f.Rule)] = true
+	}
+
+	assert.Contains(t, rules, "nix-pin-below-floor")
+}
+
 func TestRepair_CleanRepo(t *testing.T) {
 	t.Parallel()
 

@@ -7,6 +7,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/larsartmann/go-version-auto-configure/pkg/fix"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -54,6 +55,8 @@ func TestRun_VersionAndUsage(t *testing.T) {
 	t.Parallel()
 
 	assert.Equal(t, exitOK, run([]string{"version"}, &strings.Builder{}))
+	assert.Equal(t, exitOK, run([]string{"--version"}, &strings.Builder{}), "--version aliases the version subcommand")
+	assert.Equal(t, exitOK, run([]string{"-version"}, &strings.Builder{}))
 	assert.Equal(t, exitError, run(nil, &strings.Builder{}))
 	assert.Equal(t, exitError, run([]string{"nonsense"}, &strings.Builder{}))
 }
@@ -84,7 +87,8 @@ func TestRun_FixDryRunLeavesFiles(t *testing.T) {
 
 // checkDoc mirrors the check --json contract the tests rely on.
 type checkDoc struct {
-	Repos []struct {
+	Schema int `json:"schema"`
+	Repos  []struct {
 		Root   string `json:"root"`
 		Error  string `json:"error"`
 		Clean  bool   `json:"clean"`
@@ -100,7 +104,8 @@ type checkDoc struct {
 
 // fixDoc mirrors the fix --json contract the tests rely on.
 type fixDoc struct {
-	Repos []struct {
+	Schema int `json:"schema"`
+	Repos  []struct {
 		Root    string `json:"root"`
 		Applied []struct {
 			From string `json:"from"`
@@ -108,6 +113,9 @@ type fixDoc struct {
 		HeldBack []struct {
 			From string `json:"from"`
 		} `json:"heldBack"`
+		Discovery []struct {
+			Rule string `json:"rule"`
+		} `json:"discovery"`
 	} `json:"repos"`
 }
 
@@ -260,4 +268,130 @@ func TestRun_WhoForcesFailsClosed(t *testing.T) {
 
 	code := run([]string{"who-forces", filepath.Join(t.TempDir(), "gone")}, &out)
 	assert.Equal(t, exitError, code)
+}
+
+func TestRun_CheckQuietSuppressesOutput(t *testing.T) {
+	t.Parallel()
+
+	root := seedRepo(t)
+
+	var out strings.Builder
+
+	code := run([]string{"check", "--quiet", root}, &out)
+	assert.Equal(t, exitFindings, code, "quiet keeps the exit contract")
+	assert.Empty(t, out.String(), "quiet emits no human report")
+
+	var jsonOut strings.Builder
+
+	code = run([]string{"check", "--quiet", "--json", root}, &jsonOut)
+	assert.Equal(t, exitFindings, code)
+	assert.Contains(t, jsonOut.String(), `"schema"`, "--json still emits the document under --quiet")
+}
+
+func TestRun_CheckJSONCarriesSchemaVersion(t *testing.T) {
+	t.Parallel()
+
+	var out strings.Builder
+
+	require.Equal(t, exitOK, run([]string{"check", "--json", seedCleanRepo(t)}, &out))
+
+	doc := decodeJSON[checkDoc](t, out.String())
+	assert.Equal(t, 1, doc.Schema, "the schema field pins the wire contract version")
+}
+
+// seedBrokenRepo writes a repo whose go.mod cannot be parsed: a discovery
+// finding with no mechanical fix.
+func seedBrokenRepo(t *testing.T) string {
+	t.Helper()
+
+	root := t.TempDir()
+	writeFile(t, root, "go.mod", "module example.com/m\n\ngo not.a.version\n")
+
+	return root
+}
+
+func TestRun_FixJSONSurfacesDiscoveryIssues(t *testing.T) {
+	t.Parallel()
+
+	root := seedBrokenRepo(t)
+
+	var checkOut strings.Builder
+
+	checkCode := run([]string{"check", root}, &checkOut)
+	require.Equal(t, exitFindings, checkCode, "check reports the unparseable go.mod")
+
+	var out strings.Builder
+
+	code := run([]string{"fix", "--json", root}, &out)
+	assert.Equal(t, exitFindings, code, "discovery findings keep fix from reporting clean, matching check")
+
+	doc := decodeJSON[fixDoc](t, out.String())
+	require.Len(t, doc.Repos, 1)
+	assert.Equal(t, 1, doc.Schema)
+	require.Len(t, doc.Repos[0].Discovery, 1, "fix --json surfaces what check already reported")
+	assert.Equal(t, "go-mod-unparseable", doc.Repos[0].Discovery[0].Rule)
+}
+
+func TestRun_CheckParallelLimitCoversMoreRootsThanWorkers(t *testing.T) {
+	t.Parallel()
+
+	const repoCount = 6
+
+	roots := make([]string, 0, repoCount)
+	for range repoCount {
+		roots = append(roots, seedRepo(t))
+	}
+
+	args := append([]string{"check", "--json", "--parallel", "1"}, roots...)
+
+	var out strings.Builder
+
+	code := run(args, &out)
+	require.Equal(t, exitFindings, code)
+
+	doc := decodeJSON[checkDoc](t, out.String())
+	require.Len(t, doc.Repos, repoCount, "every root is analyzed even with a single worker")
+
+	for i := 1; i < len(doc.Repos); i++ {
+		assert.Negative(t, strings.Compare(doc.Repos[i-1].Root, doc.Repos[i].Root), "output stays sorted by root")
+	}
+
+	for _, repo := range doc.Repos {
+		assert.Equal(t, 1, repo.Counts.Mechanical, "each seeded repo reports its patch-form directive")
+	}
+}
+
+func TestExitFromFloors_AllowPartialDowngradesModuleErrors(t *testing.T) {
+	t.Parallel()
+
+	results := []floorsResult{{
+		root: "/repo",
+		rows: []fix.ModuleFloors{{Path: "go.mod", Error: "go list failed"}},
+	}}
+
+	assert.Equal(t, exitError, exitFromFloors(results, false), "default fails closed on module listing errors")
+	assert.Equal(t, exitFindings, exitFromFloors(results, true), "allow-partial downgrades module errors to findings")
+}
+
+// BenchmarkAnalyzeAll measures the parallel discovery sweep over seeded
+// repos; run with -benchtime to compare --parallel settings.
+func BenchmarkAnalyzeAll(b *testing.B) {
+	const repoCount = 8
+
+	roots := make([]string, 0, repoCount)
+	for range repoCount {
+		root := b.TempDir()
+
+		if err := os.WriteFile(filepath.Join(root, "go.mod"), []byte("module example.com/m\n\ngo 1.26.7\n"), 0o644); err != nil {
+			b.Fatal(err)
+		}
+
+		roots = append(roots, root)
+	}
+
+	b.ResetTimer()
+
+	for b.Loop() {
+		analyzeAll(roots, 0)
+	}
 }
