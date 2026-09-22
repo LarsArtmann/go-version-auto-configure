@@ -8,6 +8,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Added
 
+- go.work workspace-floor handling (T0): the new `go-work-below-floor` rule detects a go.work `go` directive sitting below the workspace module floor at FULL patch granularity and restores it mechanically (the go-finding/BuildFlow gotcha-#169 outage class); the `go-work-patch-form` strip is now suppressed when a dep-forced module floor REQUIRES the patch form, so the fixer can no longer invalidate a workspace.
+- `pkg/fix.CanonicalizeGoMod`: byte-preserving go.mod directive canonicalization (patch-form go line rewrite via text surgery, optional `toolchain` directive stripping) guarded by a non-mutating `go mod tidy -diff` dependency-floor gate with atomic revert, plus an installed-toolchain guard. This is the fleet-policy normalizer behind BuildFlow's `go-mod-normalize`.
+- `pkg/fix.SyncGoWorkDirectives`: scoped entry point that applies only the go.work directive fixes (below-floor restorations and floor-safe patch strips) for workspace-arbiter consumers.
+- `pkg/surface.FullModuleFloor`: the highest FULL module directive (patch included), complementing the major.minor-only `Floor`.
+
 - `--json` documents are now versioned: every document carries a top-level `"schema": 1` field, bumped only on breaking shape changes (additive fields keep the version).
 - `who-forces` policy and matrix hardening: `--allow-partial` downgrades per-module `go list` failures from exit 2 to exit 1 (fail-closed remains the default); every dependency forcing a module's directive upward is now carried with its own floor (`poisonerFloors`, sorted highest floor first) instead of only the max-floor carriers; go.work rows appear as marked `kind: "go.work"` rows (no dependency graph) instead of being silently skipped.
 - `check --quiet` flag: exit-code-only operation for scripting (`--json` output is still emitted when explicitly requested).
