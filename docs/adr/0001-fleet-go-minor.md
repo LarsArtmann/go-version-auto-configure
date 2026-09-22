@@ -57,3 +57,22 @@ Concretely:
 | go-finding v1.13.0 root floor                          | `go 1.27`                     |
 | nixpkgs `go_1_27`                                      | 1.27.1                        |
 | This repo under go.mod `go 1.27` + nixpkgs go_1_27     | build + full test suite green |
+
+### Consumer-side sweep, same day (post supply-side re-tags)
+
+`check --quiet --json` over 48 `~/projects/go-*` / `*auto-configure*` roots
+after the WP-03/04 re-tags (go-atomic-write v0.6.0, go-error-family 7-tag,
+go-output v0.38.2, sdk v0.3.0, 3 autoconfigurer apps) — the "before" baseline
+for the remaining consumer campaign:
+
+| Signal                                        | Value                                          |
+| --------------------------------------------- | ---------------------------------------------- |
+| Repos fully clean                             | 12/48                                          |
+| Repos with drift                              | 36/48                                          |
+| Mechanical findings total (auto-fixable form) | ~200                                           |
+| Largest mechanical backlogs                   | go-cqrs-lite 97, go-taskqueue 18, go-output 16 |
+| This repo (`go-version-auto-configure`)       | clean; `fix` applied 0, dep-forced 0           |
+
+Mechanical findings here are mostly directive patch-form and Nix/CI pin
+alignment; pin suggestions (nix `go_1_26` → `go_1_27`) are maintainer
+decisions per repo and are NOT auto-applied.

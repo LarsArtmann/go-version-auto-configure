@@ -6,7 +6,7 @@
 - **Purpose:** Detect Go toolchain version-surface drift (patch components in `go` directives, `go.work` below the workspace floor, Nix/CI pins trailing the module floor) and auto-fix the mechanically safe part
 - **Repo:** `github.com/larsartmann/go-version-auto-configure`
 - **Version:** 0.1.0 (tagged 2026-09-18 for BuildFlow integration; README install stays build-from-source until T1's clean re-tags land)
-- **Toolchain floor (updated 2026-09-22):** the module `go` directive is `go 1.27` (minor-only): the jsonv2 APIs in cmd/ are gated at language go1.27, and the fleet toolchain is go1.27 since the nixpkgs bump. `go mod tidy` may re-raise it to a dep-forced patch floor while published deps still carry one; that state is reported honestly by this tool's own `check` and is the T1 supply-side campaign's target, not a bug.
+- **Toolchain floor (updated 2026-09-22, post re-tags):** the module `go` directive is `go 1.27` (minor-only) and stays there: every published dependency now carries a minor-form or aligned floor (go-finding v1.13.0 `go 1.27`, toolsdk v1.13.0, linter-autoconfigure-sdk v0.3.0, go-atomic-write v0.6.0). `fix` applied 0 / dep-forced 0 and `tidy` is stable — the T1 supply-side state is fully landed for this repo's graph.
 
 ## Build & Run
 
@@ -46,11 +46,15 @@ All commands accept multiple roots (parallel, sorted output) and `--json` (stabl
 
 ## The floor-poisoning root cause (fleet-critical)
 
-`go mod tidy` lifts a consumer's `go` directive to the highest dependency floor. Published `go-finding@v1.10.0` declares `go 1.26.7`, `go-atomic-write@v0.5.x` declares `go 1.27.1` (accidental: its only floors are xxhash 1.11 / flock 1.25.0 — nothing needs 1.27). Consequence: every consumer tidy re-poisons its directive; per-repo fixes revert. Fleet convergence REQUIRES the supply-side campaign in TODO_LIST.md before (or together with) consumer sweeps. This tool fixes form; tidy WILL revert it until the supply side is re-tagged — reported as dep-forced, expected, not a bug.
+`go mod tidy` lifts a consumer's `go` directive to the highest dependency floor. Before 2026-09-22 the published floors were patch-form (`go-finding@v1.10.0` at `go 1.26.7`, `go-atomic-write@v0.5.x` at `go 1.27.1`), so every consumer tidy re-poisoned its directive and per-repo fixes reverted.
+
+The supply-side campaign has now shipped (2026-09-22): go-atomic-write v0.6.0, go-error-family 7-tag v0.10.2 family, go-output v0.38.2 (17 modules), go-branded-id v0.6.0, linter-autoconfigure-sdk v0.3.0, go-finding v1.13.0, and the three sibling autoconfigurers (v0.8.2 / v0.6.4 / v0.2.1). Floors settle at minor form except two accepted, named patch-form poisoners: `golang.org/x/text` (forces `go 1.26.0`) and `encoding/json/v2` (std, forces the toolchain patch, e.g. `go 1.27.1` for importers).
+
+What remains is the consumer campaign: repos still requiring the OLD tags keep re-poisoning until they bump. Baseline and progress live in the ADR appendix (`docs/adr/0001-fleet-go-minor.md`). This tool fixes form; tidy reverts form only while a consumer's graph still holds a poisoner.
 
 ## Environment reality
 
-- Installed toolchain: go1.26.7 with `GOTOOLCHAIN=local` — modules with a 1.27 floor do NOT build in this shell (go-finding, go-atomic-write, oxlint-auto-configure at head). That predates this tool; the tool _surfaces_ it as nix-pin/ci-pin alignment findings. This repo's own head go.mod now also declares `go 1.27` (since e0932b0), so plain `go build`/`go test` fail here with "go.mod requires go >= 1.27"; prefix commands with `GOTOOLCHAIN=go1.27.1` (verified 2026-09-22: that toolchain is already cached under `$(go env GOPATH)/pkg/mod/golang.org/toolchain@v0.0.1-go1.27.1-*`, no download needed).
+- **Primary toolchain: the repo's own `flake.nix` devShell** (`nix develop`, go1.27.1 pinned) — see Build & Run. Outside nix, prefix with `GOTOOLCHAIN=go1.27.1 GOEXPERIMENT=jsonv2`; the shell's go1.26.7 + `GOTOOLCHAIN=local` cannot load this module (`go.mod requires go >= 1.27`). BuildFlow gates must run inside the devShell (`nix develop -c buildflow ...`) for the same reason.
 - The auto-commit daemon commits changes in fleet repos quickly (heuristic messages). Verify with `git log`, don't assume.
 - `reports/` (coverage output) and `.crush/` (session DB) are gitignored local artifacts — expected to be dirty, nothing to commit.
 
