@@ -5,10 +5,10 @@ go 1.27
 require (
 	charm.land/fang/v2 v2.0.1
 	github.com/larsartmann/cmdguard/v4 v4.0.2
-	github.com/larsartmann/go-atomic-write v0.5.1
-	github.com/larsartmann/go-finding v1.12.0
-	github.com/larsartmann/go-finding/toolsdk v1.12.0
-	github.com/larsartmann/linter-autoconfigure-sdk v0.2.0
+	github.com/larsartmann/go-atomic-write v0.6.0
+	github.com/larsartmann/go-finding v1.13.0
+	github.com/larsartmann/go-finding/toolsdk v1.13.0
+	github.com/larsartmann/linter-autoconfigure-sdk v0.3.0
 	github.com/stretchr/testify v1.12.1
 	golang.org/x/mod v0.41.0
 )
