@@ -1,6 +1,6 @@
 # TODO List
 
-Short- and mid-term actionable work. Ordered by impact (Pareto). Harvested from `docs/status/archived/2026-09-18_15-13_fleet-versioning-unification.md` (section f) on 2026-09-18; swept 2026-09-18 (T7 fleet-sweep enablers and T10 repo hygiene shipped — see CHANGELOG Unreleased); re-harvested 2026-09-19 from `docs/status/archived/2026-09-19_06-39_t7-t9-t10-shipped-lint-zero-full-gate-green.md` (section f → T11/T12, T3 additions).
+Short- and mid-term actionable work. Ordered by impact (Pareto). Harvested from `docs/status/archived/2026-09-18_15-13_fleet-versioning-unification.md` (section f) on 2026-09-18; swept 2026-09-18 (T7 fleet-sweep enablers and T10 repo hygiene shipped — see CHANGELOG Unreleased); re-harvested 2026-09-19 from `docs/status/archived/2026-09-19_06-39_t7-t9-t10-shipped-lint-zero-full-gate-green.md` (section f → T11/T12, T3 additions); T11 fully shipped and T12 mostly dispositioned 2026-09-22 (see CHANGELOG Unreleased).
 
 ## T1 — Supply-side re-tag campaign (BLOCKING for fleet convergence) — PLANNED
 
@@ -45,29 +45,34 @@ Published library versions carry patch-form `go` floors that re-poison every con
 
 - [ ] flake.lock effective Go revision parsing — **blocked by design**: the lock records only a nixpkgs rev, not the Go version it packages; resolving it requires an impure `nix eval`, but `Discover` must stay pure (reads files, writes nothing). A separate opt-in command (or BuildFlow step) would be the right home — design needed before building
 
-## T11 — Tool hardening (from the 2026-09-19 full-gate session)
+## T11 — Tool hardening (from the 2026-09-19 full-gate session) — DONE 2026-09-22
 
-- [ ] Dogfood `who-forces` on real foreign repos (go-finding, go-atomic-write): real dependency graphs, network resolution, and the 1.27-floor-under-`GOTOOLCHAIN=local` failure mode
-- [ ] Benchmark the parallel sweep (N seeded repos, timed); expose the worker count as `--parallel N`
-- [ ] Add a schema-version field (e.g. `"schema": 1`) to the three `--json` documents
-- [ ] Surface discovery issues in `fix --json` (today only `check` reports them — consistency gap)
-- [ ] Provider test against a fixture carrying `toolchain` directives (provider tests predate toolchain modeling)
-- [ ] Unify the `Floor()`/`toolchainFloor()` near-duplication in `pkg/surface`
-- [ ] Capture per-package coverage for `pkg/fix` + `cmd/` (unmeasured in the full run); close gaps below 80%
-- [ ] `check --quiet` (exit-code-only) for scripting; `--version` flag alias alongside the `version` subcommand
-- [ ] `toolchain local` is silently ignored by parsing; consider an explicit info finding
-- [ ] `who-forces` policy calls: `--allow-partial` vs fail-closed when some modules' `go list` fails; carry each poisoner's own floor in the matrix; document or mark go.work rows (currently skipped)
-- [ ] Multi-root test with more roots than workers (pool contention; current test uses 2)
-- [ ] Mini-sweep validation: `check --json` across ~5 fleet repos, eyeball the machine output on real drift
+All twelve items shipped (see CHANGELOG Unreleased for the full list):
 
-## T12 — Lint & environment debt (from the 2026-09-19 full-mode run)
+- [x] Dogfood `who-forces` on real foreign repos (go-finding, go-atomic-write, go-error-family, go-output, linter-autoconfigure-sdk): real dependency graphs, network resolution, and the 1.27-floor-under-`GOTOOLCHAIN=local` failure mode verified (per-module errors recorded, fail-closed exit 2, `--allow-partial` exit 1)
+- [x] Benchmark the parallel sweep (`BenchmarkAnalyzeAll`, 8 seeded repos); worker count exposed as `--parallel N` on check/fix/who-forces (default: CPU count)
+- [x] Schema-version field ("schema": 1) added to all three `--json` documents
+- [x] Discovery issues surfaced in `fix --json` (`discovery` array) and human output; fix now exits 1 on discovery findings, matching check
+- [x] Provider tests against `toolchain`-directive fixtures (stale toolchain; toolchain raising the alignment floor)
+- [x] `Floor()`/`toolchainFloor()` unified onto a shared `highestMajorMinor` helper
+- [x] Per-package coverage measured: pkg/fix 90.3%, cmd 87.9%, provider 83.8%, surface 87.9% (all above the 80% bar)
+- [x] `check --quiet` (exit-code-only) for scripting; `--version` / `-version` flag aliases
+- [x] Non-version toolchain directives surfaced: `toolchain default` fires an informational `toolchain-non-version` finding; `toolchain local` (which the go tool rejects) now makes an unparseable go.work surface as `go-work-unparseable` instead of vanishing silently
+- [x] `who-forces` policy: `--allow-partial` downgrades module listing errors to exit 1 (fail-closed default kept); every forcing dependency carried with its own floor (`poisonerFloors`, sorted highest first); go.work rows marked `kind: go.work` and skipped with a note
+- [x] Multi-root pool-contention test (6 repos through `--parallel 1`)
+- [x] Mini-sweep validation: `check --json` across 6 fleet repos on real drift (go-finding 14 alignment suggestions, go-atomic-write/go-error-family/go-output patch-form findings)
 
-- [ ] Triage the 265 warning findings from go-auto-upgrade: fix or suppress-with-rationale
-- [ ] Investigate the 2 cqrs-lint info findings (verified false positives — this repo imports no go-cqrs-lite; confirm, then suppress)
-- [ ] Run `buildflow doctor`; identify the 9 tools unavailable in full mode; install or document
-- [ ] Investigate the forbidigo vanishing (9 `fmt.Print*` hits gone after `buildflow format` with no code or config change)
-- [ ] Run the go-error-modernization workflow properly (`erraudit fix --dry-run`, `--type-aware`) and disposition the 6 "error checked, no error return" warnings
-- [ ] Investigate the BuildFlow `skip_steps` WARN "go-mod-update matches no registered tool" (tool-name drift? the skip may be a no-op)
+## T12 — Lint & environment debt (from the 2026-09-19 full-mode run) — PARTIALLY DONE 2026-09-22
+
+- [x] cqrs-lint A009/A018 verified as false positives (zero go-cqrs-lite references in go.mod/go.sum, re-verified 2026-09-22) and suppressed via `skip_steps: [cqrs-lint]` with rationale
+- [x] go-error-modernization workflow run properly (`erraudit fix ./... --type-aware`: no auto-fixable; 5 `silent_swallow` findings dispositioned as deliberate skip-on-unparseable filters, each suppressed with `//nolint:erraudit` + reason; `nolint-audit` confirms 5 needed, 0 stale)
+- [x] BuildFlow findings gate: 3 critical branching-flow PHANTOM_TYPE findings on new `who.go` code fixed by restructuring `parseFloorLine` to return named types (`GoVersion`, `ModulePath`, `ModuleVersion`); gate now passes at `--fail-on=error`
+- [x] `buildflow doctor` run: the unavailable binaries (bandit, cargo-*, codespell, dprint, eslint, hadolint, jest, lychee, madge, …) are non-Go-ecosystem tools this Go-only repo never triggers ("not applicable", not failing); environment checks (disk, git identity, GOEXPERIMENT) green
+- [x] skip_steps WARN "go-mod-update matches no registered tool" diagnosed: cosmetic, single-step mode only — in full pipeline runs both entries skip correctly ("skipped via skip_steps config"); no tool-name drift
+- [ ] Triage the 366 go-auto-upgrade findings (grew from 265): all are testify → stdlib/testing migration suggestions on test assertions — a fleet-wide policy call (migrate off testify or keep it), not repo debt; needs an owner decision before any mechanical migration
+- [ ] The 3 remaining branching-flow INDEX_OUT_OF_RANGE warnings on the worker-pool `slices[i] = …` pattern are provably safe (index bounded by the range) but unlabeled — either a linter upstream fix or documented nolint
+- [ ] dependabot-auto-configure 2 findings remain (documented false positive, AGENTS.md known-tool-bugs)
+- [ ] forbidigo vanishing (9 `fmt.Print*` hits gone after `buildflow format`) not reproducible in the 2026-09-22 run (forbidigo findings absent from both pre- and post-format states); watch for recurrence
 
 ## T5 — Upstream gomod-checker rule: "tidy revert" detection — WORTH CONSIDERING
 

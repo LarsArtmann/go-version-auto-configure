@@ -43,10 +43,11 @@ go-version-auto-configure fix --dry-run .               # report without touchin
 go-version-auto-configure who-forces .                  # name the deps forcing each go directive
 ```
 
-Built for fleet sweeps: every command accepts multiple roots (analyzed in parallel, reported sorted), `fix` skips clean repos entirely, and `--json` emits a stable machine-readable report for CI:
+Built for fleet sweeps: every command accepts multiple roots (analyzed in parallel, reported sorted), `--parallel N` caps the worker pool (default: CPU count), `check --quiet` runs exit-code-only for scripting, `fix` skips clean repos entirely, and `--json` emits a stable machine-readable report for CI:
 
 ```bash
 go-version-auto-configure check --json ~/projects/*/ | jq '.repos[] | select(.clean == false)'
+go-version-auto-configure check --quiet ~/projects/*/ ; echo $?   # 0 clean, 1 findings, 2 errors
 ```
 
 When a form fix cannot stick, the tool says so truthfully and names the dependencies that force the floor — the supply-side re-tag targets:
@@ -59,17 +60,17 @@ applied 0, dep-forced 1, held back 0, failed 0
               fix supply-side: re-tag those modules with a major.minor-only go directive, then bump consumers
 ```
 
-`who-forces` reports the same matrix for every module up front — directive, highest dependency floor, and who carries it — without touching anything.
+`who-forces` reports the same matrix for every module up front — directive, highest dependency floor, and who carries it (every forcing dependency with its own floor, not just the max carriers) — without touching anything. `--allow-partial` downgrades per-module `go list` failures from exit 2 to exit 1 for fleets where some modules cannot resolve.
 
 #### JSON contract
 
-The `--json` documents are a stable machine contract: field names and presence (`omitempty`) are guaranteed, and list fields are empty, never null.
+The `--json` documents are a stable machine contract, versioned by the top-level `"schema": 1` field: field names and presence (`omitempty`) are guaranteed, and list fields are empty, never null.
 
 | Command      | Per-repo fields                                                                                                                                              |
 | ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `check`      | `root`, `error?`, `clean`, `counts` (`total`, `mechanical`, `suggested`, `discovery`), `findings` (`rule`, `message`, `file`, `line`, `suggestion?`, `fix?`) |
-| `fix`        | `root`, `error?`, `applied`, `heldBack`, `depForced` (`fix`, `floor`, `poisoners?`), `failures`, `suggested`                                                 |
-| `who-forces` | `root`, `error?`, `modules` (`path`, `module`, `directive?`, `maxDepFloor?`, `poisoners?`, `poisoned`, `error?`)                                             |
+| `fix`        | `root`, `error?`, `applied`, `heldBack`, `depForced` (`fix`, `floor`, `poisoners?`), `failures`, `suggested`, `discovery`                                    |
+| `who-forces` | `root`, `error?`, `modules` (`path`, `kind`, `module`, `directive?`, `maxDepFloor?`, `poisoners?`, `poisonerFloors?`, `poisoned`, `error?`)                  |
 
 ### BuildFlow provider
 
