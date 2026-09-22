@@ -45,3 +45,4 @@ The supply-side re-tags (TODO_LIST T1) unblock the consumer half of convergence.
 - Never auto-move alignment sides (pin vs floor) — suggestions only
 - Never auto-fix unparseable go.mod files — they are findings, not fix targets
 - Not a replacement for BuildFlow's gomod-check / go-mod-update: this tool owns the version-surface policy, not general go.mod hygiene
+- POSIX-shell world only: the multi-root sweep recipes (`~/projects/*/` glob expansion, `$?` exit codes, cron) assume a POSIX shell; first-class Windows support (PowerShell glob semantics) is out of scope unless someone needs it
