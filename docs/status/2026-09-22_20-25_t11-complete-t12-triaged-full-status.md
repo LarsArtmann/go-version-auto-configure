@@ -94,58 +94,58 @@ Nothing in the final state is broken — build/test/race/lint/erraudit/gate all 
 
 Ranked by impact; effort S <30min, M 30min–2h, L >2h. Items 1–28 are pre-existing backlog; 29–50 are session-originated. (HARVEST note: 1–28 belong in TODO_LIST.md as-is; 29–50 should be triaged — TODO_LIST vs ROADMAP per docs-health.)
 
-| # | Task | Impact | Effort | Category |
-|---|------|--------|--------|----------|
-| 1 | T4: Decide fleet minor 1.26 vs 1.27, record ADR | Critical | S | Decision |
-| 2 | T1: Re-tag go-finding with major.minor-only go directives | Critical | M | Release |
-| 3 | T1: Re-tag go-atomic-write (accidental 1.27.1 → 1.26 downgrade, F16 confirmation) | Critical | M | Release |
-| 4 | T1: Sweep remaining go-* libraries with published patch-form floors (go-error-family, …) | Critical | M | Release |
-| 5 | T1: After re-tags, bump autoconfigure family + fleet consumers (go-ecosystem-upgrade protocol) | Critical | L | Release |
-| 6 | T1: Re-run `check` fleet-wide; expect ~0 mechanical findings surviving tidy | High | M | Verification |
-| 7 | T1: Verify no `replace` directives leak into any re-tagged go.mod | High | S | Release hygiene |
-| 8 | T1: `go get @vX.Y.Z` clean-module proxy verification per re-tag | High | S | Verification |
-| 9 | T3: GitHub Actions CI — lint + test matrix + dogfood `check .` gate (GOEXPERIMENT=jsonv2) | High | M | Feature |
-| 10 | T3: GoReleaser config with ldflags version stamping | High | M | Feature |
-| 11 | T3: pkg.go.dev verification after next tag | High | S | Verification |
-| 12 | T3: Cut v0.2.0 from CHANGELOG Unreleased once CI + GoReleaser + pkg.go.dev land | High | S | Release |
-| 13 | T3: Branch protection decision for master (daemon direct pushes vs required checks) | High | S | Decision |
-| 14 | T3: Repo topics (go, buildflow, golangci, auto-configure, version-surface) | Medium | S | Cleanup |
-| 15 | T3: README CI badge once workflow lands | Low | S | Documentation |
-| 16 | T3: Module-path casing check with real `go get` after next tag | Medium | S | Verification |
-| 17 | T3: Verify README build-from-source steps in clean environment | Medium | S | Verification |
-| 18 | T3: Website launch decision (sibling-project pattern) | Low | L | Feature |
-| 19 | T2: Add provider blank-import to BuildFlow SDK import set | High | S | Feature |
-| 20 | T2: BuildFlow docs/provider catalog entry + `buildflow --dry-run` discovery confirm | Medium | S | Feature |
-| 21 | T2: Decide DAG position (after go-mod-update, before nix-checker) | Medium | S | Decision |
-| 22 | T12: Testify keep-or-migrate fleet decision; disposition the 366 go-auto-upgrade findings | High | S (decide) / L (migrate) | Decision |
-| 23 | T12: Investigate forbidigo vanishing if it recurs | Low | S | Bug |
-| 24 | T5: Upstream gomod-checker "tidy revert" rule (patch-form directive after tidy) | Medium | L | Feature |
-| 25 | T6: Release-authority drift detection (VERSION vs CHANGELOG vs newest tag) | Medium | M | Feature |
-| 26 | T9: Design opt-in impure command for flake.lock Go revision | Low | M | Design |
-| 27 | Build `--expect-minor` flag once T4 lands (enforce the ADR) | High | M | Feature |
-| 28 | Wire erraudit into CI gating (`--type-aware` primary, `--type legacy_as` fallback) | Medium | S | Quality |
-| 29 | Update docs/DOMAIN_LANGUAGE.md with session vocabulary: poisonerFloors, ModuleVersion, toolchain-non-version, go-work-unparseable, schema field | High | S | Documentation |
-| 30 | File upstream: BuildFlow single-step `skip_steps` WARN is misleading (evidence in AGENTS.md) | Medium | S | Bug (upstream) |
-| 31 | File upstream: cqrs-lint A018 "imports go-cqrs-lite" fires with zero imports | Medium | S | Bug (upstream) |
-| 32 | File upstream/check: branching-flow INDEX_OUT_OF_RANGE false positive on range-bounded worker pool | Medium | S | Bug (upstream) |
-| 33 | Add decode-level assertions: `schema` in who-forces JSON test; `kind: "go.work"` through JSON | Medium | S | Quality |
-| 34 | Provider test for a go-work-unparseable fixture (unparseable go.work through `Provider.Detect`) | Medium | S | Quality |
-| 35 | Dogfood `fix` end-to-end (not dry-run) on a disposable copy of a foreign drifted repo to exercise the full dep-forced supply-side naming path | High | S | Verification |
-| 36 | Dogfood who-forces against a real, resolvable poisoned graph (possible only after items 2–3) — validates poisonerFloors against reality | High | S | Verification |
-| 37 | Extend benchmark: `-benchmem` + parallel 1/4/auto comparison table, record in docs | Medium | S | Quality |
-| 38 | Push remaining sub-80%-per-function error branches (ParseModulePath, syntaxLine, currentDirective) above the bar or document the acceptance | Low | S | Quality |
-| 39 | README: scripting recipe `check --quiet --parallel N --json ~/projects/*/ ; echo $?` as the canonical fleet cron line | Medium | S | Documentation |
-| 40 | Decide schema-2 plan: fold `Poisoners []string` into `poisonerFloors` (breaking) or keep duplicated forever | Medium | S | Decision |
-| 41 | Consider `fix --quiet` and `who-forces --quiet` for scripting symmetry | Low | S | Feature |
-| 42 | Verify `resolvePoisoners` output ordering matches who-forces' sorted poisoner presentation (consistency check) | Low | S | Quality |
-| 43 | ROADMAP entry: state filepath/POSIX assumptions (no Windows testing exists) | Low | S | Documentation |
-| 44 | Decide whether this repo gets its own flake.nix (fleet-standard packaging + version stamping; currently BuildFlow-only) | Medium | M | Decision |
-| 45 | Sweep validation at scale: `check --quiet --parallel auto` across all ~/projects (383+ modules), record timing + finding counts as the session-independent baseline | Medium | M | Verification |
-| 46 | Add `who-forces` JSON contract table to README's machine-contract section for `poisonerFloors` field semantics (already partially done — verify final wording) | Low | S | Documentation |
-| 47 | Add `check --parallel 0` (explicit auto) vs default parity test | Low | S | Quality |
-| 48 | Post-re-tag: re-run this repo's own `fix` expecting `applied 1, dep-forced 0` — the actual finish line of the whole campaign | High | S | Verification |
-| 49 | Record a cross-project lesson: "probe the real toolchain before encoding go-tool behavior in rules" in crush-config references/lessons.md | Medium | S | Process |
-| 50 | Record a cross-project lesson: "exit codes must be captured before pipes" alongside the existing pipeline-masking lessons | Low | S | Process |
+| #  | Task                                                                                                                                                                | Impact   | Effort                   | Category        |
+| -- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- | ------------------------ | --------------- |
+| 1  | T4: Decide fleet minor 1.26 vs 1.27, record ADR                                                                                                                     | Critical | S                        | Decision        |
+| 2  | T1: Re-tag go-finding with major.minor-only go directives                                                                                                           | Critical | M                        | Release         |
+| 3  | T1: Re-tag go-atomic-write (accidental 1.27.1 → 1.26 downgrade, F16 confirmation)                                                                                   | Critical | M                        | Release         |
+| 4  | T1: Sweep remaining go-* libraries with published patch-form floors (go-error-family, …)                                                                            | Critical | M                        | Release         |
+| 5  | T1: After re-tags, bump autoconfigure family + fleet consumers (go-ecosystem-upgrade protocol)                                                                      | Critical | L                        | Release         |
+| 6  | T1: Re-run `check` fleet-wide; expect ~0 mechanical findings surviving tidy                                                                                         | High     | M                        | Verification    |
+| 7  | T1: Verify no `replace` directives leak into any re-tagged go.mod                                                                                                   | High     | S                        | Release hygiene |
+| 8  | T1: `go get @vX.Y.Z` clean-module proxy verification per re-tag                                                                                                     | High     | S                        | Verification    |
+| 9  | T3: GitHub Actions CI — lint + test matrix + dogfood `check .` gate (GOEXPERIMENT=jsonv2)                                                                           | High     | M                        | Feature         |
+| 10 | T3: GoReleaser config with ldflags version stamping                                                                                                                 | High     | M                        | Feature         |
+| 11 | T3: pkg.go.dev verification after next tag                                                                                                                          | High     | S                        | Verification    |
+| 12 | T3: Cut v0.2.0 from CHANGELOG Unreleased once CI + GoReleaser + pkg.go.dev land                                                                                     | High     | S                        | Release         |
+| 13 | T3: Branch protection decision for master (daemon direct pushes vs required checks)                                                                                 | High     | S                        | Decision        |
+| 14 | T3: Repo topics (go, buildflow, golangci, auto-configure, version-surface)                                                                                          | Medium   | S                        | Cleanup         |
+| 15 | T3: README CI badge once workflow lands                                                                                                                             | Low      | S                        | Documentation   |
+| 16 | T3: Module-path casing check with real `go get` after next tag                                                                                                      | Medium   | S                        | Verification    |
+| 17 | T3: Verify README build-from-source steps in clean environment                                                                                                      | Medium   | S                        | Verification    |
+| 18 | T3: Website launch decision (sibling-project pattern)                                                                                                               | Low      | L                        | Feature         |
+| 19 | T2: Add provider blank-import to BuildFlow SDK import set                                                                                                           | High     | S                        | Feature         |
+| 20 | T2: BuildFlow docs/provider catalog entry + `buildflow --dry-run` discovery confirm                                                                                 | Medium   | S                        | Feature         |
+| 21 | T2: Decide DAG position (after go-mod-update, before nix-checker)                                                                                                   | Medium   | S                        | Decision        |
+| 22 | T12: Testify keep-or-migrate fleet decision; disposition the 366 go-auto-upgrade findings                                                                           | High     | S (decide) / L (migrate) | Decision        |
+| 23 | T12: Investigate forbidigo vanishing if it recurs                                                                                                                   | Low      | S                        | Bug             |
+| 24 | T5: Upstream gomod-checker "tidy revert" rule (patch-form directive after tidy)                                                                                     | Medium   | L                        | Feature         |
+| 25 | T6: Release-authority drift detection (VERSION vs CHANGELOG vs newest tag)                                                                                          | Medium   | M                        | Feature         |
+| 26 | T9: Design opt-in impure command for flake.lock Go revision                                                                                                         | Low      | M                        | Design          |
+| 27 | Build `--expect-minor` flag once T4 lands (enforce the ADR)                                                                                                         | High     | M                        | Feature         |
+| 28 | Wire erraudit into CI gating (`--type-aware` primary, `--type legacy_as` fallback)                                                                                  | Medium   | S                        | Quality         |
+| 29 | Update docs/DOMAIN_LANGUAGE.md with session vocabulary: poisonerFloors, ModuleVersion, toolchain-non-version, go-work-unparseable, schema field                     | High     | S                        | Documentation   |
+| 30 | File upstream: BuildFlow single-step `skip_steps` WARN is misleading (evidence in AGENTS.md)                                                                        | Medium   | S                        | Bug (upstream)  |
+| 31 | File upstream: cqrs-lint A018 "imports go-cqrs-lite" fires with zero imports                                                                                        | Medium   | S                        | Bug (upstream)  |
+| 32 | File upstream/check: branching-flow INDEX_OUT_OF_RANGE false positive on range-bounded worker pool                                                                  | Medium   | S                        | Bug (upstream)  |
+| 33 | Add decode-level assertions: `schema` in who-forces JSON test; `kind: "go.work"` through JSON                                                                       | Medium   | S                        | Quality         |
+| 34 | Provider test for a go-work-unparseable fixture (unparseable go.work through `Provider.Detect`)                                                                     | Medium   | S                        | Quality         |
+| 35 | Dogfood `fix` end-to-end (not dry-run) on a disposable copy of a foreign drifted repo to exercise the full dep-forced supply-side naming path                       | High     | S                        | Verification    |
+| 36 | Dogfood who-forces against a real, resolvable poisoned graph (possible only after items 2–3) — validates poisonerFloors against reality                             | High     | S                        | Verification    |
+| 37 | Extend benchmark: `-benchmem` + parallel 1/4/auto comparison table, record in docs                                                                                  | Medium   | S                        | Quality         |
+| 38 | Push remaining sub-80%-per-function error branches (ParseModulePath, syntaxLine, currentDirective) above the bar or document the acceptance                         | Low      | S                        | Quality         |
+| 39 | README: scripting recipe `check --quiet --parallel N --json ~/projects/*/ ; echo $?` as the canonical fleet cron line                                               | Medium   | S                        | Documentation   |
+| 40 | Decide schema-2 plan: fold `Poisoners []string` into `poisonerFloors` (breaking) or keep duplicated forever                                                         | Medium   | S                        | Decision        |
+| 41 | Consider `fix --quiet` and `who-forces --quiet` for scripting symmetry                                                                                              | Low      | S                        | Feature         |
+| 42 | Verify `resolvePoisoners` output ordering matches who-forces' sorted poisoner presentation (consistency check)                                                      | Low      | S                        | Quality         |
+| 43 | ROADMAP entry: state filepath/POSIX assumptions (no Windows testing exists)                                                                                         | Low      | S                        | Documentation   |
+| 44 | Decide whether this repo gets its own flake.nix (fleet-standard packaging + version stamping; currently BuildFlow-only)                                             | Medium   | M                        | Decision        |
+| 45 | Sweep validation at scale: `check --quiet --parallel auto` across all ~/projects (383+ modules), record timing + finding counts as the session-independent baseline | Medium   | M                        | Verification    |
+| 46 | Add `who-forces` JSON contract table to README's machine-contract section for `poisonerFloors` field semantics (already partially done — verify final wording)      | Low      | S                        | Documentation   |
+| 47 | Add `check --parallel 0` (explicit auto) vs default parity test                                                                                                     | Low      | S                        | Quality         |
+| 48 | Post-re-tag: re-run this repo's own `fix` expecting `applied 1, dep-forced 0` — the actual finish line of the whole campaign                                        | High     | S                        | Verification    |
+| 49 | Record a cross-project lesson: "probe the real toolchain before encoding go-tool behavior in rules" in crush-config references/lessons.md                           | Medium   | S                        | Process         |
+| 50 | Record a cross-project lesson: "exit codes must be captured before pipes" alongside the existing pipeline-masking lessons                                           | Low      | S                        | Process         |
 
 ## g) Questions I cannot figure out myself
 
@@ -155,4 +155,4 @@ Ranked by impact; effort S <30min, M 30min–2h, L >2h. Items 1–28 are pre-exi
 
 ---
 
-*Point-in-time snapshot 2026-09-22 20:25 CEST. Section (f) is HARVEST input for TODO_LIST.md/ROADMAP.md; items 29–50 need routing triage. Report itself: no commit per harness rule — the auto-commit daemon picks it up.*
+_Point-in-time snapshot 2026-09-22 20:25 CEST. Section (f) is HARVEST input for TODO_LIST.md/ROADMAP.md; items 29–50 need routing triage. Report itself: no commit per harness rule — the auto-commit daemon picks it up._
