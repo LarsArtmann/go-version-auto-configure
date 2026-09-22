@@ -1,6 +1,6 @@
 module github.com/larsartmann/go-version-auto-configure
 
-go 1.26.7
+go 1.27
 
 require (
 	github.com/larsartmann/go-finding v1.12.0
