@@ -271,6 +271,72 @@ func TestRun_WhoForcesJSONIncludesModule(t *testing.T) {
 	assert.False(t, doc.Repos[0].Modules[0].Poisoned)
 }
 
+func TestRun_WhoForcesJSONCarriesSchemaAndWorkspaceRow(t *testing.T) {
+	t.Parallel()
+
+	root := seedCleanRepo(t)
+	writeFile(t, root, "go.work", "go 1.26\n\nuse .\n")
+
+	var out strings.Builder
+
+	code := run([]string{"who-forces", "--json", root}, &out)
+	require.Equal(t, exitOK, code)
+
+	doc := decodeJSON[struct {
+		Schema int `json:"schema"`
+		Repos  []struct {
+			Modules []struct {
+				Path     string `json:"path"`
+				Kind     string `json:"kind"`
+				Module   string `json:"module"`
+				Poisoned bool   `json:"poisoned"`
+			} `json:"modules"`
+		} `json:"repos"`
+	}](t, out.String())
+
+	assert.Equal(t, 2, doc.Schema, "who-forces carries the same wire schema version")
+
+	require.Len(t, doc.Repos, 1)
+	require.Len(t, doc.Repos[0].Modules, 2, "the workspace row decodes alongside the module row")
+
+	byKind := map[string]struct {
+		Path   string
+		Module string
+	}{}
+
+	for _, m := range doc.Repos[0].Modules {
+		byKind[m.Kind] = struct {
+			Path   string
+			Module string
+		}{m.Path, m.Module}
+		assert.False(t, m.Poisoned, "a dependency-free seeded repo is never poisoned")
+	}
+
+	assert.Equal(t, "go.mod", byKind["go.mod"].Path)
+	assert.Equal(t, "example.com/m", byKind["go.mod"].Module)
+	assert.Equal(t, "go.work", byKind["go.work"].Path, "the go.work row is marked kind go.work on the wire")
+}
+
+func TestRun_CheckParallelZeroMatchesDefault(t *testing.T) {
+	t.Parallel()
+
+	root := seedRepo(t)
+
+	var defaultOut strings.Builder
+
+	require.Equal(t, exitFindings, run([]string{"check", "--json", root}, &defaultOut))
+	defaultDoc := decodeJSON[checkDoc](t, defaultOut.String())
+
+	var autoOut strings.Builder
+
+	code := run([]string{"check", "--json", "--parallel", "0", root}, &autoOut)
+	require.Equal(t, exitFindings, code, "--parallel 0 keeps the findings exit contract")
+	autoDoc := decodeJSON[checkDoc](t, autoOut.String())
+
+	assert.Equal(t, defaultDoc.Repos[0].Counts, autoDoc.Repos[0].Counts,
+		"--parallel 0 (explicit auto) finds exactly what the default pool finds")
+}
+
 func TestRun_WhoForcesFailsClosed(t *testing.T) {
 	t.Parallel()
 
@@ -301,6 +367,38 @@ func TestRun_CheckQuietSuppressesOutput(t *testing.T) {
 		`"schema"`,
 		"--json still emits the document under --quiet",
 	)
+}
+
+func TestRun_FixAndWhoForcesQuietSymmetry(t *testing.T) {
+	t.Parallel()
+
+	fixRoot := seedRepo(t)
+
+	var fixOut strings.Builder
+
+	code := run([]string{"fix", "--quiet", fixRoot}, &fixOut)
+	assert.Equal(t, exitOK, code, "fix --quiet keeps the exit contract")
+	assert.Empty(t, fixOut.String(), "fix --quiet emits no human report")
+
+	var fixJSON strings.Builder
+
+	code = run([]string{"fix", "--quiet", "--json", seedRepo(t)}, &fixJSON)
+	assert.Equal(t, exitOK, code)
+	assert.Contains(t, fixJSON.String(), `"schema"`, "fix --json still emits under --quiet")
+
+	whoRoot := seedCleanRepo(t)
+
+	var whoOut strings.Builder
+
+	code = run([]string{"who-forces", "--quiet", whoRoot}, &whoOut)
+	assert.Equal(t, exitOK, code, "who-forces --quiet keeps the exit contract")
+	assert.Empty(t, whoOut.String(), "who-forces --quiet emits no human report")
+
+	var whoJSON strings.Builder
+
+	code = run([]string{"who-forces", "--quiet", "--json", whoRoot}, &whoJSON)
+	assert.Equal(t, exitOK, code)
+	assert.Contains(t, whoJSON.String(), `"schema"`, "who-forces --json still emits under --quiet")
 }
 
 func TestRun_CheckJSONCarriesSchemaVersion(t *testing.T) {
@@ -347,7 +445,7 @@ func TestRun_FixJSONSurfacesDiscoveryIssues(t *testing.T) {
 
 	doc := decodeJSON[fixDoc](t, out.String())
 	require.Len(t, doc.Repos, 1)
-	assert.Equal(t, 1, doc.Schema)
+	assert.Equal(t, 2, doc.Schema)
 	require.Len(t, doc.Repos[0].Discovery, 1, "fix --json surfaces what check already reported")
 	assert.Equal(t, "go-mod-unparseable", doc.Repos[0].Discovery[0].Rule)
 }

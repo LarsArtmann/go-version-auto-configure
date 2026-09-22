@@ -70,6 +70,35 @@ func TestDetect_CleanRepoIsEmpty(t *testing.T) {
 	assert.Empty(t, findings)
 }
 
+func TestDetect_ReportsUnparseableGoWork(t *testing.T) {
+	t.Parallel()
+
+	root := t.TempDir()
+	require.NoError(
+		t,
+		os.WriteFile(filepath.Join(root, "go.mod"), []byte("module example.com/m\n\ngo 1.26\n"), 0o644),
+	)
+	// `toolchain local` (rejected by the go tool) or any unparseable go
+	// line must surface as a finding, never vanish silently.
+	require.NoError(
+		t,
+		os.WriteFile(filepath.Join(root, "go.work"), []byte("go not.a.version\n\nuse .\n"), 0o644),
+	)
+
+	ctx := finding.WithWorkingDir(context.Background(), root)
+	findings, err := Provider.Detect.Detect(ctx)
+	require.NoError(t, err)
+	require.NotEmpty(t, findings)
+
+	rules := map[string]bool{}
+
+	for _, f := range findings {
+		rules[string(f.Rule)] = true
+	}
+
+	assert.Contains(t, rules, "go-work-unparseable")
+}
+
 func TestRepair_RewritesDirective(t *testing.T) {
 	t.Parallel()
 

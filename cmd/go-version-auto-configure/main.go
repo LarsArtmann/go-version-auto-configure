@@ -36,10 +36,10 @@ const usage = `go-version-auto-configure — unify the Go toolchain version surf
 Usage:
   go-version-auto-configure check [--json] [--quiet] [--parallel N] [root ...]
                                                  detect drift, exit 1 when found
-  go-version-auto-configure fix [--dry-run] [--json] [--parallel N] [root ...]
+  go-version-auto-configure fix [--dry-run] [--json] [--quiet] [--parallel N] [root ...]
                                                  auto-fix directive form,
                                                  suggest the rest
-  go-version-auto-configure who-forces [--json] [--allow-partial] [--parallel N] [root ...]
+  go-version-auto-configure who-forces [--json] [--quiet] [--allow-partial] [--parallel N] [root ...]
                                                  name the dependencies forcing
                                                  each go directive
   go-version-auto-configure version              print the tool version
@@ -362,9 +362,10 @@ type fixOutcome struct {
 func cmdFix(args []string, out io.Writer) int {
 	fs, rf := newRunFlagSet("fix")
 
-	var dryRun bool
+	var dryRun, quiet bool
 
 	fs.BoolVar(&dryRun, "dry-run", false, "report what would change without touching files")
+	fs.BoolVar(&quiet, "quiet", false, "exit-code-only: suppress the human report (JSON is still emitted with --json)")
 
 	roots, ok := parseRoots(fs, args)
 	if !ok {
@@ -379,7 +380,9 @@ func cmdFix(args []string, out io.Writer) int {
 		return emitFixJSON(out, outcomes)
 	}
 
-	printFixReports(out, outcomes, len(analyses) > 1)
+	if !quiet {
+		printFixReports(out, outcomes, len(analyses) > 1)
+	}
 
 	return exitFromOutcomes(outcomes)
 }
@@ -533,10 +536,11 @@ func exitFromOutcomes(outcomes []fixOutcome) int {
 func cmdWhoForces(args []string, out io.Writer) int {
 	fs, rf := newRunFlagSet("who-forces")
 
-	var allowPartial bool
+	var allowPartial, quiet bool
 
 	fs.BoolVar(&allowPartial, "allow-partial", false,
 		"downgrade per-module go list failures from exit 2 to exit 1 (default: fail closed)")
+	fs.BoolVar(&quiet, "quiet", false, "exit-code-only: suppress the human report (JSON is still emitted with --json)")
 
 	roots, ok := parseRoots(fs, args)
 	if !ok {
@@ -569,7 +573,9 @@ func cmdWhoForces(args []string, out io.Writer) int {
 		return emitFloorsJSON(out, results, allowPartial)
 	}
 
-	printFloorsReports(out, results)
+	if !quiet {
+		printFloorsReports(out, results)
+	}
 
 	return exitFromFloors(results, allowPartial)
 }
