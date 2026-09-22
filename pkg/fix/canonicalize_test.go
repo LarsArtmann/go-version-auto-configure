@@ -8,10 +8,9 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/larsartmann/go-version-auto-configure/pkg/surface"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-
-	"github.com/larsartmann/go-version-auto-configure/pkg/surface"
 )
 
 func TestRewriteGoDirective(t *testing.T) {
@@ -118,6 +117,10 @@ func TestStripToolchainDirective(t *testing.T) {
 	}
 }
 
+// errGateMustNotRun is the gate failure used by the toolchain-strip test:
+// a toolchain-only strip must never invoke the dependency gate.
+var errGateMustNotRun = errors.New("the gate must not run for a toolchain-only strip")
+
 // writeGoModFixture materializes a go.mod and returns its path.
 func writeGoModFixture(t *testing.T, content string) string {
 	t.Helper()
@@ -167,7 +170,7 @@ func TestCanonicalizeGoMod_ToolchainStripOnMinorLineNeedsNoGate(t *testing.T) {
 		"module example.com/norm\n\ngo "+minor+"\n\ntoolchain go"+installed+"\n")
 
 	gate := fakeGate(func(string, []string) (string, string, error) {
-		return "", "", errors.New("the gate must not run for a toolchain-only strip")
+		return "", "", errGateMustNotRun
 	})
 
 	res, err := CanonicalizeGoMod(context.Background(), path, CanonicalizeOptions{

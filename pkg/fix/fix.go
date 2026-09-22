@@ -15,7 +15,6 @@ import (
 	"strings"
 
 	atomicwrite "github.com/larsartmann/go-atomic-write"
-
 	"github.com/larsartmann/go-version-auto-configure/pkg/surface"
 )
 
@@ -136,6 +135,8 @@ func SelfCheck(ctx context.Context) error {
 var (
 	errUnknownDirectiveKind = errors.New("unknown directive kind")
 	errDirectiveMismatch    = errors.New("verify after edit: directive mismatch")
+	errDirectiveDrifted     = errors.New("directive changed since detection")
+	errGateNotClean         = errors.New("go mod tidy -diff is not clean after the rewrite")
 )
 
 // EditRunner returns the production runner: `go <args…>` executed in dir.
@@ -276,14 +277,8 @@ func applyGoModFix(ctx context.Context, abs string, fx surface.Fix, run GoComman
 		return fmt.Errorf("read %s: %w", abs, err)
 	}
 
-	got, _, err := surface.ParseDirective(surface.KindGoMod, original)
-	switch {
-	case errors.Is(err, surface.ErrNoDirective):
-		return fmt.Errorf("%s declares no go directive", abs)
-	case err != nil:
-		return fmt.Errorf("parse %s: %w", abs, err)
-	case got != fx.From:
-		return fmt.Errorf("directive changed since detection: got go %s, want go %s", got, fx.From)
+	if err := verifyDriftGuard(abs, original, fx.From); err != nil {
+		return err
 	}
 
 	updated, err := rewriteGoDirective(string(original), string(fx.To))
@@ -295,11 +290,7 @@ func applyGoModFix(ctx context.Context, abs string, fx surface.Fix, run GoComman
 		return fmt.Errorf("write %s: %w", abs, err)
 	}
 
-	now, _, err := surface.ParseDirective(surface.KindGoMod, []byte(updated))
-	if err == nil && now != fx.To {
-		err = fmt.Errorf("%w: got go %s, want go %s", errDirectiveMismatch, now, fx.To)
-	}
-
+	err = verifyDirectiveMatches(updated, fx.To)
 	if err == nil {
 		if g := runTidyDiffGate(ctx, filepath.Dir(abs), gate); g.Dirty() {
 			err = classifyGateRejection(ctx, abs, fx, run, g)
@@ -308,11 +299,43 @@ func applyGoModFix(ctx context.Context, abs string, fx surface.Fix, run GoComman
 
 	if err != nil {
 		if revertErr := atomicwrite.Write(abs, original); revertErr != nil {
-			return fmt.Errorf("%w (AND revert of %s failed: %v)", err, abs, revertErr)
+			return fmt.Errorf("%w (AND revert of %s failed: %w)", err, abs, revertErr)
 		}
 	}
 
 	return err
+}
+
+// verifyDriftGuard rejects the fix when the directive on disk no longer
+// matches the value Analyze recorded: rewriting anyway would silently apply
+// a different change than the one detected.
+func verifyDriftGuard(abs string, content []byte, want surface.GoVersion) error {
+	got, _, err := surface.ParseDirective(surface.KindGoMod, content)
+	switch {
+	case errors.Is(err, surface.ErrNoDirective):
+		return fmt.Errorf("%w: %s declares no go directive", surface.ErrNoDirective, abs)
+	case err != nil:
+		return fmt.Errorf("parse %s: %w", abs, err)
+	case got != want:
+		return fmt.Errorf("%w: got go %s, want go %s", errDirectiveDrifted, got, want)
+	default:
+		return nil
+	}
+}
+
+// verifyDirectiveMatches re-parses rewritten content and reports a mismatch
+// against the fix target.
+func verifyDirectiveMatches(content string, want surface.GoVersion) error {
+	now, _, err := surface.ParseDirective(surface.KindGoMod, []byte(content))
+	if err != nil {
+		return fmt.Errorf("verify after edit: %w", err)
+	}
+
+	if now != want {
+		return fmt.Errorf("%w: got go %s, want go %s", errDirectiveMismatch, now, want)
+	}
+
+	return nil
 }
 
 // classifyGateRejection reverts-context classification of a dirty gate: it
@@ -322,14 +345,16 @@ func classifyGateRejection(ctx context.Context, abs string, fx surface.Fix, run 
 	floor, poisoners, listErr := resolveDepFloor(ctx, filepath.Dir(abs), run)
 	switch {
 	case listErr != nil:
-		return fmt.Errorf("go mod tidy -diff is not clean after the rewrite and the dependency graph could not be listed: %v; gate: %s", listErr, g.Detail)
+		return fmt.Errorf(
+			"%w and the dependency graph could not be listed: %w; gate: %s",
+			errGateNotClean,
+			listErr,
+			g.Detail,
+		)
 	case floor != "" && surface.GreaterVersion(string(floor), string(fx.To)):
 		return &DepForcedError{Fix: fx, Floor: floor, Poisoners: poisoners}
 	default:
-		return fmt.Errorf(
-			"go mod tidy -diff is not clean after the rewrite (dependency floor %s does not exceed the target): %s",
-			floor, g.Detail,
-		)
+		return fmt.Errorf("%w (dependency floor %s does not exceed the target): %s", errGateNotClean, floor, g.Detail)
 	}
 }
 
