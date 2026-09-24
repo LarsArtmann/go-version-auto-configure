@@ -45,10 +45,9 @@
         vendorHash = "sha256-QBj4D9EQtEkzPWnVtg/KQi1c/oC5rZSxTPJS6u8JXTw=";
         description = "Detects and auto-fixes Go toolchain version-surface drift across the fleet";
 
-        # ADR-0001: the fleet minor is 1.27. go.mod declares `go 1.27`;
-        # nixpkgs go_1_27 (1.27.1) is the sanctioned toolchain. The default
-        # nixpkgs go (1.26.x) cannot load the module.
-        goPkgAttr = "go_1_27";
+        # ADR-0001: the fleet minor is 1.27. go.mod declares `go 1.27`; the
+        # module's goPkgAttr auto default resolves the newest nixpkgs
+        # toolchain (go_1_27), which satisfies that floor.
 
         enableTempl = false;
         enableGoimports = false;
