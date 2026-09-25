@@ -106,6 +106,9 @@ Plan: `docs/planning/2026-09-22_22-07_cmdguard-cli-surface-and-verification-plan
 
 ## T14 — Poisoner-chain follow-ups (from the 2026-09-25 supply-side-closure session) — OPEN
 
-- [ ] Fleet consumer sweep: enumerate every go-health importer under `~/projects` and run `check`/`fix` post-v0.4.1; confirm each settles minor-form (the dashboard is resolved, the rest are unverified)
-- [ ] Verify the INSTALLED BuildFlow binary (system profile) carries gvac v0.2.1 after the repin+rebuild — the 7e1fbfe binary ran v0.1.0-era code fleet-wide, which is why the dashboard incidents recurred after the v0.2.0 tag existed
+- [x] Fleet consumer sweep of go-health importers (2026-09-25): 12 importers — dashboard clean (v0.4.1), go-taskqueue clean, 7 dep-forced-correct (exit 0, directives legitimately held), 4 gate-protected with FAILED-instead-of-DEP-FORCED classification (zero mutations; see the two classification bugs below). Evidence: session log + docs/POISONERS.md
+- [x] BuildFlow repinned to gvac v0.2.1, rebuilt, user-profile binary installed and live-verified (dashboard step green, `buildflow version 1ba0fcb`)
 - [ ] BuildFlow: decide retiring the go-work-sync `GoWorkFloorFinding`/`RestoreGoWorkFloor` defenses + `DependsOn` ordering now that gvac v0.2.1's go-work-aware fixer is active (their TODO S87 calls the defenses a safety net pending exactly this repin)
+- [ ] Classification bug (v0.2.2 candidate): when `go mod tidy -diff` wants to raise the directive but no `go list -m` module floor exceeds the target, the std `encoding/json/v2` toolchain-patch floor is the likely forcer — classify dep-forced (std floor) instead of FAILED. Reproduce: projects-management-automation/pkg/domain
+- [ ] Classification bug (v0.2.2 candidate): vendor-mode repos — when `go list -m` fails against a skewed vendor/modules.txt, fall back to parsing `## explicit; go X` annotations for floor resolution so the outcome is dep-forced, not FAILED. Reproduce: dnsblockd
+- [ ] Supply-side re-tags pending (2026-09-25 sweep discovery, largest impact first): go-cqrs-lite v4 family (~27 modules), go-health-dashboard v0.10.x, go-etag, go-sse — all still ship `go 1.27.1` floors; see docs/POISONERS.md

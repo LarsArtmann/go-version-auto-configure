@@ -9,7 +9,14 @@ The single source of truth for active patch-form Go floor poisoners in the LarsA
 | Module | Forced floor | Status | Notes |
 |--------|-------------|--------|-------|
 | `golang.org/x/text` | `go 1.26.0` | **ACCEPTED** (upstream, permanent) | Standard-library-adjacent; not ours to re-tag. Rule comparisons treat `1.26.0` as a legit floor (`--expect-minor` skips accepted zero-patch forms). |
-| `encoding/json/v2` (std) | toolchain patch (e.g. `1.27.1`) | **ACCEPTED** (standard library) | Bites importers of the v2 API; the floor follows the local toolchain patch, not a module we control. |
+| `encoding/json/v2` (std) | toolchain patch (e.g. `1.27.1`) | **ACCEPTED** (standard library) | Bites importers of the v2 API; the floor follows the local toolchain patch, not a module we control. Known classification gap: when the std floor is the ONLY forcer, `go list -m` shows no module above the target and the gate outcome lands in `failed` instead of `dep-forced` (observed on projects-management-automation/pkg/domain 2026-09-25; revert still correct). |
+| `github.com/larsartmann/go-health-dashboard` | `go 1.27.1` | **PENDING re-tag** | Its v0.10.x tags still carry the patch-form floor (fixed on master 2026-09-25 with the go-health v0.4.1 bump); forces DiscordSync and others. |
+| `github.com/larsartmann/go-cqrs-lite/*` (v4 family, ~27 modules) | `go 1.27.1` | **PENDING re-tag** | The largest carrier set (found in DiscordSync's who-forces matrix 2026-09-25). |
+| `github.com/larsartmann/go-etag/*` | `go 1.27.1` | **PENDING re-tag** | Carried alongside the cqrs-lite family. |
+| `github.com/larsartmann/go-sse` | `go 1.27.1` | **PENDING re-tag** | Named in both DiscordSync and PMA matrices. |
+| `github.com/larsartmann/go-output/*` (older tags) | `go 1.27.1` | **PENDING consumer bumps** | v0.38.2+ is minor-form; repos pinning older tags keep the floor until they bump. |
+
+Vendor-mode note (2026-09-25, dnsblockd): when `go list -m` cannot run against a skewed `vendor/modules.txt`, floor resolution fails and the gate outcome lands in `failed` rather than `dep-forced` — the revert is still correct. Fix candidate: parse `## explicit; go X` annotations as the fallback floor source.
 
 ## Resolved poisoners
 
