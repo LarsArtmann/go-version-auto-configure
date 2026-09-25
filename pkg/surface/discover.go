@@ -223,11 +223,85 @@ func readLines(path string) []string {
 	return strings.Split(string(data), "\n")
 }
 
+// stripNixComments removes Nix comment text from every line while preserving
+// the line count (pin line numbers must stay faithful to the source file).
+// Handled: `#` line comments and `/* ... */` block comments, both only
+// outside strings — a `#` inside a quoted URL is not a comment, and quoted
+// pin-bearing text stays scannable. Double-quoted strings honor backslash
+// escapes; indented strings (” ... ”) toggle on the two-quote token
+// without deeper interpolation handling (pins never appear interpolated in
+// practice, and a wrong guess inside a string can only under-report a pin,
+// never invent one). Discovered via go-health's flake.nix: a comment
+// explaining why the pin IS go_1_27 mentioned go_1_26 and was reported as
+// the pin itself.
+func stripNixComments(lines []string) []string {
+	stripped := make([]string, len(lines))
+
+	inBlock, inDouble, inIndented := false, false, false
+
+	for i, line := range lines {
+		var out strings.Builder
+
+		for j := 0; j < len(line); {
+			switch {
+			case inBlock:
+				if strings.HasPrefix(line[j:], "*/") {
+					inBlock = false
+					j += 2
+				} else {
+					j++
+				}
+			case inDouble:
+				if line[j] == '\\' && j+1 < len(line) {
+					out.WriteByte(line[j])
+					out.WriteByte(line[j+1])
+					j += 2
+				} else {
+					if line[j] == '"' {
+						inDouble = false
+					}
+					out.WriteByte(line[j])
+					j++
+				}
+			case inIndented:
+				if strings.HasPrefix(line[j:], "''") {
+					inIndented = false
+					out.WriteString("''")
+					j += 2
+				} else {
+					out.WriteByte(line[j])
+					j++
+				}
+			case strings.HasPrefix(line[j:], "/*"):
+				inBlock = true
+				j += 2
+			case strings.HasPrefix(line[j:], "''"):
+				inIndented = true
+				out.WriteString("''")
+				j += 2
+			case line[j] == '"':
+				inDouble = true
+				out.WriteByte('"')
+				j++
+			case line[j] == '#':
+				j = len(line)
+			default:
+				out.WriteByte(line[j])
+				j++
+			}
+		}
+
+		stripped[i] = out.String()
+	}
+
+	return stripped
+}
+
 // scanNixPins extracts every nixpkgs Go pin with its line number.
 func scanNixPins(path string, rel FilePath) []Pin {
 	var pins []Pin
 
-	for lineNo, line := range readLines(path) {
+	for lineNo, line := range stripNixComments(readLines(path)) {
 		for _, match := range nixGoPinRe.FindAllStringSubmatch(line, -1) {
 			var parsed majorMinor
 

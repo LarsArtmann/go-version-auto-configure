@@ -132,6 +132,62 @@ func TestDiscoverAndAnalyze_NixPinBelowFloor(t *testing.T) {
 	}
 }
 
+// TestDiscoverAndAnalyze_NixPinInCommentIgnored pins the regression found on
+// go-health 2026-09-25: a comment explaining why the pin IS go_1_27 mentions
+// go_1_26 and was reported as the pin itself (phantom nix-pin-below-floor).
+func TestDiscoverAndAnalyze_NixPinInCommentIgnored(t *testing.T) {
+	t.Parallel()
+
+	root := writeRepo(t, map[string]string{
+		"go.mod": "module example.com/root\n\ngo 1.27\n",
+		"flake.nix": "{\n" +
+			"  # GOTOOLCHAIN=local cannot satisfy the directive under go_1_26,\n" +
+			"  # so the toolchain is nixpkgs' go_1_27.\n" +
+			"  goPkg = pkgs.go_1_27;\n" +
+			"}\n",
+	})
+
+	s, discoverIssues, err := Discover(root)
+	require.NoError(t, err)
+	assert.Empty(t, discoverIssues)
+
+	require.Len(t, s.NixPins, 1, "only the real pin counts; comment mentions are not pins")
+	assert.Equal(t, GoVersion("1.27"), s.NixPins[0].Version)
+	assert.Equal(t, 4, s.NixPins[0].Line)
+
+	assert.Empty(t, Analyze(s), "clean: the real pin meets the floor")
+}
+
+// TestDiscoverAndAnalyze_NixPinBlockCommentAndStrings covers block comments
+// spanning lines (pins inside ignored, code after the close kept) and `#`
+// inside a double-quoted string (not a comment start; the rest of the line
+// stays scannable).
+func TestDiscoverAndAnalyze_NixPinBlockCommentAndStrings(t *testing.T) {
+	t.Parallel()
+
+	root := writeRepo(t, map[string]string{
+		"go.mod": "module example.com/root\n\ngo 1.27\n",
+		"flake.nix": "{\n" +
+			"  /* block comment start\n" +
+			"     mentions go_1_26 and buildGo126Module\n" +
+			"  end */ goPkg = pkgs.go_1_27;\n" +
+			"  url = \"https://example.com/a#fragment\"; other = pkgs.go_1_27;\n" +
+			"}\n",
+	})
+
+	s, discoverIssues, err := Discover(root)
+	require.NoError(t, err)
+	assert.Empty(t, discoverIssues)
+
+	require.Len(t, s.NixPins, 2, "pins after a closed block comment and past an in-string # both count")
+	assert.Equal(t, GoVersion("1.27"), s.NixPins[0].Version)
+	assert.Equal(t, 4, s.NixPins[0].Line)
+	assert.Equal(t, GoVersion("1.27"), s.NixPins[1].Version)
+	assert.Equal(t, 5, s.NixPins[1].Line)
+
+	assert.Empty(t, Analyze(s))
+}
+
 func TestDiscoverAndAnalyze_CIPinBelowFloor(t *testing.T) {
 	t.Parallel()
 

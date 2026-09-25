@@ -691,6 +691,10 @@ func printFixReport(out io.Writer, outcome fixOutcome) {
 
 // exitFromOutcomes maps fix results onto the exit contract: hard errors
 // dominate, then failed repairs or discovery findings, then success.
+// Dep-forced reverts are deliberately NOT failures: the drift is forced by
+// a dependency floor (fix.Result.DepForced), the tool did its job, and the
+// remediation is supply-side (re-tag the poisoner) — so a run where every
+// finding was dep-forced exits 0 (owner decision 2026-09-25).
 func exitFromOutcomes(outcomes []fixOutcome) int {
 	errored, failed := false, false
 
