@@ -76,3 +76,27 @@ for the remaining consumer campaign:
 Mechanical findings here are mostly directive patch-form and Nix/CI pin
 alignment; pin suggestions (nix `go_1_26` → `go_1_27`) are maintainer
 decisions per repo and are NOT auto-applied.
+
+### Post-campaign poisoner incident: go-health v0.4.0 (2026-09-25)
+
+A supply-side poisoner slipped past the 2026-09-22 campaign: **go-health
+v0.4.0** shipped `go 1.27.1` (tagged 21:21 that day, after the sweep). Its
+ flagship consumer, go-health-dashboard, was forced to hold `go 1.27.1`;
+the running BuildFlow binary (built from a v0.1.0-era pin of this tool)
+kept downgrading the directive to `go 1.27` via go-mod-normalize — three
+CI-guarded incidents on 2026-09-22 — until the dashboard added a CI guard
+asserting `1.27.1` (a cross-repo policy split brain).
+
+Resolution chain, 2026-09-25: go-health **v0.4.1** re-tagged with the
+minor-form floor; dashboard bumped + guard removed; this tool's v0.2.0+
+dependency-floor gate verified live to classify the rewrite dep-forced and
+hold it back; the check summary now names the gate instead of promising
+unconditional fixability.
+
+| Signal                                          | Value                                   |
+| ----------------------------------------------- | --------------------------------------- |
+| Poisoner                                        | go-health v0.4.0 (`go 1.27.1`)          |
+| Forced consumer                                 | go-health-dashboard (dep-forced)        |
+| Fix                                             | v0.4.1 re-tag + consumer bump           |
+| Gate verification                               | dep-forced, go.mod untouched (v0.2.0)   |
+| Related false positive found during triage      | nix pin comment matched (fixed v0.2.1)  |

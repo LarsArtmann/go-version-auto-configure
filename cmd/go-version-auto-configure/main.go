@@ -508,17 +508,42 @@ func printCheckReport(out io.Writer, a repoAnalysis) {
 			a.root,
 		)
 	case len(a.report.suggested) == 0:
-		fmt.Fprintf(out, "%s: %d finding(s), all auto-fixable with 'fix'\n", a.root, len(all))
+		fmt.Fprintf(
+			out,
+			"%s: %d finding(s), all auto-fixable with 'fix'%s\n",
+			a.root,
+			len(all),
+			gatedFormFixNote(a.report.mechanical),
+		)
 	default:
 		fmt.Fprintf(
 			out,
-			"%s: %d finding(s): %d auto-fixable with 'fix', %d need a maintainer decision\n",
+			"%s: %d finding(s): %d auto-fixable with 'fix', %d need a maintainer decision%s\n",
 			a.root,
 			len(all),
 			len(a.report.mechanical),
 			len(a.report.suggested),
+			gatedFormFixNote(a.report.mechanical),
 		)
 	}
+}
+
+// gatedFormFixNote returns the dependency-floor caveat for summaries that
+// promise auto-fixability while carrying a go.mod form fix: `check` is pure
+// file analysis and cannot run the tidy gate, but `fix` can come back
+// dep-forced when a dependency holds the floor (the go-health-dashboard
+// shape: floor forced by a poisoner tag). The note replaces the false
+// promise with the gate truth and names the supply-side remediation.
+func gatedFormFixNote(mechanical []surface.Issue) string {
+	for _, issue := range mechanical {
+		if issue.Rule == surface.RuleGoDirectivePatchForm {
+			return " — go.mod form fixes still pass the dependency-floor gate at fix time; " +
+				"a dependency forcing the floor reverts them (dep-forced; supply-side fix: " +
+				"re-tag that module with a major.minor-only directive, then bump)"
+		}
+	}
+
+	return ""
 }
 
 // summarize counts clean, finding-carrying, and failed repositories:

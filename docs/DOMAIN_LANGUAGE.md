@@ -34,3 +34,4 @@ The ubiquitous language of go-version-auto-configure. Terms are defined as the c
 - **"Floor" in this repo** always means the Go toolchain floor — not a dependency version requirement and not a Nix store path.
 - **"Fix" in `pkg/fix`** means an applied-and-verified directive rewrite. A fix that tidy reverts is never counted as applied — it is dep-forced.
 - **"Trigger"** (provider context) means BuildFlow's file-pattern gate for running the provider (`go`, `go.mod`, `go.work`), not a CI trigger.
+- **"Advisory"** findings (notably a dep-forced patch-form directive) are correct states held for supply-side reasons: reported for visibility, never error-severity — the remediation lives in the poisoner's repo (re-tag), not the consumer's.

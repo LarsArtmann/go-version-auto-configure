@@ -52,6 +52,28 @@ func readGoMod(t *testing.T, root string) string {
 	return string(data)
 }
 
+// TestExitFromOutcomes_DepForcedOnlyExitsZero pins the exit contract (owner
+// decision 2026-09-25, verified live on a go-health-dashboard copy): a fix
+// run whose only findings were reverted by the dependency-floor gate is a
+// success — the drift is externally forced and the remediation is
+// supply-side, not a fix failure.
+func TestExitFromOutcomes_DepForcedOnlyExitsZero(t *testing.T) {
+	t.Parallel()
+
+	outcomes := []fixOutcome{{
+		root: "drifted",
+		result: &fix.Result{
+			DepForced: []fix.DepForced{{}},
+		},
+	}}
+
+	assert.Equal(t, exitOK, exitFromOutcomes(outcomes),
+		"dep-forced-only runs exit 0: the state is forced by a dependency floor")
+
+	outcomes[0].result.Failures = []fix.Failure{{}}
+	assert.Equal(t, exitFindings, exitFromOutcomes(outcomes), "failed repairs still exit 1")
+}
+
 func TestRun_VersionAndUsage(t *testing.T) {
 	t.Parallel()
 
@@ -89,6 +111,21 @@ func TestRun_FixDryRunLeavesFiles(t *testing.T) {
 
 	require.Equal(t, exitOK, run([]string{"fix", "--dry-run", root}, &out))
 	assert.Contains(t, readGoMod(t, root), "go 1.26.7\n", "dry-run must not touch the file")
+}
+
+// TestRun_CheckNotesGatedFixability pins the honesty fix (2026-09-25): check
+// must not promise unconditional auto-fixability for go.mod form fixes — fix
+// runs the dependency-floor gate and can come back dep-forced.
+func TestRun_CheckNotesGatedFixability(t *testing.T) {
+	t.Parallel()
+
+	root := seedRepo(t)
+
+	var out strings.Builder
+
+	require.Equal(t, exitFindings, run([]string{"check", root}, &out))
+	assert.Contains(t, out.String(), "dependency-floor gate",
+		"the summary must carry the gate caveat for patch-form findings")
 }
 
 // checkDoc mirrors the check --json contract the tests rely on.

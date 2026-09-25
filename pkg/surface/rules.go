@@ -181,6 +181,13 @@ func minorExceeds(v string, expect majorMinor) bool {
 // formIssues reports patch-form `go` directives together with their
 // mechanical rewrites. A go.work patch form is only a violation when the
 // stripped minor form still covers the workspace's full module floor.
+//
+// Severity policy: a dep-forced patch-form go directive (a dependency holds
+// the floor; fix's tidy gate reverts the rewrite) is a CORRECT state held
+// for supply-side reasons — the finding stays reportable for visibility but
+// advisory by design, never an error: the remediation is re-tagging the
+// poisoner, which only the poisoner's repo can do (owner decision
+// 2026-09-25, see docs/adr/0001 appendix go-health v0.4.0).
 func formIssues(s *Surface, fullFloor GoVersion, hasFull bool) []Issue {
 	var issues []Issue
 
