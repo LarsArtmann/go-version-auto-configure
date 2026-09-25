@@ -6,6 +6,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+## [0.2.1] - 2026-09-25
+
+### Fixed
+
+- **False positive in `nix-pin-below-floor`: Nix comments were scanned as pins.** A flake.nix comment explaining why the pin IS `go_1_27` while mentioning `go_1_26` (go-health's actual flake, found 2026-09-25) was reported as a below-floor pin on a correctly configured repo. Pin scanning now strips comments first, string-aware: `#` line comments and `/* ... */` block comments are ignored outside strings, quoted text stays scannable, and line numbers remain faithful to the source file.
+
+### Changed
+
+- `check` no longer promises unconditional auto-fixability for go.mod form fixes. When a patch-form directive finding is present, the summary notes that `fix` still passes the dependency-floor gate — a dependency holding the floor reverts the rewrite (dep-forced) and the actual remediation is supply-side (re-tag the poisoner with a major.minor-only directive). JSON output is unchanged (schema 2 stable).
+- Exit contract documented precisely and pinned by a regression test: `fix` exits 0 when every finding was dep-forced — the state is externally forced and the tool did its job; failed repairs still exit 1.
+
 ## [0.2.0] - 2026-09-22
 
 ### Changed
