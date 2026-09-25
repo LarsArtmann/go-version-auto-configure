@@ -50,6 +50,8 @@ All commands accept multiple roots (parallel, sorted output) and `--json` (stabl
 
 The supply-side campaign has now shipped (2026-09-22): go-atomic-write v0.6.0, go-error-family 7-tag v0.10.2 family, go-output v0.38.2 (17 modules), go-branded-id v0.6.0, linter-autoconfigure-sdk v0.3.0, go-finding v1.13.0, and the three sibling autoconfigurers (v0.8.2 / v0.6.4 / v0.2.1). Floors settle at minor form except two accepted, named patch-form poisoners: `golang.org/x/text` (forces `go 1.26.0`) and `encoding/json/v2` (std, forces the toolchain patch, e.g. `go 1.27.1` for importers).
 
+PENDING poisoner (found 2026-09-25, not yet accepted): `github.com/larsartmann/go-health` v0.4.0 ships `go 1.27.1` (master already carries `go 1.27`, unreleased) — it is the floor that forces go-health-dashboard, whose CI guard (`scripts/check-go-directive.sh`) asserts `1.27.1` is correct. The v0.2.0 tidy gate classifies the consumer rewrite dep-forced and holds it back (verified live on a throwaway copy: `floor go 1.27.1 is forced by: github.com/larsartmann/go-health`). Dissolves when go-health cuts a minor-form release and the dashboard bumps.
+
 What remains is the consumer campaign: repos still requiring the OLD tags keep re-poisoning until they bump. Baseline and progress live in the ADR appendix (`docs/adr/0001-fleet-go-minor.md`). This tool fixes form; tidy reverts form only while a consumer's graph still holds a poisoner.
 
 Owner decisions recorded 2026-09-22: go-output v0.38.1 is NOT retracted (documented-only; v0.38.2 is the good release — do not re-litigate), and `master` stays UNPROTECTED with informational CI (the auto-commit daemon's direct pushes win over required status checks).
