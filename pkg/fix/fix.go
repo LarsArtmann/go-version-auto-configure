@@ -142,8 +142,12 @@ var (
 // EditRunner returns the production runner: `go <args…>` executed in dir.
 // Module edits and module-graph listings run with GOWORK=off so a workspace
 // file cannot redirect them to a different module; workspace edits need the
-// opposite — they edit the go.work next to dir and GOWORK=off makes
-// `go work edit` fail with "no go.work file found".
+// opposite — they edit the go.work next to dir, so GOWORK is pinned at that
+// exact file. Both scopes STRIP any inherited GOWORK first: a parent
+// GOWORK=off (direnv shells, CI workers) makes `go work edit` fail with
+// "no go.work file found", and a parent GOWORK=<elsewhere> would win over
+// the appended value on duplicate-env resolution and silently redirect the
+// edit.
 func EditRunner() GoCommandRunner {
 	return func(ctx context.Context, dir string, args ...string) (string, error) {
 		goBin, err := exec.LookPath("go")
@@ -154,8 +158,11 @@ func EditRunner() GoCommandRunner {
 		cmd := exec.CommandContext(ctx, goBin, args...)
 		cmd.Dir = dir
 
-		if moduleScoped(args) {
-			cmd.Env = append(append(os.Environ(), "GOWORK=off"), moduleScopedExtraEnv()...)
+		switch {
+		case moduleScoped(args):
+			cmd.Env = append(envWithout("GOWORK"), append([]string{"GOWORK=off"}, moduleScopedExtraEnv()...)...)
+		case workspaceScoped(args):
+			cmd.Env = append(envWithout("GOWORK"), "GOWORK="+filepath.Join(dir, "go.work"))
 		}
 
 		out, err := cmd.CombinedOutput()
@@ -195,6 +202,44 @@ func moduleScopedExtraEnv() []string {
 
 func moduleScoped(args []string) bool {
 	return len(args) > 0 && (args[0] == "mod" || args[0] == "list")
+}
+
+// workspaceScoped reports whether a go invocation operates on the workspace
+// next to dir (`go work …`): discovery alone is not enough, because a
+// hostile inherited GOWORK ("off" or a foreign file) would defeat or
+// redirect the command.
+func workspaceScoped(args []string) bool {
+	return len(args) > 0 && args[0] == "work"
+}
+
+// envWithout returns the process environment with every KEY=… entry whose
+// key matches one of the named keys removed.
+func envWithout(keys ...string) []string {
+	env := os.Environ()
+	kept := make([]string, 0, len(env))
+
+	for _, entry := range env {
+		key, _, ok := strings.Cut(entry, "=")
+		if !ok {
+			kept = append(kept, entry)
+
+			continue
+		}
+
+		drop := false
+		for _, k := range keys {
+			if key == k {
+				drop = true
+
+				break
+			}
+		}
+		if !drop {
+			kept = append(kept, entry)
+		}
+	}
+
+	return kept
 }
 
 // gateRunner resolves the dependency-gate runner for these options: the
