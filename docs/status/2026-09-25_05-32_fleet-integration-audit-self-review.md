@@ -83,3 +83,9 @@
 ---
 
 *Point-in-time snapshot. Auto-commit daemon will pick up this report + the AGENTS.md poisoner note.*
+
+---
+
+## Correction appendix (added 2026-09-25, post-planning research)
+
+**Section a/6 and task f8 of this report were wrong:** go-health's flake does NOT pin `go_1_26` below its floor. The `nix-pin-below-floor flake.nix:41` finding was OUR false positive — line 41 is a Nix comment mentioning `go_1_26`; the real pin (line 43) is `go_1_27`. Fixed in v0.2.1 (`stripNixComments`), regression fixtures added, live re-check on go-health exits 0. The "bundle flake fix into the release" planning question was moot — nothing to fix there. Lesson folded into the plan's guardrails: verify a finding's line content before treating it as the consumer's defect.

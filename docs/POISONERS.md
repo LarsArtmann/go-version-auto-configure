@@ -1,0 +1,25 @@
+# Poisoner Registry
+
+The single source of truth for active patch-form Go floor poisoners in the LarsArtmann fleet. A poisoner is a published module whose `go` directive carries a patch component; every consumer's `go mod tidy` lifts its own directive to match (MVS floor propagation), defeating minor-form normalization until the poisoner re-tags.
+
+`check` reports the consumer-side symptom (`go-directive-patch-form` + the dependency-floor gate caveat since v0.2.1); `who-forces` names the carrier; the fix is always supply-side: re-tag with a major.minor-only directive, then bump consumers.
+
+## Active poisoners
+
+| Module | Forced floor | Status | Notes |
+|--------|-------------|--------|-------|
+| `golang.org/x/text` | `go 1.26.0` | **ACCEPTED** (upstream, permanent) | Standard-library-adjacent; not ours to re-tag. Rule comparisons treat `1.26.0` as a legit floor (`--expect-minor` skips accepted zero-patch forms). |
+| `encoding/json/v2` (std) | toolchain patch (e.g. `1.27.1`) | **ACCEPTED** (standard library) | Bites importers of the v2 API; the floor follows the local toolchain patch, not a module we control. |
+
+## Resolved poisoners
+
+| Module | Poisoned tags | Resolved | Resolution |
+|--------|--------------|----------|-----------|
+| `github.com/larsartmann/go-health` | v0.4.0 (`go 1.27.1`) | 2026-09-25, **v0.4.1** | Flagship consumer go-health-dashboard dep-forced for 3 days (3 CI-guard incidents while the running BuildFlow binary predated the v0.2.0 gate). Re-tag + consumer bump + guard deletion; incident record in [ADR-0001 appendix](adr/0001-fleet-go-minor.md). |
+| go-finding, go-atomic-write, go-error-family, go-output, go-branded-id, linter-autoconfigure-sdk, sibling autoconfigurers | various patch-form tags | 2026-09-22 campaign | See [ADR-0001](adr/0001-fleet-go-minor.md); go-output v0.38.1 stays documented-only (NOT retracted, owner decision). |
+
+## Maintenance
+
+- When `who-forces` names a new poisoner: add it to Active, open a supply-side re-tag task in its repo, link the consumer evidence here.
+- When a re-tag ships: move the row to Resolved with the tag pair and date.
+- This file replaces the poisoner list previously maintained inline in AGENTS.md (which now links here).

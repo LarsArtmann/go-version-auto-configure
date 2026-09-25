@@ -19,18 +19,16 @@ Published library versions carried patch-form `go` floors that re-poisoned every
 - [x] Consumer bumps for this repo's graph: `fix` applied 0 / dep-forced 0; `tidy` stable
 - [x] Re-tag hygiene: no `replace` directives leaked (go-release Phase 3 checks)
 - [x] Post-release `go get @vX.Y.Z` proxy verification per tag
-- [ ] Remaining: consumer repos still requiring the old tags keep re-poisoning until they bump — ADR appendix holds the 2026-09-22 fleet baseline (36/48 repos with drift); sweep them with `check`/`fix` fleet-wide
+- [ ] Remaining: consumer repos still requiring the old tags keep re-poisoning until they bump — ADR appendix holds the 2026-09-22 fleet baseline (36/48 repos with drift); sweep them with `check`/`fix` fleet-wide. First flagship consumer resolved 2026-09-25: go-health-dashboard (go-health v0.4.0 poisoner → v0.4.1 re-tag + gvac fix; see ADR appendix incident record)
 
 ## T4 — Decide the fleet minor: 1.26 vs 1.27 — DONE 2026-09-22 (Option B: adopt 1.27)
 
 - [x] Decision recorded as [ADR-0001](docs/adr/0001-fleet-go-minor.md) (Option B, owner-confirmed; evidence appendix with fleet counts and the post-campaign consumer baseline)
 - [x] Encoded in the tool: `--expect-minor N` on `check`/`fix` (dogfooded: `check --expect-minor 1.27 .` exit 0)
 
-## T2 — BuildFlow blank-import wiring — PLANNED (BuildFlow dev task)
+## T2 — BuildFlow blank-import wiring — DONE (shipped 2026-09-18, marked resolved 2026-09-25)
 
-- [ ] Add `_ "github.com/larsartmann/go-version-auto-configure/pkg/provider"` to BuildFlow's SDK import set (mirrors sdk_imports_test.go for oxlint)
-- [ ] Add to BuildFlow docs/provider catalog; run `buildflow --dry-run` to confirm discovery
-- [ ] Decide DAG position: after `go-mod-update`, before `nix-checker` (alignment suggestions inform hash repairs)
+- [x] All three rows shipped with the original integration (BuildFlow gotcha #171: toolsdk self-registration, `ToolGoVersionAutoConfig` constant, blank import, registered test, convergence fixture, edge snapshots 232→235). This section sat stale as "PLANNED" for a week — found during the 2026-09-25 plan-session research sweep.
 
 ## T3 — Publish this tool — DONE 2026-09-22 (v0.2.0; website pending)
 
@@ -105,3 +103,9 @@ Plan: `docs/planning/2026-09-22_22-07_cmdguard-cli-surface-and-verification-plan
 
 - [ ] Extend `pkg/surface` (or project-dependency-graph) to detect VERSION file vs CHANGELOG top vs newest git tag drift (known case: project-dependency-graph VERSION=0.7.0, tags at v0.2.0)
   - Design sketch (2026-09-22): read-only comparison of three sources — `VERSION` file, top `## [x.y.z]` in CHANGELOG.md, newest `v*` git tag (via `go/version` on annotated tags). Drift matrix reported as a new finding kind (`release-authority-drift`, suggest-only — which one is authoritative is per-repo policy, same reasoning as pin alignment). Stays out of `Discover`'s pure file walk only if git access is required; a pure first pass (VERSION vs CHANGELOG) can live in Discover with the tag comparison as an optional second pass
+
+## T14 — Poisoner-chain follow-ups (from the 2026-09-25 supply-side-closure session) — OPEN
+
+- [ ] Fleet consumer sweep: enumerate every go-health importer under `~/projects` and run `check`/`fix` post-v0.4.1; confirm each settles minor-form (the dashboard is resolved, the rest are unverified)
+- [ ] Verify the INSTALLED BuildFlow binary (system profile) carries gvac v0.2.1 after the repin+rebuild — the 7e1fbfe binary ran v0.1.0-era code fleet-wide, which is why the dashboard incidents recurred after the v0.2.0 tag existed
+- [ ] BuildFlow: decide retiring the go-work-sync `GoWorkFloorFinding`/`RestoreGoWorkFloor` defenses + `DependsOn` ordering now that gvac v0.2.1's go-work-aware fixer is active (their TODO S87 calls the defenses a safety net pending exactly this repin)
