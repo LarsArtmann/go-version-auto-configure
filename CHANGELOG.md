@@ -6,6 +6,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+## [0.2.2] - 2026-09-25
+
+### Fixed
+
+- Lint gate: the v0.2.1 comment-stripping scanner tripped golangci-lint (gocognit, makezero, wsl_v5, mnd) — CI at the v0.2.1 tag is red. The scanner is refactored into a `nixCommentScanner` with per-token methods (behavior identical, all fixtures unchanged and green). No user-facing change; cut so the fleet-pinned tag carries a green CI run.
+
 ## [0.2.1] - 2026-09-25
 
 ### Fixed

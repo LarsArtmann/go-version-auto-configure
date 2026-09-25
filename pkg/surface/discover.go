@@ -223,6 +223,15 @@ func readLines(path string) []string {
 	return strings.Split(string(data), "\n")
 }
 
+// nixCommentScanner carries Nix lexing state across lines: block comments
+// and strings open on one line and close on another, so the scanner must
+// survive between lines to know which regions are comment text.
+type nixCommentScanner struct {
+	inBlockComment bool
+	inDoubleQuote  bool
+	inIndented     bool
+}
+
 // stripNixComments removes Nix comment text from every line while preserving
 // the line count (pin line numbers must stay faithful to the source file).
 // Handled: `#` line comments and `/* ... */` block comments, both only
@@ -235,66 +244,124 @@ func readLines(path string) []string {
 // explaining why the pin IS go_1_27 mentioned go_1_26 and was reported as
 // the pin itself.
 func stripNixComments(lines []string) []string {
-	stripped := make([]string, len(lines))
+	var scanner nixCommentScanner
 
-	inBlock, inDouble, inIndented := false, false, false
+	return scanner.stripComments(lines)
+}
 
-	for i, line := range lines {
-		var out strings.Builder
+// stripComments maps stripLine over every input line.
+func (s *nixCommentScanner) stripComments(lines []string) []string {
+	stripped := make([]string, 0, len(lines))
 
-		for j := 0; j < len(line); {
-			switch {
-			case inBlock:
-				if strings.HasPrefix(line[j:], "*/") {
-					inBlock = false
-					j += 2
-				} else {
-					j++
-				}
-			case inDouble:
-				if line[j] == '\\' && j+1 < len(line) {
-					out.WriteByte(line[j])
-					out.WriteByte(line[j+1])
-					j += 2
-				} else {
-					if line[j] == '"' {
-						inDouble = false
-					}
-					out.WriteByte(line[j])
-					j++
-				}
-			case inIndented:
-				if strings.HasPrefix(line[j:], "''") {
-					inIndented = false
-					out.WriteString("''")
-					j += 2
-				} else {
-					out.WriteByte(line[j])
-					j++
-				}
-			case strings.HasPrefix(line[j:], "/*"):
-				inBlock = true
-				j += 2
-			case strings.HasPrefix(line[j:], "''"):
-				inIndented = true
-				out.WriteString("''")
-				j += 2
-			case line[j] == '"':
-				inDouble = true
-				out.WriteByte('"')
-				j++
-			case line[j] == '#':
-				j = len(line)
-			default:
-				out.WriteByte(line[j])
-				j++
-			}
-		}
-
-		stripped[i] = out.String()
+	for _, line := range lines {
+		stripped = append(stripped, s.stripLine(line))
 	}
 
 	return stripped
+}
+
+// stripLine emits one line's code text (everything that is not comment).
+func (s *nixCommentScanner) stripLine(line string) string {
+	var out strings.Builder
+
+	for j := 0; j < len(line); {
+		j = s.scanToken(&out, line, j)
+	}
+
+	return out.String()
+}
+
+// scanToken consumes one lexical token starting at j and returns the next
+// index. Comment tokens are consumed silently; everything else is emitted.
+func (s *nixCommentScanner) scanToken(out *strings.Builder, line string, j int) int {
+	switch {
+	case s.inBlockComment:
+		return s.scanBlockComment(line, j)
+
+	case s.inDoubleQuote:
+		return s.scanDoubleQuoted(out, line, j)
+
+	case s.inIndented:
+		return s.scanIndented(out, line, j)
+
+	case strings.HasPrefix(line[j:], "/*"):
+		s.inBlockComment = true
+
+		return j + len("/*")
+
+	case strings.HasPrefix(line[j:], "''"):
+		s.inIndented = true
+
+		out.WriteString("''")
+
+		return j + len("''")
+
+	case line[j] == '"':
+		s.inDoubleQuote = true
+
+		out.WriteByte('"')
+
+		return j + 1
+
+	case line[j] == '#':
+		return len(line)
+
+	default:
+		out.WriteByte(line[j])
+
+		return j + 1
+	}
+}
+
+// scanBlockComment consumes block-comment text; only the closing */ token
+// matters.
+func (s *nixCommentScanner) scanBlockComment(line string, j int) int {
+	if !strings.HasPrefix(line[j:], "*/") {
+		return j + 1
+	}
+
+	s.inBlockComment = false
+
+	return j + len("*/")
+}
+
+// escapedPairWidth is the byte width of a backslash escape inside a
+// double-quoted Nix string: the backslash plus the escaped character.
+const escapedPairWidth = 2
+
+// scanDoubleQuoted emits double-quoted string text verbatim (a # inside a
+// string is not a comment start) and honors backslash escapes.
+func (s *nixCommentScanner) scanDoubleQuoted(out *strings.Builder, line string, j int) int {
+	if line[j] == '\\' && j+1 < len(line) {
+		out.WriteByte(line[j])
+		out.WriteByte(line[j+1])
+
+		return j + escapedPairWidth
+	}
+
+	if line[j] == '"' {
+		s.inDoubleQuote = false
+	}
+
+	out.WriteByte(line[j])
+
+	return j + 1
+}
+
+// scanIndented emits indented-string text verbatim and toggles out on the
+// closing ” pair.
+func (s *nixCommentScanner) scanIndented(out *strings.Builder, line string, j int) int {
+	if strings.HasPrefix(line[j:], "''") {
+		s.inIndented = false
+
+		out.WriteString("''")
+
+		return j + len("''")
+	}
+
+	out.WriteByte(line[j])
+
+	return j + 1
 }
 
 // scanNixPins extracts every nixpkgs Go pin with its line number.
