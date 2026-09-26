@@ -81,23 +81,28 @@ func (r *Result) Report() string {
 		fmt.Fprintf(&b, "\n  ok:         %s", f.Describe())
 	}
 
-	for _, d := range r.DepForced {
-		fmt.Fprintf(&b, "\n  dep-forced: %s", d.Fix.Describe())
+	for _, dep := range r.DepForced {
+		fmt.Fprintf(&b, "\n  dep-forced: %s", dep.Fix.Describe())
 
 		switch {
-		case len(d.Poisoners) > 0:
-			fmt.Fprintf(&b, "\n              floor go %s is forced by: %s", d.Floor, strings.Join(d.Poisoners, ", "))
+		case len(dep.Poisoners) > 0:
+			fmt.Fprintf(
+				&b,
+				"\n              floor go %s is forced by: %s",
+				dep.Floor,
+				strings.Join(dep.Poisoners, ", "),
+			)
 			fmt.Fprintf(
 				&b,
 				"\n              fix supply-side: re-tag those modules with a major.minor-only go directive, then bump consumers",
 			)
-		case d.Cause != "":
-			fmt.Fprintf(&b, "\n              %s", d.Cause)
+		case dep.Cause != "":
+			fmt.Fprintf(&b, "\n              %s", dep.Cause)
 		default:
 			fmt.Fprintf(
 				&b,
 				"\n              floor go %s is forced by dependencies (poisoner resolution unavailable)",
-				d.Floor,
+				dep.Floor,
 			)
 		}
 	}
@@ -235,14 +240,7 @@ func envWithout(keys ...string) []string {
 			continue
 		}
 
-		drop := false
-
-		if slices.Contains(keys, key) {
-			drop = true
-
-			break
-		}
-		if !drop {
+		if !slices.Contains(keys, key) {
 			kept = append(kept, entry)
 		}
 	}
@@ -447,26 +445,19 @@ func classifyGateRejection(ctx context.Context, abs string, fx surface.Fix, run 
 // ("(devel)") count toward the floor but are never named as poisoners,
 // since there is nothing to re-tag.
 func resolveDepFloor(ctx context.Context, dir string, run GoCommandRunner) (surface.GoVersion, []string, error) {
-	out, err := run(ctx, dir, "list", "-m", "-f", "{{.Path}} {{.Version}} {{.GoVersion}}", "all")
+	out, err := listDependencyFloors(ctx, dir, run)
 	if err != nil {
-		// The rewritten tree is untidy exactly when tidy is about to
-		// revert the fix, and a plain list refuses to load that graph.
-		// -e lists the module graph anyway, so the floor and the
-		// dependencies carrying it stay nameable in the dep-forced report.
-		out, err = run(ctx, dir, "list", "-m", "-e", "-f", "{{.Path}} {{.Version}} {{.GoVersion}}", "all")
-		if err != nil {
-			// A vendored tree can refuse BOTH listings when vendor/
-			// modules.txt is skewed against go.mod ("in vendor/modules.txt
-			// requires go >= X"); the annotations still record every
-			// vendored module's true floor.
-			if vendored, ok := readVendorModuleFloors(dir); ok {
-				floor, carriers := maxVendorFloor(vendored)
+		// A vendored tree can refuse BOTH listings when vendor/modules.txt
+		// is skewed against go.mod ("in vendor/modules.txt requires go >=
+		// X"); the annotations still record every vendored module's true
+		// floor.
+		if vendored, ok := readVendorModuleFloors(dir); ok {
+			floor, carriers := maxVendorFloor(vendored)
 
-				return floor, carriers, nil
-			}
-
-			return "", nil, fmt.Errorf("list dependency floors: %w", err)
+			return floor, carriers, nil
 		}
+
+		return "", nil, fmt.Errorf("list dependency floors: %w", err)
 	}
 
 	var (
@@ -495,6 +486,20 @@ func resolveDepFloor(ctx context.Context, dir string, run GoCommandRunner) (surf
 	}
 
 	return floor, poisoners, nil
+}
+
+// listDependencyFloors runs `go list -m` for every dependency's declared
+// floor. The rewritten tree is untidy exactly when tidy is about to revert
+// the fix, and a plain list refuses to load that graph; -e lists the module
+// graph anyway, so the floor and the dependencies carrying it stay nameable
+// in the dep-forced report.
+func listDependencyFloors(ctx context.Context, dir string, run GoCommandRunner) (string, error) {
+	out, err := run(ctx, dir, "list", "-m", "-f", "{{.Path}} {{.Version}} {{.GoVersion}}", "all")
+	if err != nil {
+		return run(ctx, dir, "list", "-m", "-e", "-f", "{{.Path}} {{.Version}} {{.GoVersion}}", "all")
+	}
+
+	return out, nil
 }
 
 // DepForcedError reports a form fix that tidy reverts because a dependency

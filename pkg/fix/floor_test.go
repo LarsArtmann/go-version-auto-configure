@@ -136,22 +136,22 @@ func TestVendorModuleFloors(t *testing.T) {
 		{
 			name:    "annotations without go versions carry no floor",
 			modules: "# example.com/dep v1.0.0\n## explicit\n",
-			want:    nil,
+			want:    []vendorModuleFloor{},
 		},
 		{
 			name:    "malformed versions are ignored",
 			modules: "# example.com/dep v1.0.0\n## explicit; go bananas\n",
-			want:    nil,
+			want:    []vendorModuleFloor{},
 		},
 		{
 			name:    "annotation before any module header is ignored",
 			modules: "## explicit; go 1.27.1\n# example.com/dep v1.0.0\n",
-			want:    nil,
+			want:    []vendorModuleFloor{},
 		},
 		{
 			name:    "empty file",
 			modules: "",
-			want:    nil,
+			want:    []vendorModuleFloor{},
 		},
 	}
 

@@ -89,14 +89,16 @@ func depForcedCause(detail string, forced surface.GoVersion) string {
 
 	if len(mentions) > 0 {
 		return fmt.Sprintf(
-			"go mod tidy re-raises the directive to go %s: forced by %s (a replace target, vendored module, or standard-library requirement, not a listed dependency floor)",
+			"go mod tidy re-raises the directive to go %s: forced by %s "+
+				"(a replace target, vendored module, or standard-library requirement, not a listed dependency floor)",
 			forced,
 			strings.Join(mentions, "; "),
 		)
 	}
 
 	return fmt.Sprintf(
-		"go mod tidy re-raises the directive to go %s: no listed dependency carries the floor; the standard library (e.g. encoding/json/v2) is the likely forcer",
+		"go mod tidy re-raises the directive to go %s: no listed dependency carries the floor; "+
+			"the standard library (e.g. encoding/json/v2) is the likely forcer",
 		forced,
 	)
 }
@@ -121,9 +123,9 @@ type vendorModuleFloor struct {
 // to load the module graph at all ("inconsistent vendoring").
 func vendorModuleFloors(content string) []vendorModuleFloor {
 	var (
-		floors   = make([]vendorModuleFloor, 0, 2)
-		path     string
-		version  string
+		floors  = make([]vendorModuleFloor, 0)
+		path    string
+		version string
 	)
 
 	for line := range strings.SplitSeq(content, "\n") {
@@ -185,17 +187,19 @@ func readVendorModuleFloors(dir string) ([]vendorModuleFloor, bool) {
 // maxVendorFloor reduces vendored floors to the enforced floor and the
 // vendored modules carrying it, named as path@version.
 func maxVendorFloor(floors []vendorModuleFloor) (surface.GoVersion, []string) {
-	var (
-		floor    surface.GoVersion
-		carriers []string
-	)
+	var floor surface.GoVersion
 
-	for _, v := range floors {
-		switch {
-		case floor == "" || surface.GreaterVersion(string(v.Floor), string(floor)):
-			floor, carriers = v.Floor, []string{string(v.Module) + "@" + string(v.Version)}
-		case v.Floor == floor:
-			carriers = append(carriers, string(v.Module)+"@"+string(v.Version))
+	for _, vendored := range floors {
+		if floor == "" || surface.GreaterVersion(string(vendored.Floor), string(floor)) {
+			floor = vendored.Floor
+		}
+	}
+
+	carriers := make([]string, 0, len(floors))
+
+	for _, vendored := range floors {
+		if vendored.Floor == floor {
+			carriers = append(carriers, string(vendored.Module)+"@"+string(vendored.Version))
 		}
 	}
 

@@ -239,7 +239,7 @@ func TestAnalyzeFloors_VendorSkewResolvesFromAnnotations(t *testing.T) {
 	)
 
 	run := fakeRunner(func(string, []string) (string, error) {
-		return "", errors.New("go: inconsistent vendoring in " + root)
+		return "", errFakeList
 	})
 
 	rows, err := AnalyzeFloors(context.Background(), root, run)
@@ -251,8 +251,13 @@ func TestAnalyzeFloors_VendorSkewResolvesFromAnnotations(t *testing.T) {
 	assert.Equal(t, surface.GoVersion("1.27.1"), row.MaxDepFloor)
 	assert.True(t, row.Poisoned)
 	require.Len(t, row.PoisonerFloors, 2)
-	assert.Equal(t, surface.ModulePath("github.com/larsartmann/go-sse"), row.PoisonerFloors[0].Module)
-	assert.Equal(t, surface.ModulePath("github.com/larsartmann/go-cqrs-lite/record/v4"), row.PoisonerFloors[1].Module)
+	assert.Equal(
+		t,
+		surface.ModulePath("github.com/larsartmann/go-cqrs-lite/record/v4"),
+		row.PoisonerFloors[0].Module,
+		"equal floors tie-break by module path",
+	)
+	assert.Equal(t, surface.ModulePath("github.com/larsartmann/go-sse"), row.PoisonerFloors[1].Module)
 }
 
 func TestAnalyzeFloors_ListFailureWithoutVendorRecordsError(t *testing.T) {
