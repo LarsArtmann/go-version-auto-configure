@@ -14,6 +14,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   - `who-forces` gains the same vendor fallback: a module whose listing fails on inconsistent vendoring reports `maxDepFloor`/`poisonerFloors` from the annotations instead of a per-module error (dnsblockd: error row with fail-closed exit 2 became a resolved row, exit 0).
 - `fix --json` dep-forced entries carry an optional additive `cause` field (schema stays 2 per the additive-fields policy) explaining floors no listed dependency carries; the human report prints it in place of the generic "poisoner resolution unavailable" line.
 - Warning-severity lint findings cleared from `pkg/fix` while touching it (`envWithout` via `slices.Contains`, wsl whitespace).
+- **`nix build` failed: the go-modules FOD ran go 1.26.7 against the `go 1.27` floor.** The pinned go-nix-helpers (c42fd77) defaults `goPkgAttr` to `"go_1_26"` (the null auto-newest default landed after the pin), and `GOTOOLCHAIN=local` forbids the toolchain switch in the sandbox — "go.mod requires go >= 1.27 (running go 1.26.7)". `flake.nix` now pins `goPkgAttr = "go_1_27"` (locked nixpkgs ships 1.27.1); `nix build .#go-version-auto-configure` green with the stamped version line. This was the chronic nix-hash-fix/nix-build red in BuildFlow history (12/12 consecutive failures).
 
 ## [0.2.2] - 2026-09-25
 
