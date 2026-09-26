@@ -12,6 +12,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"slices"
 	"strings"
 
 	atomicwrite "github.com/larsartmann/go-atomic-write"
@@ -50,6 +51,11 @@ type DepForced struct {
 	// Poisoners names the dependencies carrying that floor; nil when they
 	// could not be resolved.
 	Poisoners []string
+	// Cause explains the forced floor when no listed dependency carries it
+	// (a replace target, a vendored module, or the standard library's own
+	// floor, e.g. encoding/json/v2 requiring the toolchain patch); empty for
+	// the ordinary poisoner-carried case.
+	Cause string
 }
 
 // FailureCause explains why one fix could not be applied or verified.
@@ -78,13 +84,16 @@ func (r *Result) Report() string {
 	for _, d := range r.DepForced {
 		fmt.Fprintf(&b, "\n  dep-forced: %s", d.Fix.Describe())
 
-		if len(d.Poisoners) > 0 {
+		switch {
+		case len(d.Poisoners) > 0:
 			fmt.Fprintf(&b, "\n              floor go %s is forced by: %s", d.Floor, strings.Join(d.Poisoners, ", "))
 			fmt.Fprintf(
 				&b,
 				"\n              fix supply-side: re-tag those modules with a major.minor-only go directive, then bump consumers",
 			)
-		} else {
+		case d.Cause != "":
+			fmt.Fprintf(&b, "\n              %s", d.Cause)
+		default:
 			fmt.Fprintf(
 				&b,
 				"\n              floor go %s is forced by dependencies (poisoner resolution unavailable)",
@@ -227,12 +236,11 @@ func envWithout(keys ...string) []string {
 		}
 
 		drop := false
-		for _, k := range keys {
-			if key == k {
-				drop = true
 
-				break
-			}
+		if slices.Contains(keys, key) {
+			drop = true
+
+			break
 		}
 		if !drop {
 			kept = append(kept, entry)
@@ -275,6 +283,7 @@ func Apply(ctx context.Context, root string, fixes []surface.Fix, opts Options, 
 					Fix:       fx,
 					Floor:     depForced.Floor,
 					Poisoners: depForced.Poisoners,
+					Cause:     depForced.Cause,
 				})
 
 				continue
@@ -399,12 +408,27 @@ func verifyDirectiveMatches(content string, want surface.GoVersion) error {
 	return nil
 }
 
-// classifyGateRejection reverts-context classification of a dirty gate: it
-// names the dependency floor and its carriers when the module is
-// dep-forced, and falls back to the gate output otherwise.
+// classifyGateRejection classifies a dirty gate: it names the dependency
+// floor and its carriers when the module is dep-forced. `go list -m` is not
+// the only floor authority: the tidy diff itself names the directive tidy
+// would re-raise (forced by a replaced local module or by the standard
+// library's own floor when no listed requirement carries it), and a
+// vendored tree carries its floors in vendor/modules.txt annotations when a
+// skewed vendor directory makes `go list` refuse the graph. Anything still
+// unexplained is a plain failure.
 func classifyGateRejection(ctx context.Context, abs string, fx surface.Fix, run GoCommandRunner, g gateResult) error {
 	floor, poisoners, listErr := resolveDepFloor(ctx, filepath.Dir(abs), run)
+
+	listedExceedsTarget := listErr == nil && floor != "" && surface.GreaterVersion(string(floor), string(fx.To))
+
+	forced := forcedFloorFromTidyDiff(g.Stdout)
+	forcedExceedsTarget := forced != "" && surface.GreaterVersion(string(forced), string(fx.To))
+
 	switch {
+	case listedExceedsTarget:
+		return &DepForcedError{Fix: fx, Floor: floor, Poisoners: poisoners}
+	case forcedExceedsTarget:
+		return &DepForcedError{Fix: fx, Floor: forced, Cause: depForcedCause(g.Detail, forced)}
 	case listErr != nil:
 		return fmt.Errorf(
 			"%w and the dependency graph could not be listed: %w; gate: %s",
@@ -412,8 +436,6 @@ func classifyGateRejection(ctx context.Context, abs string, fx surface.Fix, run 
 			listErr,
 			g.Detail,
 		)
-	case floor != "" && surface.GreaterVersion(string(floor), string(fx.To)):
-		return &DepForcedError{Fix: fx, Floor: floor, Poisoners: poisoners}
 	default:
 		return fmt.Errorf("%w (dependency floor %s does not exceed the target): %s", errGateNotClean, floor, g.Detail)
 	}
@@ -433,6 +455,14 @@ func resolveDepFloor(ctx context.Context, dir string, run GoCommandRunner) (surf
 		// dependencies carrying it stay nameable in the dep-forced report.
 		out, err = run(ctx, dir, "list", "-m", "-e", "-f", "{{.Path}} {{.Version}} {{.GoVersion}}", "all")
 		if err != nil {
+			// A vendored tree can refuse BOTH listings when vendor/
+			// modules.txt is skewed against go.mod ("in vendor/modules.txt
+			// requires go >= X"); the annotations still record every
+			// vendored module's true floor.
+			if floor, carriers, ok := readVendorAnnotationFloor(dir); ok {
+				return floor, carriers, nil
+			}
+
 			return "", nil, fmt.Errorf("list dependency floors: %w", err)
 		}
 	}

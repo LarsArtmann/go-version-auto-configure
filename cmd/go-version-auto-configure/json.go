@@ -66,10 +66,13 @@ type checkDocument struct {
 
 // jsonDepForced is one tidy-reverted fix with the floor that forced it.
 // Schema 2 removed `poisoners`; who-forces --json names the carriers with
-// their floors (poisonerFloors).
+// their floors (poisonerFloors). `cause` (added additively, schema stays 2)
+// explains floors no listed dependency carries: replace targets, vendored
+// modules, or the standard library's own floor.
 type jsonDepForced struct {
 	Fix   jsonFix `json:"fix"`
 	Floor string  `json:"floor"`
+	Cause string  `json:"cause,omitempty"`
 }
 
 // jsonFailure is one fix that could not be applied or verified.
@@ -218,6 +221,7 @@ func toJSONFixRepo(outcome fixOutcome) jsonFixRepo {
 		repo.DepForced = append(repo.DepForced, jsonDepForced{
 			Fix:   *toFixJSON(&d.Fix),
 			Floor: string(d.Floor),
+			Cause: d.Cause,
 		})
 	}
 
