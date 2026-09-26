@@ -214,3 +214,61 @@ func TestAnalyzeFloors_DiscoverFailureAborts(t *testing.T) {
 	_, err := AnalyzeFloors(context.Background(), filepath.Join(t.TempDir(), "gone"), run)
 	require.Error(t, err)
 }
+
+func TestAnalyzeFloors_VendorSkewResolvesFromAnnotations(t *testing.T) {
+	t.Parallel()
+
+	root := t.TempDir()
+	seedGoMod(t, root, "1.27")
+
+	require.NoError(t, os.MkdirAll(filepath.Join(root, "vendor"), 0o755))
+	require.NoError(
+		t,
+		os.WriteFile(
+			filepath.Join(root, "vendor", "modules.txt"),
+			[]byte(
+				"# github.com/larsartmann/go-sse v0.6.1\n"+
+					"## explicit; go 1.27.1\n"+
+					"# github.com/charmbracelet/x/ansi v0.1.2\n"+
+					"## explicit; go 1.24.0\n"+
+					"# github.com/larsartmann/go-cqrs-lite/record/v4 v4.5.1\n"+
+					"## explicit; go 1.27.1\n",
+			),
+			0o644,
+		),
+	)
+
+	run := fakeRunner(func(string, []string) (string, error) {
+		return "", errors.New("go: inconsistent vendoring in " + root)
+	})
+
+	rows, err := AnalyzeFloors(context.Background(), root, run)
+	require.NoError(t, err)
+	require.Len(t, rows, 1)
+
+	row := rows[0]
+	assert.Empty(t, row.Error, "the vendored annotations resolve what the skewed graph hides")
+	assert.Equal(t, surface.GoVersion("1.27.1"), row.MaxDepFloor)
+	assert.True(t, row.Poisoned)
+	require.Len(t, row.PoisonerFloors, 2)
+	assert.Equal(t, surface.ModulePath("github.com/larsartmann/go-sse"), row.PoisonerFloors[0].Module)
+	assert.Equal(t, surface.ModulePath("github.com/larsartmann/go-cqrs-lite/record/v4"), row.PoisonerFloors[1].Module)
+}
+
+func TestAnalyzeFloors_ListFailureWithoutVendorRecordsError(t *testing.T) {
+	t.Parallel()
+
+	root := t.TempDir()
+	seedGoMod(t, root, "1.26")
+
+	run := fakeRunner(func(string, []string) (string, error) {
+		return "", errFakeList
+	})
+
+	rows, err := AnalyzeFloors(context.Background(), root, run)
+	require.NoError(t, err)
+	require.Len(t, rows, 1)
+
+	assert.NotEmpty(t, rows[0].Error, "without vendor annotations the per-module listing error stands")
+	assert.False(t, rows[0].Poisoned)
+}

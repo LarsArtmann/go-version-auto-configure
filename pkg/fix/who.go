@@ -89,37 +89,65 @@ func AnalyzeFloors(ctx context.Context, root string, run GoCommandRunner) ([]Mod
 }
 
 // floorsForModule lists one module's dependency graph and extracts its
-// floor matrix row.
+// floor matrix row. A vendor directory skewed against go.mod ("inconsistent
+// vendoring") makes `go list` refuse the graph; the modules.txt
+// annotations still record every vendored floor and resolve the row then.
 func floorsForModule(ctx context.Context, root string, m surface.ModuleDirective, run GoCommandRunner) ModuleFloors {
 	row := ModuleFloors{Path: m.Path, Kind: m.Kind, Module: m.Module, Directive: m.Version}
 
 	dir := filepath.Join(root, filepath.Dir(m.Path))
 
+	var forcers []PoisonerFloor
+
 	out, err := run(ctx, dir, "list", "-m", "-f", "{{.GoVersion}}\t{{.Path}}\t{{.Version}}", "all")
 	if err != nil {
-		row.Error = FailureCause(err.Error())
+		vendored, ok := readVendorModuleFloors(dir)
+		if !ok {
+			row.Error = FailureCause(err.Error())
 
-		return row
+			return row
+		}
+
+		for _, v := range vendored {
+			accumulateFloor(&row, &forcers, v.Floor, v.Module, v.Version)
+		}
+
+		return finalizeFloors(row, forcers)
 	}
-
-	var forcers []PoisonerFloor
 
 	for line := range strings.SplitSeq(strings.TrimSuffix(out, "\n"), "\n") {
 		floor, dep, version, ok := parseFloorLine(line, m.Module)
-
 		if !ok {
 			continue
 		}
 
-		if row.MaxDepFloor == "" || surface.GreaterVersion(string(floor), string(row.MaxDepFloor)) {
-			row.MaxDepFloor = floor
-		}
-
-		if surface.GreaterVersion(string(floor), string(row.Directive)) {
-			forcers = append(forcers, PoisonerFloor{Module: dep, Version: version, Floor: floor})
-		}
+		accumulateFloor(&row, &forcers, floor, dep, version)
 	}
 
+	return finalizeFloors(row, forcers)
+}
+
+// accumulateFloor folds one dependency floor triple into the row's max
+// floor and forcer list.
+func accumulateFloor(
+	row *ModuleFloors,
+	forcers *[]PoisonerFloor,
+	floor surface.GoVersion,
+	dep surface.ModulePath,
+	version ModuleVersion,
+) {
+	if row.MaxDepFloor == "" || surface.GreaterVersion(string(floor), string(row.MaxDepFloor)) {
+		row.MaxDepFloor = floor
+	}
+
+	if surface.GreaterVersion(string(floor), string(row.Directive)) {
+		*forcers = append(*forcers, PoisonerFloor{Module: dep, Version: version, Floor: floor})
+	}
+}
+
+// finalizeFloors marks poisoning and orders the forcers highest floor
+// first.
+func finalizeFloors(row ModuleFloors, forcers []PoisonerFloor) ModuleFloors {
 	row.Poisoned = surface.GreaterVersion(string(row.MaxDepFloor), string(row.Directive))
 
 	if row.Poisoned {

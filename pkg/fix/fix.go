@@ -459,7 +459,9 @@ func resolveDepFloor(ctx context.Context, dir string, run GoCommandRunner) (surf
 			// modules.txt is skewed against go.mod ("in vendor/modules.txt
 			// requires go >= X"); the annotations still record every
 			// vendored module's true floor.
-			if floor, carriers, ok := readVendorAnnotationFloor(dir); ok {
+			if vendored, ok := readVendorModuleFloors(dir); ok {
+				floor, carriers := maxVendorFloor(vendored)
+
 				return floor, carriers, nil
 			}
 

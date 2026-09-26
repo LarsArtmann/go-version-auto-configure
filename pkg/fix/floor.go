@@ -101,21 +101,27 @@ func depForcedCause(detail string, forced surface.GoVersion) string {
 	)
 }
 
-// vendorAnnotationFloor extracts the highest dependency go floor recorded in
-// a vendor/modules.txt, together with the vendored modules carrying it. Each
-// stanza names the module on a `# path version` header and, for explicit
-// requirements, the floor on a `## explicit; go X` annotation:
+// vendorModuleFloor is one vendored dependency's recorded go floor.
+type vendorModuleFloor struct {
+	Module  surface.ModulePath
+	Version ModuleVersion
+	Floor   surface.GoVersion
+}
+
+// vendorModuleFloors extracts every dependency go floor recorded in a
+// vendor/modules.txt. Each stanza names the module on a `# path version`
+// header and, for explicit requirements, the floor on a
+// `## explicit; go X` annotation:
 //
 //	# github.com/x/dep v4.4.0
 //	## explicit; go 1.27.1
 //
 // The annotations record exactly what the vendored graph requires, so they
-// resolve the floor when a skewed vendor tree makes `go list -m` refuse to
-// load the module graph at all.
-func vendorAnnotationFloor(content string) (surface.GoVersion, []string) {
+// resolve floors when a skewed vendor directory makes `go list -m` refuse
+// to load the module graph at all ("inconsistent vendoring").
+func vendorModuleFloors(content string) []vendorModuleFloor {
 	var (
-		floor    surface.GoVersion
-		carriers = make([]string, 0, 2)
+		floors   = make([]vendorModuleFloor, 0, 2)
 		path     string
 		version  string
 	)
@@ -134,16 +140,15 @@ func vendorAnnotationFloor(content string) (surface.GoVersion, []string) {
 				continue
 			}
 
-			switch {
-			case floor == "" || surface.GreaterVersion(annotated, string(floor)):
-				floor, carriers = surface.GoVersion(annotated), []string{path + "@" + version}
-			case surface.GoVersion(annotated) == floor:
-				carriers = append(carriers, path+"@"+version)
-			}
+			floors = append(floors, vendorModuleFloor{
+				Module:  surface.ModulePath(path),
+				Version: ModuleVersion(version),
+				Floor:   surface.GoVersion(annotated),
+			})
 		}
 	}
 
-	return floor, carriers
+	return floors
 }
 
 // annotationGoVersion pulls the `go X` suffix off a modules.txt annotation
@@ -163,16 +168,36 @@ func annotationGoVersion(annotation string) (string, bool) {
 	return version, true
 }
 
-// readVendorAnnotationFloor resolves the dependency floor from the
+// readVendorModuleFloors reads the vendored dependency floors from the
 // vendor/modules.txt under dir. ok is false when the file is absent or
 // records no go annotations, leaving the verdict to the caller.
-func readVendorAnnotationFloor(dir string) (floor surface.GoVersion, carriers []string, ok bool) {
+func readVendorModuleFloors(dir string) ([]vendorModuleFloor, bool) {
 	data, err := os.ReadFile(filepath.Join(dir, "vendor", "modules.txt"))
 	if err != nil {
-		return "", nil, false
+		return nil, false
 	}
 
-	floor, carriers = vendorAnnotationFloor(string(data))
+	floors := vendorModuleFloors(string(data))
 
-	return floor, carriers, floor != ""
+	return floors, len(floors) > 0
+}
+
+// maxVendorFloor reduces vendored floors to the enforced floor and the
+// vendored modules carrying it, named as path@version.
+func maxVendorFloor(floors []vendorModuleFloor) (surface.GoVersion, []string) {
+	var (
+		floor    surface.GoVersion
+		carriers []string
+	)
+
+	for _, v := range floors {
+		switch {
+		case floor == "" || surface.GreaterVersion(string(v.Floor), string(floor)):
+			floor, carriers = v.Floor, []string{string(v.Module) + "@" + string(v.Version)}
+		case v.Floor == floor:
+			carriers = append(carriers, string(v.Module)+"@"+string(v.Version))
+		}
+	}
+
+	return floor, carriers
 }
