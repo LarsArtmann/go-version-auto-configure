@@ -58,28 +58,28 @@
 
 ## f) Next tasks (ranked; feeds docs-health HARVEST)
 
-| # | Task | Repo | Impact | Effort | Category |
-|---|------|------|--------|--------|----------|
-| 1 | Coordinated re-tag campaign for go-cqrs-lite v4 family (~27 modules, `go 1.27.1` floors) — the largest pending poisoner, blocks 7+ consumers | go-cqrs-lite | Critical | L | Release |
-| 2 | Re-tag go-health-dashboard with minor-form floor (master already settled) so its consumers (DiscordSync et al.) can settle | dashboard | High | S | Release |
-| 3 | Re-tag go-etag + go-sse (minor-form floors) | go-etag, go-sse | High | S | Release |
-| 4 | v0.2.3: classification fix — std json/v2-only floor (tidy wants raise, `go list` shows no module forcer) → dep-forced, not FAILED; fixture from projects-management-automation/pkg/domain | this repo | High | M | Bug |
-| 5 | v0.2.3: classification fix — vendor-mode `go list` failure → parse `vendor/modules.txt` `## explicit; go X` as fallback floor; fixture from dnsblockd | this repo | High | M | Bug |
-| 6 | Fix BuildFlow S87 row text v0.2.1 → v0.2.2 (one string) | BuildFlow | Low | S | Docs |
-| 7 | Decide BuildFlow defense retirement (GoWorkFloorFinding + DependsOn) now the fixer is active | BuildFlow | Medium | S | Decision |
-| 8 | After poisoner re-tags: re-run the 12-importer sweep; expect 7 dep-forced → clean transitions | fleet | High | M | Quality |
-| 9 | Add a "release gates = CI jobs" checklist to this repo's release flow (read .github/workflows first; document in AGENTS or a release checklist doc) | this repo | Medium | S | Process |
-| 10 | Investigate the `nix fmt` "(2 changed)" counter anomaly on the dashboard (or document it as known-benign) | dashboard | Low | S | Bug |
-| 11 | Re-verify T1 consumer campaign baseline (36/48 drifted repos from 2026-09-22) against today's state; update ADR appendix counts | this repo | Medium | M | Docs |
-| 12 | pkg.go.dev listing check for v0.2.1/v0.2.2 (T3 open row) | this repo | Low | S | Docs |
-| 13 | go-health: `/version` endpoint helper (their TODO Open row — their session, listed so it isn't lost) | go-health | Medium | M | Feature |
-| 14 | Dashboard dependabot PR run red (pre-existing, noticed this session) — their triage, not touched | dashboard | Low | S | Bug |
-| 15 | Consider a `check --deps` flag (reuse AnalyzeFloors) so check can pre-classify dep-forced patch forms without the gate — closes the honesty gap fully instead of via the caveat note | this repo | Medium | L | Feature |
-| 16 | CI YAML comment false-positive audit: `scanCIPins` is line-anchored (`^go-version:`) so YAML `#` comments cannot match — write the fixture proving it, cheap insurance after the Nix FP | this repo | Low | S | Quality |
-| 17 | Fleet CI lint-drift scan: two repos (this one at v0.2.1, dashboard pre-session) went red from golangci-lint@latest drift; consider pinning the lint version in workflows fleet-wide | fleet | Medium | M | Process |
-| 18 | Status-report correction appendix pattern worked well — make it a standing rule in AGENTS (corrections append, never rewrite) | this repo | Low | S | Docs |
+| #  | Task                                                                                                                                                                                      | Repo            | Impact   | Effort | Category |
+| -- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------- | -------- | ------ | -------- |
+| 1  | Coordinated re-tag campaign for go-cqrs-lite v4 family (~27 modules, `go 1.27.1` floors) — the largest pending poisoner, blocks 7+ consumers                                              | go-cqrs-lite    | Critical | L      | Release  |
+| 2  | Re-tag go-health-dashboard with minor-form floor (master already settled) so its consumers (DiscordSync et al.) can settle                                                                | dashboard       | High     | S      | Release  |
+| 3  | Re-tag go-etag + go-sse (minor-form floors)                                                                                                                                               | go-etag, go-sse | High     | S      | Release  |
+| 4  | v0.2.3: classification fix — std json/v2-only floor (tidy wants raise, `go list` shows no module forcer) → dep-forced, not FAILED; fixture from projects-management-automation/pkg/domain | this repo       | High     | M      | Bug      |
+| 5  | v0.2.3: classification fix — vendor-mode `go list` failure → parse `vendor/modules.txt` `## explicit; go X` as fallback floor; fixture from dnsblockd                                     | this repo       | High     | M      | Bug      |
+| 6  | Fix BuildFlow S87 row text v0.2.1 → v0.2.2 (one string)                                                                                                                                   | BuildFlow       | Low      | S      | Docs     |
+| 7  | Decide BuildFlow defense retirement (GoWorkFloorFinding + DependsOn) now the fixer is active                                                                                              | BuildFlow       | Medium   | S      | Decision |
+| 8  | After poisoner re-tags: re-run the 12-importer sweep; expect 7 dep-forced → clean transitions                                                                                             | fleet           | High     | M      | Quality  |
+| 9  | Add a "release gates = CI jobs" checklist to this repo's release flow (read .github/workflows first; document in AGENTS or a release checklist doc)                                       | this repo       | Medium   | S      | Process  |
+| 10 | Investigate the `nix fmt` "(2 changed)" counter anomaly on the dashboard (or document it as known-benign)                                                                                 | dashboard       | Low      | S      | Bug      |
+| 11 | Re-verify T1 consumer campaign baseline (36/48 drifted repos from 2026-09-22) against today's state; update ADR appendix counts                                                           | this repo       | Medium   | M      | Docs     |
+| 12 | pkg.go.dev listing check for v0.2.1/v0.2.2 (T3 open row)                                                                                                                                  | this repo       | Low      | S      | Docs     |
+| 13 | go-health: `/version` endpoint helper (their TODO Open row — their session, listed so it isn't lost)                                                                                      | go-health       | Medium   | M      | Feature  |
+| 14 | Dashboard dependabot PR run red (pre-existing, noticed this session) — their triage, not touched                                                                                          | dashboard       | Low      | S      | Bug      |
+| 15 | Consider a `check --deps` flag (reuse AnalyzeFloors) so check can pre-classify dep-forced patch forms without the gate — closes the honesty gap fully instead of via the caveat note      | this repo       | Medium   | L      | Feature  |
+| 16 | CI YAML comment false-positive audit: `scanCIPins` is line-anchored (`^go-version:`) so YAML `#` comments cannot match — write the fixture proving it, cheap insurance after the Nix FP   | this repo       | Low      | S      | Quality  |
+| 17 | Fleet CI lint-drift scan: two repos (this one at v0.2.1, dashboard pre-session) went red from golangci-lint@latest drift; consider pinning the lint version in workflows fleet-wide       | fleet           | Medium   | M      | Process  |
+| 18 | Status-report correction appendix pattern worked well — make it a standing rule in AGENTS (corrections append, never rewrite)                                                             | this repo       | Low      | S      | Docs     |
 
-*(18 honest items; not padded to 50.)*
+_(18 honest items; not padded to 50.)_
 
 ## g) Questions I cannot answer myself
 
@@ -89,4 +89,4 @@
 
 ---
 
-*Point-in-time snapshot. Daemon picks up the commit. WAITING FOR INSTRUCTIONS.*
+_Point-in-time snapshot. Daemon picks up the commit. WAITING FOR INSTRUCTIONS._
