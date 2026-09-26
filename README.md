@@ -22,7 +22,7 @@ Worse: the drift **propagates**. `go mod tidy` copies a dependency's `go` floor 
 ## Install
 
 ```bash
-go get github.com/larsartmann/go-version-auto-configure@v0.1.0
+go get github.com/larsartmann/go-version-auto-configure@latest
 ```
 
 Or build from source:
@@ -116,4 +116,4 @@ GOEXPERIMENT=jsonv2 go build ./...
 GOEXPERIMENT=jsonv2 go test ./...
 ```
 
-Requires Go 1.26 or newer with `GOEXPERIMENT=jsonv2` (inherited from go-finding; dependencies currently force a 1.26.7 floor — see TODO_LIST.md T1).
+Requires Go 1.27 or newer with `GOEXPERIMENT=jsonv2` (inherited from go-finding; the fleet minor is pinned by [ADR-0001](docs/adr/0001-fleet-go-minor.md)).

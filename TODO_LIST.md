@@ -35,11 +35,11 @@ Published library versions carried patch-form `go` floors that re-poisoned every
 - [x] GitHub Actions CI: build + race tests + golangci-lint + dogfood gate (`check --quiet --expect-minor 1.27 .`, exit 0 required; `GOEXPERIMENT=jsonv2` in workflow env) — first run green 2026-09-22 (3m11s)
 - [x] GoReleaser config with ldflags version stamping (`pkg/version.injected={{ .Version }}`); release workflow on `v*` tags — v0.2.0 shipped 6 binaries (linux/darwin/windows × amd64/arm64 + checksums)
 - [x] v0.2.0 cut from the CHANGELOG release section; proxy-verified via `go get @v0.2.0`
-- [ ] pkg.go.dev listing appears (indexed via the proxy — 404 minutes after tagging is normal lag, not a blocker)
+- [x] pkg.go.dev listing appears — verified 2026-09-26: [pkg.go.dev/github.com/larsartmann/go-version-auto-configure](https://pkg.go.dev/github.com/larsartmann/go-version-auto-configure) lists v0.2.2 (published Sep 25, 2026)
 - [ ] Website launch (sibling-project pattern) if it earns one
 - [x] Branch protection decision for `master`: owner decided 2026-09-22 — master stays UNPROTECTED, CI runs informational (required checks would break the auto-commit daemon's direct pushes)
 - [x] Module-path casing check (`github.com/larsartmann/…` vs `LarsArtmann`) with a real `go get` — verified 2026-09-22: lowercase path resolves from the proxy (`go get github.com/larsartmann/go-version-auto-configure@v0.1.0` + the three sibling apps at their new tags)
-- [ ] Verify the README build-from-source steps in a clean environment (container/nix shell)
+- [x] Verify the README build-from-source steps in a clean environment — verified 2026-09-26: fresh clone, empty HOME/GOPATH/GOMODCACHE (`env -i`), only `GOEXPERIMENT=jsonv2` set as documented; build + `version` self-identification green. Stale README lines fixed on sight (`go get @v0.1.0` → `@latest`; "Requires Go 1.26 … 1.26.7 floor" → "Requires Go 1.27", ADR-0001 link)
 
 ## T9 — Parser coverage — PARTIALLY DONE (toolchain directives shipped; flake.lock blocked by design)
 
@@ -71,11 +71,11 @@ All twelve items shipped (see CHANGELOG Unreleased for the full list):
 - [x] BuildFlow findings gate: 3 critical branching-flow PHANTOM_TYPE findings on new `who.go` code fixed by restructuring `parseFloorLine` to return named types (`GoVersion`, `ModulePath`, `ModuleVersion`); gate now passes at `--fail-on=error`
 - [x] `buildflow doctor` run: the unavailable binaries (bandit, cargo-*, codespell, dprint, eslint, hadolint, jest, lychee, madge, …) are non-Go-ecosystem tools this Go-only repo never triggers ("not applicable", not failing); environment checks (disk, git identity, GOEXPERIMENT) green
 - [x] skip_steps WARN "go-mod-update matches no registered tool" diagnosed: cosmetic, single-step mode only — in full pipeline runs both entries skip correctly ("skipped via skip_steps config"); no tool-name drift
-- [ ] Triage the 366 go-auto-upgrade findings (grew from 265): all are testify → stdlib/testing migration suggestions on test assertions — a fleet-wide policy call (migrate off testify or keep it), not repo debt; RESOLVED BY POLICY 2026-09-22 (owner decision: keep testify; `.go-auto-upgrade.json` excludes `testifyassert` here — apply fleet-wide or leave per-repo)
+- [x] Triage the 366 go-auto-upgrade findings (grew from 265): all are testify → stdlib/testing migration suggestions on test assertions — a fleet-wide policy call (migrate off testify or keep it), not repo debt; RESOLVED BY POLICY 2026-09-22 (owner decision: keep testify; `.go-auto-upgrade.json` excludes `testifyassert` here — apply fleet-wide or leave per-repo)
 - [ ] The remaining branching-flow INDEX_OUT_OF_RANGE warnings on the worker-pool `results[i] = …` pattern are provably safe (index bounded by the range) — root cause filed as branching-flow#1; un-nolint when it closes
 - [ ] dependabot-auto-configure 2 findings remain (documented false positive, AGENTS.md known-tool-bugs)
 - [ ] forbidigo vanishing (9 `fmt.Print*` hits gone after `buildflow format`) not reproducible in the 2026-09-22 run (forbidigo findings absent from both pre- and post-format states); watch for recurrence
-- [ ] WATCH (2026-09-22): `check --json ~/projects/go-*` glob matches non-repo FILES (e.g. stray `.md` files) and reports them as empty clean repos instead of a root-not-found error — cosmetic noise in fleet sweeps; consider an `error?` row for non-directory roots
+- [x] WATCH (2026-09-22): `check --json ~/projects/go-*` glob matches non-repo FILES — RESOLVED on head, re-verified 2026-09-26: a non-directory root now reports `"error": "… root is not a directory …"` (missing roots: stat error) and the run exits 2 instead of reporting an empty clean repo
 
 ## T13 — cmdguard CLI surface migration (from the 2026-09-22 dedup session + Pareto plan) — MOSTLY DONE 2026-09-22
 
@@ -89,7 +89,7 @@ Plan: `docs/planning/2026-09-22_22-07_cmdguard-cli-surface-and-verification-plan
 - [x] WP-J: `readLines`/`rootsFrom`/`workersFor` unit tests
 - [x] WP-K: [docs/DEDUPLICATION.md](docs/DEDUPLICATION.md) baseline; post-migration art-dupl run shows zero harmful `cmd/` clones
 - [x] WP-L: triplicated worker pools consolidated into the generic `runSorted[I, R]` (also shrinks the branching-flow warning surface)
-- [ ] WP-I: who-forces child-process env — pass/normalize the toolchain so `go list` works on 1.27-floor repos from older shells (reproduce first: known failure from the 2026-09-19 dogfood)
+- [x] WP-I: who-forces child-process env — pass/normalize the toolchain so `go list` works on 1.27-floor repos from older shells — shipped 2026-09-22 as `moduleScopedExtraEnv` (GOTOOLCHAIN=auto appended when the parent pins local/nothing; explicit non-local pins inherited), regression-tested by `TestModuleScopedListSurvivesLocalOlderShell`; this box sat stale until the 2026-09-26 sweep
 - [x] WP-H: reconcile the AGENTS.md floor-policy text with the sibling plan's fleet-minor ADR (T4) outcome — done 2026-09-22 (AGENTS floor-poisoning section rewritten for the post-campaign state)
 - [x] WP-Q: go-atomic-write direct-dep tidy warning — resolved by the v0.6.0 bump (listed direct in go.mod, imported in pkg/fix)
 
@@ -109,6 +109,6 @@ Plan: `docs/planning/2026-09-22_22-07_cmdguard-cli-surface-and-verification-plan
 - [x] Fleet consumer sweep of go-health importers (2026-09-25): 12 importers — dashboard clean (v0.4.1), go-taskqueue clean, 7 dep-forced-correct (exit 0, directives legitimately held), 4 gate-protected with FAILED-instead-of-DEP-FORCED classification (zero mutations; see the two classification bugs below). Evidence: session log + docs/POISONERS.md
 - [x] BuildFlow repinned to gvac v0.2.1, rebuilt, user-profile binary installed and live-verified (dashboard step green, `buildflow version 1ba0fcb`)
 - [ ] BuildFlow: decide retiring the go-work-sync `GoWorkFloorFinding`/`RestoreGoWorkFloor` defenses + `DependsOn` ordering now that gvac v0.2.1's go-work-aware fixer is active (their TODO S87 calls the defenses a safety net pending exactly this repin)
-- [ ] Classification bug (v0.2.2 candidate): when `go mod tidy -diff` wants to raise the directive but no `go list -m` module floor exceeds the target, the std `encoding/json/v2` toolchain-patch floor is the likely forcer — classify dep-forced (std floor) instead of FAILED. Reproduce: projects-management-automation/pkg/domain
-- [ ] Classification bug (v0.2.2 candidate): vendor-mode repos — when `go list -m` fails against a skewed vendor/modules.txt, fall back to parsing `## explicit; go X` annotations for floor resolution so the outcome is dep-forced, not FAILED. Reproduce: dnsblockd
+- [x] Classification bug (shipped in Unreleased, v0.2.3 candidate; fixed + re-verified live 2026-09-26): when `go mod tidy -diff` wants to raise the directive but no `go list -m` module floor exceeds the target, the tidy diff names the enforced floor and the go tool's diagnostic names the forcer (replace target / vendored module; std library as residual explanation) — classified dep-forced, not FAILED. Reproduce fixed: projects-management-automation/pkg/domain (dep-forced at 1.27.1 naming the `../../../go-output` replace target, exit 0). Investigation note: the live forcer there is the local go-output replace, not the std json/v2 floor originally suspected
+- [x] Classification bug (shipped in Unreleased, v0.2.3 candidate; fixed + re-verified live 2026-09-26): vendor-mode repos — when `go list -m` fails against a skewed vendor/modules.txt, the `## explicit; go X` annotations resolve floor + carriers (path@version) for BOTH `fix` and `who-forces`. Reproduce fixed: dnsblockd (dep-forced at 1.27.1 naming 7 vendored carriers; who-forces error row → resolved row, exit 0)
 - [ ] Supply-side re-tags pending (2026-09-25 sweep discovery, largest impact first): go-cqrs-lite v4 family (~27 modules), go-health-dashboard v0.10.x, go-etag, go-sse — all still ship `go 1.27.1` floors; see docs/POISONERS.md
