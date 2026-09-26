@@ -45,9 +45,13 @@
         vendorHash = "sha256-QBj4D9EQtEkzPWnVtg/KQi1c/oC5rZSxTPJS6u8JXTw=";
         description = "Detects and auto-fixes Go toolchain version-surface drift across the fleet";
 
-        # ADR-0001: the fleet minor is 1.27. go.mod declares `go 1.27`; the
-        # module's goPkgAttr auto default resolves the newest nixpkgs
-        # toolchain (go_1_27), which satisfies that floor.
+        # ADR-0001: the fleet minor is 1.27 and go.mod declares `go 1.27`.
+        # The pinned go-nix-helpers (c42fd77) defaults goPkgAttr to "go_1_26"
+        # (the null auto-newest default landed after the pin), and the FOD
+        # runs GOTOOLCHAIN=local — so the go-modules derivation died with
+        # "go.mod requires go >= 1.27 (running go 1.26.7)" (2026-09-26).
+        # Pin the branch explicitly; the locked nixpkgs ships go_1_27 = 1.27.1.
+        goPkgAttr = "go_1_27";
 
         enableTempl = false;
         enableGoimports = false;
