@@ -8,6 +8,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Fixed
 
+- Nothing yet.
+
+## [0.2.3] - 2026-09-27
+
+### Fixed
+
 - **Dep-forced classification no longer fails when `go list -m` cannot name the forcer** (the two T14 bugs from the 2026-09-25 go-health sweep, both reproduced live and re-verified after the fix):
   - When `go mod tidy -diff` re-raises the directive but no listed module carries the floor, the fix is classified dep-forced instead of FAILED. The tidy diff names the enforced floor; the go tool's diagnostic ("X requires go >= Y") names the forcer when it can (a replaced local module, a vendored dependency), and the standard library (e.g. encoding/json/v2 requiring the toolchain patch) is the documented residual explanation. Fixed case: projects-management-automation/pkg/domain was FAILED with "dependency floor 1.27 does not exceed the target"; now dep-forced at floor 1.27.1 naming the `../../../go-output` replace target, exit 0.
   - Vendor-mode repos: when a vendor/modules.txt skewed against go.mod refuses BOTH `go list -m` and `go list -m -e`, the `## explicit; go X` annotations resolve the floor and its carriers (named as path@version). Fixed case: dnsblockd was FAILED ("dependency graph could not be listed"); now dep-forced at floor 1.27.1 naming the seven vendored carriers (cqrs-htmx/oauth2, go-cqrs-lite claiming/dedup/metaengine/sqliteengine/metaengine/record, go-sse), exit 0.
