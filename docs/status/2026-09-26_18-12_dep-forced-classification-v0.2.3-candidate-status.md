@@ -33,7 +33,7 @@
 
 **6. Ghost systems?** None added. Every new symbol (`forcedFloorFromTidyDiff`, `gateForcerMentions`, `depForcedCause`, `vendorModuleFloors`, `readVendorModuleFloors`, `maxVendorFloor`, `listDependencyFloors`, `accumulateFloor`, `finalizeFloors`) is on the live classification path, exercised by tests and the two live repros. Nothing removed that was useful.
 
-**7. Split brains?** One small, pre-existing, now slightly worse: **four floor-line parsers** coexist — `resolveDepFloor` (space-separated `go list` format), `parseFloorLine` in who.go (TAB-separated `go list` format), `vendorModuleFloors` (modules.txt stanzas), `forcedFloorFromTidyDiff` (diff lines). Each parses a genuinely different source format (not a true clone), but the *concept* "one dependency floor triple" has no shared model; `vendorModuleFloor` partially is one. A `depFloor{Module, Version, Floor}` model shared by who.go and floor.go would collapse two of them. Also: flake.nix's `goPkgAttr` knowledge vs go-nix-helpers HEAD's auto-default — the pin comment now documents the divergence instead of the pin being bumped (deliberate, minimal-risk).
+**7. Split brains?** One small, pre-existing, now slightly worse: **four floor-line parsers** coexist — `resolveDepFloor` (space-separated `go list` format), `parseFloorLine` in who.go (TAB-separated `go list` format), `vendorModuleFloors` (modules.txt stanzas), `forcedFloorFromTidyDiff` (diff lines). Each parses a genuinely different source format (not a true clone), but the _concept_ "one dependency floor triple" has no shared model; `vendorModuleFloor` partially is one. A `depFloor{Module, Version, Floor}` model shared by who.go and floor.go would collapse two of them. Also: flake.nix's `goPkgAttr` knowledge vs go-nix-helpers HEAD's auto-default — the pin comment now documents the divergence instead of the pin being bumped (deliberate, minimal-risk).
 
 ---
 
@@ -74,6 +74,7 @@
 ## d) TOTALLY FUCKED UP
 
 Nothing in this session's work is broken (suite + race + gates + two live repros green; tree clean). Pre-existing broken things noticed:
+
 1. **go-licenses** cannot handle std packages under the current dep graph (google/go-licenses#128) — intermittent red gate, upstream-blocked.
 2. **Auto-commit history quality** — the entire v0.2.3 candidate landed as "chore: auto-commit N files (heuristic)" commits; `git bisect`/archaeology value ≈ 0 (fleet-accepted, still bad).
 3. **Stale LSP diagnostics panel** (27 phantom warnings incl. "unused" symbols that are used) — environment noise, ignored rightly, never refreshed.
