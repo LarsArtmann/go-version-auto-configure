@@ -207,7 +207,62 @@ func TestJSONWireContractGoldens(t *testing.T) {
 		},
 	}, jsonGolden(t, "fix", "--dry-run", "--json", drifted), "fix --json golden (held-back)")
 
+	forced := seedDepForcedRepo(t, "example.com/poisoner")
+
+	assert.Equal(t, map[string]any{
+		"schema": float64(2),
+		"repos": []any{
+			map[string]any{
+				"root":     "<ROOT>",
+				"applied":  []any{},
+				"heldBack": []any{},
+				"depForced": []any{
+					map[string]any{
+						"fix": map[string]any{
+							"file": "go.mod", "kind": "go.mod",
+							"from": "1.26.7", "to": "1.26", "line": float64(3),
+						},
+						"floor": "1.27.1",
+					},
+				},
+				"failures":  []any{},
+				"suggested": []any{},
+				"discovery": []any{},
+			},
+		},
+	}, jsonGolden(t, "fix", "--json", forced), "fix --json golden (dep-forced: floor present, cause absent when the carrier is listed)")
+
 	clean := seedCleanRepo(t)
+
+	assert.Equal(t, map[string]any{
+		"schema": float64(2),
+		"repos": []any{
+			map[string]any{
+				"root":  "<ROOT>",
+				"clean": true,
+				"counts": map[string]any{
+					"total": float64(0), "mechanical": float64(0),
+					"suggested": float64(0), "discovery": float64(0),
+				},
+				"findings": []any{},
+			},
+		},
+	}, jsonGolden(t, "check", "--json", clean), "check --json clean-state snapshot")
+
+	assert.Equal(t, map[string]any{
+		"schema": float64(2),
+		"repos": []any{
+			map[string]any{
+				"root":      "<ROOT>",
+				"applied":   []any{},
+				"heldBack":  []any{},
+				"depForced": []any{},
+				"failures":  []any{},
+				"suggested": []any{},
+				"discovery": []any{},
+			},
+		},
+	}, jsonGolden(t, "fix", "--json", clean), "fix --json clean-state snapshot")
 
 	assert.Equal(t, map[string]any{
 		"schema": float64(2),

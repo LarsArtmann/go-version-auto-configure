@@ -4,6 +4,7 @@ import (
 	"encoding/json/v2"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 
@@ -33,6 +34,58 @@ func seedCleanRepo(t *testing.T) string {
 	writeFile(t, root, "go.mod", "module example.com/m\n\ngo 1.26\n")
 
 	return root
+}
+
+// depForcedFloor is the patch floor the seeded poisoner forces; a running
+// toolchain at or above it is a prerequisite for the real-gate fixtures.
+const depForcedFloor = "1.27.1"
+
+// skipBelowFloor skips real-gate fixtures when the running toolchain cannot
+// load the seeded poisoner (floor 1.27.1): `go list -m` would fail on the
+// very module the fixture exists to name.
+func skipBelowFloor(t *testing.T) {
+	t.Helper()
+
+	running := strings.TrimPrefix(runtime.Version(), "go")
+	if surface.GreaterVersion(depForcedFloor, running) {
+		t.Skipf("fixture poisoner forces go %s; running toolchain is %s", depForcedFloor, running)
+	}
+}
+
+// seedDepForcedRepo writes an offline-safe dep-forced pair: a consumer with
+// a patch-form directive whose replaced local dependency carries a higher
+// floor, so `go mod tidy -diff` reverts any strip — no network needed. The
+// replace-to-local shape is the recorded go-output v0.38.2 incident class
+// (docs/POISONERS.md, 2026-10-02) in miniature: poisonerModule names the
+// carrier under test.
+func seedDepForcedRepo(t *testing.T, poisonerModule string) string {
+	t.Helper()
+
+	skipBelowFloor(t)
+
+	root := t.TempDir()
+
+	poisoner := filepath.Join(root, "poisoner")
+	consumer := filepath.Join(root, "consumer")
+	require.NoError(t, os.MkdirAll(poisoner, 0o755))
+	require.NoError(t, os.MkdirAll(consumer, 0o755))
+
+	writeFile(t, poisoner, "go.mod", "module "+poisonerModule+"\n\ngo "+depForcedFloor+"\n")
+	writeFile(t, poisoner, "poisoner.go", "package poisoner\n\n// Version is the module's released tag.\nconst Version = \"v0.38.2\"\n")
+	writeFile(
+		t,
+		consumer,
+		"go.mod",
+		"module example.com/consumer\n\ngo 1.26.7\n\nrequire "+poisonerModule+" v0.0.0\n\nreplace "+poisonerModule+" => ../poisoner\n",
+	)
+	writeFile(
+		t,
+		consumer,
+		"main.go",
+		"package main\n\nimport (\n\t\"fmt\"\n\n\t\""+poisonerModule+"\"\n)\n\nfunc main() { fmt.Println(poisoner.Version) }\n",
+	)
+
+	return consumer
 }
 
 func writeFile(t *testing.T, root, rel, content string) {
@@ -87,6 +140,42 @@ func TestRun_VersionAndUsage(t *testing.T) {
 	assert.Equal(t, exitOK, run([]string{"-version"}, &strings.Builder{}))
 	assert.Equal(t, exitError, run(nil, &strings.Builder{}))
 	assert.Equal(t, exitError, run([]string{"nonsense"}, &strings.Builder{}))
+}
+
+// TestRun_FixDepForcedNamesCarrierAndExitsZero replays the go-output v0.38.2
+// incident shape (docs/POISONERS.md, 2026-10-02) against the REAL
+// dependency-floor gate, offline: the strip is reverted, the carrier is
+// named, the run still exits 0, and the go.mod is left untouched.
+func TestRun_FixDepForcedNamesCarrierAndExitsZero(t *testing.T) {
+	t.Parallel()
+
+	root := seedDepForcedRepo(t, "github.com/larsartmann/go-output")
+
+	var out strings.Builder
+
+	require.Equal(t, exitOK, run([]string{"fix", root}, &out), "dep-forced-only runs exit 0")
+	assert.Contains(t, out.String(), "dep-forced 1")
+	assert.Contains(t, out.String(), "floor go "+depForcedFloor+" is forced by: github.com/larsartmann/go-output")
+	assert.Contains(t, readGoMod(t, root), "go 1.26.7\n", "the rejected fix leaves go.mod untouched")
+}
+
+// TestRun_FixDepForcedJSONCarriesFloor locks the machine view of the same
+// incident fixture: depForced[].floor names the forced value and cause stays
+// absent while a listed dependency carries the floor.
+func TestRun_FixDepForcedJSONCarriesFloor(t *testing.T) {
+	t.Parallel()
+
+	root := seedDepForcedRepo(t, "github.com/larsartmann/go-output")
+
+	var out strings.Builder
+
+	require.Equal(t, exitOK, run([]string{"fix", "--json", root}, &out))
+
+	doc := decodeJSON[fixDoc](t, out.String())
+	require.Len(t, doc.Repos, 1)
+	require.Len(t, doc.Repos[0].DepForced, 1)
+	assert.Equal(t, depForcedFloor, doc.Repos[0].DepForced[0].Floor)
+	assert.Empty(t, doc.Repos[0].DepForced[0].Cause, "carrier-carried floors carry no cause")
 }
 
 func TestRun_CheckFindsDriftAndFixClears(t *testing.T) {
@@ -156,6 +245,10 @@ type fixDoc struct {
 		HeldBack []struct {
 			From string `json:"from"`
 		} `json:"heldBack"`
+		DepForced []struct {
+			Floor string `json:"floor"`
+			Cause string `json:"cause"`
+		} `json:"depForced"`
 		Discovery []struct {
 			Rule string `json:"rule"`
 		} `json:"discovery"`
