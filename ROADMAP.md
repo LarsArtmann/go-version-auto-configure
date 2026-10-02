@@ -73,4 +73,5 @@ Tracked here so they survive archiving; each belongs to its own repo:
 - **who-forces provenance:** add the additive `source: "vendor"|"list"` field now (schema stays 2), or freeze the wire until schema 3? (2026-09-26; implementation row in TODO_LIST T15)
 - **Testify policy fleet-wide:** apply the `.go-auto-upgrade.json` `testifyassert` exclusion to every LarsArtmann Go repo, or only where go-auto-upgrade fires? (parked since 2026-09-22)
 - **`--allow-partial` default** for who-forces in vendor-mode fleets: fail-closed default or flip? (2026-09-26)
+- **Re-tag campaign sequencing:** green light for the go-cqrs-lite ~27-module family re-tag as the next primary session, and is it one coordinated campaign (all modules + consumers in a day) or repo-by-repo as touched? Gates dnsblockd, DiscordSync, and friends. (2026-09-26, unanswered)
 - **x/text upstream engagement:** file an issue/PR proposing a minor-form floor for the permanent `go 1.26.0`, or accept-and-document? (2026-09-23)
