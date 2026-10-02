@@ -26,19 +26,19 @@
 
 ## b) PARTIALLY DONE
 
-1. **WP-P:** only re-derived from static inspection (grep) — did **not** run `buildflow` end-to-end (cqrs-lint / dependabot-auto-configure / branching-flow in vivo). The AGENTS notes now claim "re-verified 2026-09-22 (post-cmdguard migration)" on the basis of the grep alone for cqrs; the dependabot note got no fresh run at all.
-2. **WP-O:** `FLEET-STANDARD-VERSION-STAMPS.md` cross-ref appended in file-and-image-renamer but left for that repo's daemon to commit — uncommitted foreign-repo edit at session end.
-3. **Race coverage:** `-race` run once on cmd/ post-migration, but not re-run after the WP-L/WP-I changes landed.
-4. **Spike cleanup:** `/tmp/cg-spike` (module, binaries `toy`/`toy2`, `main.go.bak`) left on disk; referenced as evidence in plan §6 but never archived or noted as disposable.
-5. **Commit hygiene:** see d) — the _work_ is done but the history is daemon-generated.
+~~1. **WP-P:** only re-derived from static inspection (grep) — did **not** run `buildflow` end-to-end (cqrs-lint / dependabot-auto-configure / branching-flow in vivo). The AGENTS notes now claim "re-verified 2026-09-22 (post-cmdguard migration)" on the basis of the grep alone for cqrs; the dependabot note got no fresh run at all.~~ done — full gate green 2026-09-23 (0 findings) supersedes the grep-level caveat
+~~2. **WP-O:** `FLEET-STANDARD-VERSION-STAMPS.md` cross-ref appended in file-and-image-renamer but left for that repo's daemon to commit — uncommitted foreign-repo edit at session end.~~ done — daemon-committed; cross-ref file present in file-and-image-renamer (2026-10-03)
+~~3. **Race coverage:** `-race` run once on cmd/ post-migration, but not re-run after the WP-L/WP-I changes landed.~~ done — final gate re-ran -race green (2026-09-23)
+~~4. **Spike cleanup:** `/tmp/cg-spike` (module, binaries `toy`/`toy2`, `main.go.bak`) left on disk; referenced as evidence in plan §6 but never archived or noted as disposable.~~ done — /tmp/cg-spike cleared (gone, verified 2026-10-03)
+~~5. **Commit hygiene:** see d) — the _work_ is done but the history is daemon-generated.~~ NOT-DO — fleet-accepted daemon history; owner never requested a rewrite
 
 ## c) NOT STARTED
 
-1. **WP-H:** AGENTS.md floor-policy reconciliation with the sibling ADR — **gated** on the sibling plan's fleet-minor decision (T4).
-2. **WP-Q:** go-atomic-write direct-dep tidy warning (gopls still warns `go.mod:16:48 should be direct`) — **gated** on T4/T1 re-tags.
-3. **BuildFlow gate run:** `buildflow` (lint gate at `--fail-on=error`) was never executed this session; the golangci findings gate is unverified against the migrated `cmd/` (only `go vet` + LSP hints checked).
-4. **Fleet-standard propagation:** GOTOOLCHAIN-pin pattern not proposed to sibling auto-configurer repos (ROADMAP idea only).
-5. **Coverage measurement:** per-package coverage % not re-measured post-migration (new tests added coverage, but the 80%-bar table in T11 is now stale).
+~~1. **WP-H:** AGENTS.md floor-policy reconciliation with the sibling ADR — **gated** on the sibling plan's fleet-minor decision (T4).~~ done — WP-H AGENTS reconciliation (2026-09-22)
+~~2. **WP-Q:** go-atomic-write direct-dep tidy warning (gopls still warns `go.mod:16:48 should be direct`) — **gated** on T4/T1 re-tags.~~ done — WP-Q resolved by the go-atomic-write v0.6.0 bump
+~~3. **BuildFlow gate run:** `buildflow` (lint gate at `--fail-on=error`) was never executed this session; the golangci findings gate is unverified against the migrated `cmd/` (only `go vet` + LSP hints checked).~~ done — full BuildFlow gate green (2026-09-23, 13 findings to 0)
+~~4. **Fleet-standard propagation:** GOTOOLCHAIN-pin pattern not proposed to sibling auto-configurer repos (ROADMAP idea only).~~ routed — ROADMAP cross-repo (fleet devShell/GOTOOLCHAIN pattern doc)
+~~5. **Coverage measurement:** per-package coverage % not re-measured post-migration (new tests added coverage, but the 80%-bar table in T11 is now stale).~~ routed — TODO_LIST T16 (coverage re-measure row)
 
 ## d) TOTALLY FUCKED UP
 
@@ -62,70 +62,70 @@
 
 **Verify & close this session**
 
-1. Run the full `buildflow` gate at `--fail-on=error`; fix whatever the migrated `cmd/` trips.
-2. Re-run `-race` on cmd/ and pkg/fix after WP-L/WP-I; make it part of the standing gate.
-3. Re-measure per-package coverage; update the T11 table.
-4. Rebase/amend the daemon history into meaningful commits (or at least tag `docs/` with a session summary commit) — future `git log` readers need the migration story.
-5. Verify `-h` exit-code change against BuildFlow's help-parsing consumers (any `--help` invocation in scripts that assumed exit 2).
-6. Commit the FLEET-STANDARD cross-ref in file-and-image-renamer explicitly with a real message.
-7. Clean `/tmp/cg-spike` or archive the spike into `docs/status/`.
+~~1. Run the full `buildflow` gate at `--fail-on=error`; fix whatever the migrated `cmd/` trips.~~ done — full buildflow gate green 2026-09-23
+~~2. Re-run `-race` on cmd/ and pkg/fix after WP-L/WP-I; make it part of the standing gate.~~ done — -race green in the 2026-09-23 final gate
+~~3. Re-measure per-package coverage; update the T11 table.~~ routed — TODO_LIST T16 (coverage re-measure)
+~~4. Rebase/amend the daemon history into meaningful commits (or at least tag `docs/` with a session summary commit) — future `git log` readers need the migration story.~~ NOT-DO — owner declined history rewrite; daemon commits are fleet-accepted
+~~5. Verify `-h` exit-code change against BuildFlow's help-parsing consumers (any `--help` invocation in scripts that assumed exit 2).~~ done — breaking change documented in CHANGELOG v0.2.0; sibling checks routed ROADMAP theme 2
+~~6. Commit the FLEET-STANDARD cross-ref in file-and-image-renamer explicitly with a real message.~~ done — daemon-committed (cross-ref present in file-and-image-renamer)
+~~7. Clean `/tmp/cg-spike` or archive the spike into `docs/status/`.~~ done — /tmp/cg-spike cleared (verified gone 2026-10-03)
 
 **Blocked-but-ready (the moment the sibling ADR lands)**
-8. WP-H: reconcile AGENTS floor-policy text with the fleet-minor ADR.
-9. WP-Q: resolve the go-atomic-write `should be direct` tidy warning (T1 re-tag dependent).
-10. Fleet-wide `--expect-minor` policy value once T4 decides 1.26 vs 1.27.
-11. Re-run `check` fleet sweep after T1 re-tags; expect ~0 surviving mechanical findings.
+~~8. WP-H: reconcile AGENTS floor-policy text with the fleet-minor ADR.~~ done — WP-H shipped 2026-09-22
+~~9. WP-Q: resolve the go-atomic-write `should be direct` tidy warning (T1 re-tag dependent).~~ done — WP-Q resolved via v0.6.0
+~~10. Fleet-wide `--expect-minor` policy value once T4 decides 1.26 vs 1.27.~~ done — --expect-minor 1.27 encoded + CI dogfood gate
+~~11. Re-run `check` fleet sweep after T1 re-tags; expect ~0 surviving mechanical findings.~~ done — 48-root ADR baseline (2026-09-22)
 
 **cmd/ hardening**
-12. Close the go-atomic-write direct-dep diagnostic properly once ungated (it is the only remaining project diagnostic).
-13. Add a completion-candidate test (`go-version-auto-configure <TAB>`) — cmdguard's `WithCompletion` unused.
-14. Add a man-page smoke test (`man` command ships with fang — currently untested, unadvertised).
-15. Decide whether `completion`/`man`/`help` helper commands should be hidden from `--help` (they show today; the old usage line was curated).
-16. Golden-test the human report (not just JSON) — multi-root header/summary shape currently only field-asserted.
-17. Test the fang error handler directly: hard error prints once, findings prints zero times (currently only side-effect-verified through `run`).
-18. `fix` on a dep-forced repo end-to-end golden (depForced array shape is untested — goldens only cover heldBack).
-19. `who-forces --allow-partial` JSON golden (`allowPartial: true` wire shape untested).
-20. Poisoned-repo JSON golden via a `replace`-to-local-vendored poisoner (offline-safe) — the POISONED wire row has no golden.
-21. Windows/`GOOS` build check for cmdguard deps (fang/colorprofile) — never compiled for non-linux here.
-22. Vendor-hash / `nix build` verification: go.mod gained cmdguard + fang + cobra tree; the flake's vendorHash (if any) hasn't been rebuilt this session.
-23. `nix build` + run the built binary end-to-end once (ldflags version stamp through the new CLI).
+~~12. Close the go-atomic-write direct-dep diagnostic properly once ungated (it is the only remaining project diagnostic).~~ done — WP-Q
+~~13. Add a completion-candidate test (`go-version-auto-configure <TAB>`) — cmdguard's `WithCompletion` unused.~~ routed — TODO_LIST T16 (test-depth backlog)
+~~14. Add a man-page smoke test (`man` command ships with fang — currently untested, unadvertised).~~ routed — TODO_LIST T16 (test-depth backlog)
+~~15. Decide whether `completion`/`man`/`help` helper commands should be hidden from `--help` (they show today; the old usage line was curated).~~ routed — TODO_LIST T16 (test-depth backlog)
+~~16. Golden-test the human report (not just JSON) — multi-root header/summary shape currently only field-asserted.~~ routed — TODO_LIST T16 (test-depth backlog)
+~~17. Test the fang error handler directly: hard error prints once, findings prints zero times (currently only side-effect-verified through `run`).~~ routed — TODO_LIST T16 (test-depth backlog)
+~~18. `fix` on a dep-forced repo end-to-end golden (depForced array shape is untested — goldens only cover heldBack).~~ routed — TODO_LIST T15 (dep-forced golden / cause lock)
+~~19. `who-forces --allow-partial` JSON golden (`allowPartial: true` wire shape untested).~~ routed — TODO_LIST T15
+~~20. Poisoned-repo JSON golden via a `replace`-to-local-vendored poisoner (offline-safe) — the POISONED wire row has no golden.~~ routed — TODO_LIST T15
+~~21. Windows/`GOOS` build check for cmdguard deps (fang/colorprofile) — never compiled for non-linux here.~~ done — GoReleaser v0.2.0 shipped 6 binaries across linux/darwin/windows
+~~22. Vendor-hash / `nix build` verification: go.mod gained cmdguard + fang + cobra tree; the flake's vendorHash (if any) hasn't been rebuilt this session.~~ done — vendorHash refreshed post-bump; nix build green
+~~23. `nix build` + run the built binary end-to-end once (ldflags version stamp through the new CLI).~~ done — stamped binary verified (WP-18; re-verified green with v0.2.3)
 
 **Fleet propagation (ROADMAP theme 2)**
-24. Extract the shared kit (CommonFlags/QuietFlags/exit sentinels/silent fang handler) into a tiny module (or cmdguard contrib) for sibling auto-configurers.
-25. Migrate golangci-lint-autoconfigure to cmdguard (delete its skeleton).
-26. Migrate oxlint-auto-configure to cmdguard.
-27. Migrate dependabot-auto-configure to cmdguard.
-28. Write the fleet migration recipe (spike → flag structs → exit sentinels → goldens → guard test) from this session's notes.
-29. Check sibling repos' help/exit contracts for the same `-h` breaking change before they migrate.
+~~24. Extract the shared kit (CommonFlags/QuietFlags/exit sentinels/silent fang handler) into a tiny module (or cmdguard contrib) for sibling auto-configurers.~~ routed — ROADMAP theme 2
+~~25. Migrate golangci-lint-autoconfigure to cmdguard (delete its skeleton).~~ routed — ROADMAP theme 2
+~~26. Migrate oxlint-auto-configure to cmdguard.~~ routed — ROADMAP theme 2
+~~27. Migrate dependabot-auto-configure to cmdguard.~~ routed — ROADMAP theme 2
+~~28. Write the fleet migration recipe (spike → flag structs → exit sentinels → goldens → guard test) from this session's notes.~~ routed — ROADMAP theme 2 (recipe folded into the theme bullet)
+~~29. Check sibling repos' help/exit contracts for the same `-h` breaking change before they migrate.~~ routed — ROADMAP theme 2
 
 **Tool policy / UX**
-30. Decide the plain-`Error:` vs fang-styled hard-error tradeoff fleet-wide (roadmap: revisit when fang grows a delegating default handler).
-31. Consider an upstream cmdguard issue: per-command `silenceErrors` spec field exists but has no exported `CommandOption` — dead config surface.
-32. Consider an upstream cmdguard issue: unexported embedded flag structs are silently skipped by `ParseFlagTags` — should error at construction.
-33. Consider an upstream cmdguard issue/fang issue: `NewExitError`'s `(value, error)` double return invites the exact discard bug that cost the spike time.
-34. Document `--expect-minor` semantics against the future ADR (what happens when expect-minor < module floor).
-35. `who-forces` I2 follow-up: what should happen when `GOTOOLCHAIN=auto` needs a _download_ in offline CI — better error message than raw go output?
+~~30. Decide the plain-`Error:` vs fang-styled hard-error tradeoff fleet-wide (roadmap: revisit when fang grows a delegating default handler).~~ done — tradeoff documented in CHANGELOG v0.2.0 + ROADMAP revisit note
+~~31. Consider an upstream cmdguard issue: per-command `silenceErrors` spec field exists but has no exported `CommandOption` — dead config surface.~~ routed — ROADMAP theme 2 (cmdguard upstream candidates)
+~~32. Consider an upstream cmdguard issue: unexported embedded flag structs are silently skipped by `ParseFlagTags` — should error at construction.~~ routed — ROADMAP theme 2 (gotcha also recorded in AGENTS 2026-10-03)
+~~33. Consider an upstream cmdguard issue/fang issue: `NewExitError`'s `(value, error)` double return invites the exact discard bug that cost the spike time.~~ routed — ROADMAP theme 2
+~~34. Document `--expect-minor` semantics against the future ADR (what happens when expect-minor < module floor).~~ done — usage text + README + ADR-0001
+~~35. `who-forces` I2 follow-up: what should happen when `GOTOOLCHAIN=auto` needs a _download_ in offline CI — better error message than raw go output?~~ routed — TODO_LIST T15 (offline toolchain-download error message)
 
 **Docs**
-36. FEATURES.md: add cmdguard migration + guard tests + JSON goldens.
-37. DOMAIN_LANGUAGE.md: add command-surface terms (sentinel, wire contract, floor, poisoner already there — check "exit contract").
-38. AGENTS.md: record the "exported embedded flag structs" cmdguard gotcha under known gotchas.
-39. AGENTS.md: record the flake GOWORK override (done in flake comments + T13; AGENTS environment section could name it).
-40. Prune the plan file: mark WPs A–L done inline so the plan reflects reality on read.
-41. Status-report archive: move this file's predecessors per docs-health when stale.
+~~36. FEATURES.md: add cmdguard migration + guard tests + JSON goldens.~~ NOT-DO — internal change; CHANGELOG v0.2.0 owns it (FEATURES granularity policy)
+~~37. DOMAIN_LANGUAGE.md: add command-surface terms (sentinel, wire contract, floor, poisoner already there — check "exit contract").~~ done — schema-wire glossary entry (2026-09-23); exit contract lives in AGENTS/README
+~~38. AGENTS.md: record the "exported embedded flag structs" cmdguard gotcha under known gotchas.~~ done — added to AGENTS cmd/ bullet (2026-10-03)
+~~39. AGENTS.md: record the flake GOWORK override (done in flake comments + T13; AGENTS environment section could name it).~~ done — AGENTS Build & Run records the GOWORK override
+~~40. Prune the plan file: mark WPs A–L done inline so the plan reflects reality on read.~~ done — plan annotated + archived this pass (2026-10-03)
+~~41. Status-report archive: move this file's predecessors per docs-health when stale.~~ done — predecessors annotated + archived this pass (2026-10-03)
 
 **Testing depth**
-42. Property/fuzz test `ParseFlagTags`-driven flag help vs old `--help` text snapshot (drift alarm beyond shared flags).
-43. Table-test the three `exitFrom*` functions over all outcome combinations (currently partially covered via `run`).
-44. Test `runSorted` with zero items and `--parallel 1` vs `--parallel 100` equivalence.
-45. Benchmark the parallel sweep post-migration (`BenchmarkAnalyzeAll` exists — re-run vs pre-migration numbers for regression).
-46. golden-test `version` output through cmdguard (the alias path is tested; fang `--version` is not).
+~~42. Property/fuzz test `ParseFlagTags`-driven flag help vs old `--help` text snapshot (drift alarm beyond shared flags).~~ routed — TODO_LIST T16 (test-depth backlog)
+~~43. Table-test the three `exitFrom*` functions over all outcome combinations (currently partially covered via `run`).~~ routed — TODO_LIST T16 (test-depth backlog)
+~~44. Test `runSorted` with zero items and `--parallel 1` vs `--parallel 100` equivalence.~~ routed — TODO_LIST T16 (test-depth backlog)
+~~45. Benchmark the parallel sweep post-migration (`BenchmarkAnalyzeAll` exists — re-run vs pre-migration numbers for regression).~~ routed — TODO_LIST T16 (benchmark re-run row)
+~~46. golden-test `version` output through cmdguard (the alias path is tested; fang `--version` is not).~~ routed — TODO_LIST T16 (test-depth backlog)
 
 **Repo hygiene**
-47. `.gitignore` check for new artifacts (none expected; verify).
-48. Consider pinning cmdguard more tightly in AGENTS (v4.0.2) so fleet migrations share the version.
-49. Sweep for leftover `//nolint:makezero` comments that `runSorted` made redundant (one remains in runSorted itself — keep; others should be gone — verify).
-50. Schedule the T12 "366 go-auto-upgrade findings (testify → stdlib)" owner decision — still the largest unresolved policy item, unrelated but open.
+~~47. `.gitignore` check for new artifacts (none expected; verify).~~ done — verified clean (no stray artifacts; working tree clean)
+~~48. Consider pinning cmdguard more tightly in AGENTS (v4.0.2) so fleet migrations share the version.~~ NOT-DO — go.mod owns the pin; version strings in AGENTS rot
+~~49. Sweep for leftover `//nolint:makezero` comments that `runSorted` made redundant (one remains in runSorted itself — keep; others should be gone — verify).~~ done — verified: exactly one nolint:makezero remains (runSorted, deliberate)
+~~50. Schedule the T12 "366 go-auto-upgrade findings (testify → stdlib)" owner decision — still the largest unresolved policy item, unrelated but open.~~ done by policy — keep testify (owner, 2026-09-22)
 
 ## g) QUESTIONS I CANNOT ANSWER MYSELF
 
