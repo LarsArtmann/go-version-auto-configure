@@ -89,6 +89,8 @@ Total: 17 work packages, ~15.5 h.
 
 ## 3. Detailed Breakdown — Micro-Tasks (each ≤12 min)
 
+_Resolution (2026-10-03): every micro-task below was executed with its parent WP during the 2026-09-22 session, except the WP-M remainder noted in the plan table above (version-stamp CI assertion → TODO_LIST T16). See `docs/status/2026-09-22_23-50_cmdguard-migration-session-status.md`._
+
 ### WP-A — cmdguard exit-contract spike
 
 | #  | Micro-task                                                                                                                                           | ≤ min |
