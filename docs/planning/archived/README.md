@@ -1,6 +1,6 @@
 # Archived planning docs
 
-Executed plans. Live plans stay in `docs/planning/`.
+Executed plans (every archived file carries inline `~~strikethrough~~` resolutions or an inline section resolution note). Live plans stay in `docs/planning/`.
 
 ## Archive manifest (docs-health pass 2026-10-03)
 
