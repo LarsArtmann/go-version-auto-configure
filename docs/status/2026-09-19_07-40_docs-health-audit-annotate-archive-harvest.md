@@ -44,11 +44,11 @@ The session executed the docs-health skill end-to-end for real this time: VERIFY
 
 ## b) PARTIALLY DONE
 
-1. **Full-mode observations recorded, not re-verified.** The 9 unavailable BuildFlow tools, 265 go-auto-upgrade warnings, 2 cqrs-lint findings, the forbidigo vanishing, and the skip_steps WARN are taken from the 06:39 report's run record — none re-run this session (docs-only scope). Routed to T12 as investigations instead of being restated as current fact. Effort to close: M.
-2. **JSON contract documentation.** The README table is verified against `json.go` today, but (a) the wire format still has no schema-version field (T11), and (b) nothing MECHANICALLY pins the README table to the DTOs — a future field change can silently desync doc and code. Effort: S–M (golden test).
-3. **README build-from-source steps** still unverified in a truly clean environment (container/nix shell) — T3 item, untouched. Effort: S.
-4. **README who-forces example.** I documented the dep-forced `fix` output (the compelling case) but not a `who-forces` output block: on THIS repo the matrix reads "clean: no dependency forces a higher floor" (directive already sits at the dep floor — tidy-stable but patch-form), which undersells the command. A poisoned-fixture example would show poisoners named up front. Effort: S.
-5. **Cross-repo doc pointers from archived 15:13.** Items 24/25/41/42-class work in OTHER repos (project-dependency-graph Q3 annotation, go-cqrs-lite plan refresh, oxlint replace-pin drop, 7 pilot repos' AGENTS.md directive notes) are tracked nowhere in THIS repo — deliberately kept out of TODO_LIST (it owns this repo's work), but they now live only in an archived report and will rot. Effort: S to ticket into ROADMAP.
+~~1. **Full-mode observations recorded, not re-verified.** The 9 unavailable BuildFlow tools, 265 go-auto-upgrade warnings, 2 cqrs-lint findings, the forbidigo vanishing, and the skip_steps WARN are taken from the 06:39 report's run record — none re-run this session (docs-only scope). Routed to T12 as investigations instead of being restated as current fact. Effort to close: M.~~ routed — TODO_LIST T12/T16 (observations dispositioned as watch items)
+~~2. **JSON contract documentation.** The README table is verified against `json.go` today, but (a) the wire format still has no schema-version field (T11), and (b) nothing MECHANICALLY pins the README table to the DTOs — a future field change can silently desync doc and code. Effort: S–M (golden test).~~ done — full-document wire goldens shipped with v0.2.0 (WP-C); README table re-verified 2026-10-03
+~~3. **README build-from-source steps** still unverified in a truly clean environment (container/nix shell) — T3 item, untouched. Effort: S.~~ done — verified 2026-09-26 (env -i clean clone, documented commands green)
+~~4. **README who-forces example.** I documented the dep-forced `fix` output (the compelling case) but not a `who-forces` output block: on THIS repo the matrix reads "clean: no dependency forces a higher floor" (directive already sits at the dep floor — tidy-stable but patch-form), which undersells the command. A poisoned-fixture example would show poisoners named up front. Effort: S.~~ routed — TODO_LIST T15 (who-forces README example)
+~~5. **Cross-repo doc pointers from archived 15:13.** Items 24/25/41/42-class work in OTHER repos (project-dependency-graph Q3 annotation, go-cqrs-lite plan refresh, oxlint replace-pin drop, 7 pilot repos' AGENTS.md directive notes) are tracked nowhere in THIS repo — deliberately kept out of TODO_LIST (it owns this repo's work), but they now live only in an archived report and will rot. Effort: S to ticket into ROADMAP.~~ done — routed ROADMAP cross-repo section (2026-10-03)
 
 ## c) NOT STARTED
 
@@ -90,66 +90,66 @@ _Brainstorm list — a menu, not a commitment. Items 1–19 mirror TODO_LIST T-n
 
 **Fleet-blocking / supply side (T1, T4):**
 
-1. T1: re-tag `go-atomic-write` with major.minor-only floor (owner-confirmed downgrade 1.27.1→1.26) — Critical | M
-2. T1: re-tag `go-finding` root + toolsdk after the T4 minor decision — Critical | M
-3. T1: re-tag `go-error-family` + remaining go-* libs with published patch floors — Critical | M
-4. T1 gate: owner go/no-go for proxy publishing (irreversible by design) — Critical | S
-5. T4: decide fleet canonical minor 1.26 vs 1.27, record as ADR — Critical | S
-6. T4: implement `--expect-minor` encoding the decision — Medium | S
-7. T1: post-re-tag consumer bumps (autoconfigure family + fleet) per go-ecosystem-upgrade — High | L
-8. T1: fleet-wide `check` re-run; expect ~0 dep-forced findings surviving tidy — High | S
-9. T1: replace-directive hygiene + per-re-tag `go get @vX.Y.Z` proxy verification — High | S
-10. This repo: once supply side is clean, `fix .` until dogfood steady state is `applied 1` — High | S
+~~1. T1: re-tag `go-atomic-write` with major.minor-only floor (owner-confirmed downgrade 1.27.1→1.26) — Critical | M~~ done — go-atomic-write v0.6.0 (2026-09-22 campaign)
+~~2. T1: re-tag `go-finding` root + toolsdk after the T4 minor decision — Critical | M~~ done — go-finding v1.13.0 (2026-09-22)
+~~3. T1: re-tag `go-error-family` + remaining go-* libs with published patch floors — Critical | M~~ done — go-error-family 7-tag family + siblings (2026-09-22)
+~~4. T1 gate: owner go/no-go for proxy publishing (irreversible by design) — Critical | S~~ done — authorized + executed 2026-09-22
+~~5. T4: decide fleet canonical minor 1.26 vs 1.27, record as ADR — Critical | S~~ done — ADR-0001 Option B (adopt 1.27)
+~~6. T4: implement `--expect-minor` encoding the decision — Medium | S~~ done — shipped in v0.2.0, dogfooded (check --expect-minor 1.27 . exit 0)
+~~7. T1: post-re-tag consumer bumps (autoconfigure family + fleet) per go-ecosystem-upgrade — High | L~~ done — this repo + autoconfigurer siblings bumped 2026-09-22/23; fleet remainder routed TODO_LIST T1
+~~8. T1: fleet-wide `check` re-run; expect ~0 dep-forced findings surviving tidy — High | S~~ done — 48-root baseline recorded in ADR appendix (2026-09-22); ongoing sweeps TODO_LIST T1
+~~9. T1: replace-directive hygiene + per-re-tag `go get @vX.Y.Z` proxy verification — High | S~~ done — go-release Phase 3 hygiene + per-tag proxy go get (2026-09-22)
+~~10. This repo: once supply side is clean, `fix .` until dogfood steady state is `applied 1` — High | S~~ done — 2026-09-22 finish line: applied 0, dep-forced 0 (poison gone from graph)
 
 **Publish track (T3):**
-11. T3: GitHub Actions CI — lint + test matrix + dogfood `check .` gate (`GOEXPERIMENT=jsonv2`) — High | S
-12. T3: GoReleaser config with ldflags version stamping — Medium | M
-13. T3: pkg.go.dev verification; flip README install to `go get` — High | S
-14. T3: branch-protection decision for `master` (auto-commit daemon conflict) — Medium | S (owner call)
-15. T3: repo topics + CI badge — Low | S
-16. T3: cut v0.2.0 from CHANGELOG `[Unreleased]` once 11–13 land — Medium | S
+~~11. T3: GitHub Actions CI — lint + test matrix + dogfood `check .` gate (`GOEXPERIMENT=jsonv2`) — High | S~~ done — CI green first run 2026-09-22 (3m11s)
+~~12. T3: GoReleaser config with ldflags version stamping — Medium | M~~ done — GoReleaser + ldflags stamping; v0.2.0 shipped 6 binaries
+~~13. T3: pkg.go.dev verification; flip README install to `go get` — High | S~~ done — pkg.go.dev verified 2026-09-26; README install via @latest
+~~14. T3: branch-protection decision for `master` (auto-commit daemon conflict) — Medium | S (owner call)~~ done — owner decision 2026-09-22: master stays unprotected
+~~15. T3: repo topics + CI badge — Low | S~~ done — 6 topics + CI badge (WP-09, 2026-09-23)
+~~16. T3: cut v0.2.0 from CHANGELOG `[Unreleased]` once 11–13 land — Medium | S~~ done — v0.2.0 cut 2026-09-22 (v0.2.1/2/3 followed)
 
 **BuildFlow integration (T2):**
-17. T2: blank-import `pkg/provider` in BuildFlow's SDK import set — High | S
-18. T2: provider catalog entry + `buildflow --dry-run` discovery proof — Medium | S
-19. T2: decide DAG position (after go-mod-update, before nix-checker) — Medium | S
+~~17. T2: blank-import `pkg/provider` in BuildFlow's SDK import set — High | S~~ done — BuildFlow blank import verified live (gotcha #171, 2026-09-22)
+~~18. T2: provider catalog entry + `buildflow --dry-run` discovery proof — Medium | S~~ done — buildflow list steps shows the step (verified 2026-09-22)
+~~19. T2: decide DAG position (after go-mod-update, before nix-checker) — Medium | S~~ done — wired in BuildFlow 2026-09-18; ordering-rationale note routed ROADMAP cross-repo
 
 **Tool hardening (T11 — filed this session):**
-20. T11: dogfood `who-forces` on real foreign repos (go-finding, go-atomic-write; network + 1.27-floor reality) — High | M
-21. T11: add schema-version field to the three `--json` documents — Medium | S
-22. **NEW** T11: golden test pinning the README JSON contract table to `json.go` tags — Medium | S
-23. T11: benchmark the parallel sweep (N seeded repos, timed); `--parallel N` — Medium | M
-24. T11: surface discovery issues in `fix --json` (check/fix consistency) — Low | S
-25. T11: provider test against a toolchain-directive fixture — Medium | S
-26. T11: unify `Floor()`/`toolchainFloor()` near-duplication — Low | S
-27. T11: capture per-package coverage for fix/cmd; close gaps under 80% — Medium | S
+~~20. T11: dogfood `who-forces` on real foreign repos (go-finding, go-atomic-write; network + 1.27-floor reality) — High | M~~ done — T11 item 1 (real foreign repos, 2026-09-22)
+~~21. T11: add schema-version field to the three `--json` documents — Medium | S~~ done — schema field on all three --json docs (v0.2.0)
+~~22. **NEW** T11: golden test pinning the README JSON contract table to `json.go` tags — Medium | S~~ done — wire goldens (WP-C, v0.2.0); README table re-verified 2026-10-03
+~~23. T11: benchmark the parallel sweep (N seeded repos, timed); `--parallel N` — Medium | M~~ done — benchmarks + --parallel N (WP-14)
+~~24. T11: surface discovery issues in `fix --json` (check/fix consistency) — Low | S~~ done — discovery array in fix --json; fix exits 1 on discovery findings
+~~25. T11: provider test against a toolchain-directive fixture — Medium | S~~ done — provider toolchain fixtures (stale + floor-raising)
+~~26. T11: unify `Floor()`/`toolchainFloor()` near-duplication — Low | S~~ done — shared highestMajorMinor helper
+~~27. T11: capture per-package coverage for fix/cmd; close gaps under 80% — Medium | S~~ done — coverage table recorded (fix 90.3 / cmd 87.9 / surface 87.9 / provider 83.8)
 
 **Lint & environment debt (T12 — filed this session):**
-28. T12: triage the 265 go-auto-upgrade warnings (fix or suppress-with-rationale) — Medium | M
-29. T12: confirm + suppress the 2 cqrs-lint false positives — Low | S
-30. T12: `buildflow doctor`; identify the 9 unavailable tools — Medium | S
-31. T12: investigate the forbidigo vanishing — Low | S
-32. T12: run the erraudit workflow properly; disposition the 6 warnings — Medium | S
-33. T12: investigate the `skip_steps` WARN "go-mod-update matches no registered tool" (the skip may be a silent no-op) — Medium | S
+~~28. T12: triage the 265 go-auto-upgrade warnings (fix or suppress-with-rationale) — Medium | M~~ done by policy — keep testify (owner, 2026-09-22); .go-auto-upgrade.json excludes testifyassert
+~~29. T12: confirm + suppress the 2 cqrs-lint false positives — Low | S~~ done — suppressed via skip_steps with rationale + AGENTS note
+~~30. T12: `buildflow doctor`; identify the 9 unavailable tools — Medium | S~~ done — doctor run; unavailable tools are non-Go-ecosystem (not applicable)
+~~31. T12: investigate the forbidigo vanishing — Low | S~~ routed — TODO_LIST T12 (forbidigo watch item)
+~~32. T12: run the erraudit workflow properly; disposition the 6 warnings — Medium | S~~ done — erraudit 0 findings; 5 reasoned nolints, 0 stale
+~~33. T12: investigate the `skip_steps` WARN "go-mod-update matches no registered tool" (the skip may be a silent no-op) — Medium | S~~ done — diagnosed cosmetic (single-step runs only)
 
 **Docs / consistency (NEW — this session's delta):**
-34. **NEW**: standing docs gate — lychee links + no-`[x]`-in-TODO_LIST grep + stale-report probe (script or BuildFlow step) — Medium | S
-35. **NEW**: README `who-forces` example on a poisoned fixture repo (current repo's matrix reads "clean") — Low | S
-36. **NEW**: route the 4 cross-repo doc pointers from archived 15:13 (PDG Q3 annotation, go-cqrs-lite plan refresh, oxlint replace-pin drop, pilot-repo AGENTS directive notes) into ROADMAP so they survive archiving — Low | S
-37. **NEW**: ANNOTATE this report in a future session (and re-run the archive gate) — Low | S
-38. ROADMAP: benchmark `Discover` on go-cqrs-lite (largest monorepo) before scaling the sweep — Low | S
-39. ROADMAP: CI pin normalization campaign (126 below-floor findings at audit time) — High | L
-40. ROADMAP: nix pin alignment (37 findings) paired with `buildflow -s nix-hash-fix --fix` — High | M
-41. ROADMAP: flake typos from scan (`go_256`, `go_1_`) — Medium | S
-42. ROADMAP: fleet-wide poisoner matrix aggregating per-repo `who-forces` across module caches — Critical | M
-43. ROADMAP: project-dependency-graph consumes `pkg/surface` — Medium | M
-44. ROADMAP: cross-check these rules vs BuildFlow gomod-checker (overlap/dedupe) — Medium | S
-45. ROADMAP: resolve structure-linter "1.27.1 available" split brain upstream — Medium | M
-46. ROADMAP: promote `pkg/surface` to its own submodule once a second consumer exists — Low | S
-47. ROADMAP: tier-2 pin sources (`.tool-versions`, `mise.toml`, Dockerfiles) — Low | M
-48. ROADMAP: `.goversionrc` per-repo floor-expectation config — Low | M
-49. ROADMAP: finish the go-ecosystem-upgrade `version-surface.md` cross-ref (floor section exists; add the `check` command) — Low | S
-50. ROADMAP: retire /tmp fleet artifacts (`/tmp/gvac`, `fleet_report.txt`) into committed `bin/` + `docs/` — Low | S
+~~34. **NEW**: standing docs gate — lychee links + no-`[x]`-in-TODO_LIST grep + stale-report probe (script or BuildFlow step) — Medium | S~~ routed — TODO_LIST T16 (standing docs gate)
+~~35. **NEW**: README `who-forces` example on a poisoned fixture repo (current repo's matrix reads "clean") — Low | S~~ routed — TODO_LIST T15 (README who-forces example)
+~~36. **NEW**: route the 4 cross-repo doc pointers from archived 15:13 (PDG Q3 annotation, go-cqrs-lite plan refresh, oxlint replace-pin drop, pilot-repo AGENTS directive notes) into ROADMAP so they survive archiving — Low | S~~ done — routed ROADMAP cross-repo section (2026-10-03)
+~~37. **NEW**: ANNOTATE this report in a future session (and re-run the archive gate) — Low | S~~ done (this pass, 2026-10-03)
+~~38. ROADMAP: benchmark `Discover` on go-cqrs-lite (largest monorepo) before scaling the sweep — Low | S~~ done — routed ROADMAP theme 3 (performance characterization)
+~~39. ROADMAP: CI pin normalization campaign (126 below-floor findings at audit time) — High | L~~ done — routed ROADMAP theme 1
+~~40. ROADMAP: nix pin alignment (37 findings) paired with `buildflow -s nix-hash-fix --fix` — High | M~~ done — routed ROADMAP theme 1
+~~41. ROADMAP: flake typos from scan (`go_256`, `go_1_`) — Medium | S~~ done — routed ROADMAP theme 1
+~~42. ROADMAP: fleet-wide poisoner matrix aggregating per-repo `who-forces` across module caches — Critical | M~~ done — routed ROADMAP theme 1 (fleet poisoner matrix)
+~~43. ROADMAP: project-dependency-graph consumes `pkg/surface` — Medium | M~~ done — routed ROADMAP theme 4
+~~44. ROADMAP: cross-check these rules vs BuildFlow gomod-checker (overlap/dedupe) — Medium | S~~ done — routed ROADMAP theme 4
+~~45. ROADMAP: resolve structure-linter "1.27.1 available" split brain upstream — Medium | M~~ done — routed ROADMAP theme 4
+~~46. ROADMAP: promote `pkg/surface` to its own submodule once a second consumer exists — Low | S~~ done — routed ROADMAP theme 4
+~~47. ROADMAP: tier-2 pin sources (`.tool-versions`, `mise.toml`, Dockerfiles) — Low | M~~ done — routed ROADMAP theme 3
+~~48. ROADMAP: `.goversionrc` per-repo floor-expectation config — Low | M~~ done — routed ROADMAP theme 3
+~~49. ROADMAP: finish the go-ecosystem-upgrade `version-surface.md` cross-ref (floor section exists; add the `check` command) — Low | S~~ done — routed ROADMAP theme 4
+~~50. ROADMAP: retire /tmp fleet artifacts (`/tmp/gvac`, `fleet_report.txt`) into committed `bin/` + `docs/` — Low | S~~ done — routed ROADMAP theme 4
 
 ## g) QUESTIONS ONLY YOU CAN ANSWER
 

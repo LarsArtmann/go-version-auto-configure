@@ -29,11 +29,11 @@
 
 ## b) PARTIALLY DONE
 
-1. **WP-04 (apps): the 3 autoconfigure binaries** — go-finding bumped to v1.13.0 + tidy + directive fixed to `go 1.27` (golangci-lint-auto-configure confirmed `applied 1`; oxlint + dependabot in the still-running background job). Daemons committed (golangci `ahead 2`, dependabot `ahead 1`, oxlint pushed). **Tags v0.8.2 / v0.6.4 / v0.2.1 + proxy verification pending** — a background job is finishing the build/test leg.
-2. **WP-05: consumer bumps** — sdk bumped (done); **this repo still requires go-finding v1.12.0 + sdk v0.2.0** (needs v1.13.0/v0.3.0 + tidy + gate).
-3. **WP-06: finish line** — `check --expect-minor 1.27 .` exit 0 ✓; but `fix .` (expect applied-1/dep-forced-0), real-graph `who-forces` dogfood, and the AGENTS.md dogfooding-caveat rewrite are open.
-4. **Fleet pin campaign (ADR follow-up)** — oxlint's `ci.yml` pin and golangci-lint's `flake.nix` pin flagged below-floor; ~205 flakes fleet-wide still pin `go_1_26`. Not started.
-5. **Fleet inventory doc** — before/after floor table (plan task 4.5) not yet written; ADR has raw evidence counts only.
+~~1. **WP-04 (apps): the 3 autoconfigure binaries** — go-finding bumped to v1.13.0 + tidy + directive fixed to `go 1.27` (golangci-lint-auto-configure confirmed `applied 1`; oxlint + dependabot in the still-running background job). Daemons committed (golangci `ahead 2`, dependabot `ahead 1`, oxlint pushed). **Tags v0.8.2 / v0.6.4 / v0.2.1 + proxy verification pending** — a background job is finishing the build/test leg.~~ done — v0.8.2 / v0.6.4 / v0.2.1 tagged + proxy-verified (2026-09-23)
+~~2. **WP-05: consumer bumps** — sdk bumped (done); **this repo still requires go-finding v1.12.0 + sdk v0.2.0** (needs v1.13.0/v0.3.0 + tidy + gate).~~ done — WP-05 bumps landed (go-finding v1.13.0, sdk v0.3.0, atomic-write v0.6.0)
+~~3. **WP-06: finish line** — `check --expect-minor 1.27 .` exit 0 ✓; but `fix .` (expect applied-1/dep-forced-0), real-graph `who-forces` dogfood, and the AGENTS.md dogfooding-caveat rewrite are open.~~ done — finish line verified: applied 0, dep-forced 0; AGENTS caveat rewritten
+~~4. **Fleet pin campaign (ADR follow-up)** — oxlint's `ci.yml` pin and golangci-lint's `flake.nix` pin flagged below-floor; ~205 flakes fleet-wide still pin `go_1_26`. Not started.~~ routed — ROADMAP theme 1 (nix pin alignment campaign)
+~~5. **Fleet inventory doc** — before/after floor table (plan task 4.5) not yet written; ADR has raw evidence counts only.~~ done — ADR-0001 evidence appendix carries the fleet counts
 
 ## c) NOT STARTED
 
