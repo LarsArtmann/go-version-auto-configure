@@ -5,8 +5,8 @@
 - **Type:** Single-module Go CLI + BuildFlow provider (the "auto-configure" family: golangci-lint, oxlint, dependabot, and now the Go version surface)
 - **Purpose:** Detect Go toolchain version-surface drift (patch components in `go` directives, `go.work` below the workspace floor, Nix/CI pins trailing the module floor) and auto-fix the mechanically safe part
 - **Repo:** `github.com/larsartmann/go-version-auto-configure`
-- **Version:** v0.2.2 (latest tag, 2026-09-25; pkg.go.dev listing live at v0.2.2). Unreleased on master (v0.2.3 candidate): the T14 dep-forced classification fixes — tidy-diff forced floor (replace target / std json/v2 naming) and vendor/modules.txt annotation fallback for fix AND who-forces
-- **Toolchain floor (updated 2026-10-02, resolved):** the module `go` directive is back at `go 1.27` (minor-only), `tidy` is stable, `check` exits clean: go-output v0.38.3 shipped the supply-side fix and this repo bumped the family the same day. History: the 2026-09-30 update sweep (cce3c0f) pulled in go-output v0.38.2, whose published go.mod is patch-form — re-poisoning this repo's directive to `go 1.27.1` and falsifying the 2026-09-22 "v0.38.2 is minor-form" claim (v0.38.1 was the minor-form tag; module-cache evidence in [docs/POISONERS.md](docs/POISONERS.md)). Every other dependency carries a minor-form floor (`go 1.27`: go-finding v1.13.0, toolsdk v1.13.1, linter-autoconfigure-sdk v0.7.0, go-atomic-write v0.6.0).
+- **Version:** v0.2.3 (latest tag, 2026-09-27 — dep-forced classification fixes; pkg.go.dev live). Unreleased on master: only the go-output v0.38.3 dependency bump (2026-10-02)
+- **Toolchain floor:** the module `go` directive is `go 1.27` (minor-only), `tidy` is stable, `check` exits clean. Every dependency carries a minor-form floor (`go 1.27`: go-finding v1.13.0, toolsdk v1.13.1, linter-autoconfigure-sdk v0.7.0, go-atomic-write v0.6.0, go-output v0.38.3). Poisoner history and the registry live in [docs/POISONERS.md](docs/POISONERS.md) — the single source of truth.
 
 ## Build & Run
 
@@ -33,7 +33,7 @@ All commands accept multiple roots (parallel, sorted output) and `--json` (stabl
 - `pkg/fix` — applies `Issue.Fix` entries (go.mod rewrites are byte-preserving text surgery guarded by a non-mutating `go mod tidy -diff` dependency-floor gate with atomic revert; go.work rewrites go through `go work edit`, which needs workspace discovery). Rejected go.mod downgrades are classified dep-forced; the floor and its carriers resolve from three authorities, tried in order (2026-09-26, pkg/fix/floor.go): `go list -m` (highest dependency go line; `-e` fallback on untidy trees; `vendor/modules.txt` `## explicit; go X` annotations when a skewed vendor tree refuses both listings), then the tidy diff itself — a `+go X` raise that no listed module carries is forced by a replace target, a vendored module, or the standard library (json/v2 toolchain-patch floor) and is named in `DepForced.Cause` (additive `cause` field on fix --json depForced entries; schema stays 2). `CanonicalizeGoMod` (canonicalize.go) is the fleet-policy normalizer BuildFlow's `go-mod-normalize` calls: it derives the changes itself (patch-form go line, optional `toolchain` strip behind `StripToolchain`) and carries an installed-toolchain guard. `SyncGoWorkDirectives` (workspace.go) applies only the go.work directive fixes for workspace-arbiter consumers. `Options.DryRun` holds fixes back. `AnalyzeFloors` (who.go) is the read-only poisoner matrix behind `who-forces` and shares the vendor fallback.
 - `pkg/provider` — BuildFlow wiring: `linter-autoconfigure-sdk.ProviderFromSpec` → `toolsdk.Register`, package-level `var Provider` (blank-import contract, same as oxlint's).
 - `pkg/version` — fleet version-stamp kit (copied from file-and-image-renamer): `Version` resolves `ldflags injection > toolchain VCS stamp > "dev"`. The `version` command prints it; plain `go build` binaries self-identify as `<7-char-shortrev>[-dirty]`. Fleet standard + adoption guide: `../file-and-image-renamer/docs/FLEET-STANDARD-VERSION-STAMPS.md`.
-- `cmd/go-version-auto-configure` — thin CLI shell: multi-root worker pools, human/JSON rendering (json.go owns the wire DTOs; pkg types carry the camelCase JSON tags for who-forces). Exit contract: 0 clean — `fix` also exits 0 when every finding was dep-forced (the state is forced by a dependency floor, remediation is supply-side; owner decision 2026-09-25); 1 findings (`check`) / failed fixes or unparseable discovery (`fix`) / poisoned (`who-forces`); 2 hard errors.
+- `cmd/go-version-auto-configure` — thin CLI shell on `github.com/larsartmann/cmdguard/v4` (shared flags via embedded **exported** structs — cmdguard silently skips unexported embedded types): multi-root worker pools, human/JSON rendering (json.go owns the wire DTOs; pkg types carry the camelCase JSON tags for who-forces). Exit contract: 0 clean — `fix` also exits 0 when every finding was dep-forced (the state is forced by a dependency floor, remediation is supply-side; owner decision 2026-09-25); 1 findings (`check`) / failed fixes or unparseable discovery (`fix`) / poisoned (`who-forces`); 2 hard errors.
 
 ## Policy decisions encoded here (do not regress)
 
@@ -52,7 +52,7 @@ The supply-side campaign has now shipped (2026-09-22): go-atomic-write v0.6.0, g
 
 What remains is the consumer campaign: repos still requiring the OLD tags keep re-poisoning until they bump. Baseline and progress live in the ADR appendix (`docs/adr/0001-fleet-go-minor.md`). This tool fixes form; tidy reverts form only while a consumer's graph still holds a poisoner.
 
-Owner decisions recorded 2026-09-22: go-output v0.38.1 is NOT retracted (documented-only — the retraction question stays closed), and `master` stays UNPROTECTED with informational CI (the auto-commit daemon's direct pushes win over required status checks). Premise correction 2026-10-02: "v0.38.2 is the good release" is falsified — v0.38.2 ships the patch-form floor and v0.38.1 was the minor-form tag ([docs/POISONERS.md](docs/POISONERS.md)); the remediation is a v0.38.3+ re-tag from go-output master, not a retraction.
+Owner decisions recorded 2026-09-22: go-output v0.38.1 is NOT retracted (documented-only — the retraction question stays closed; the later v0.38.2 regression was resolved by a v0.38.3 re-tag, not retraction — full incident record in [docs/POISONERS.md](docs/POISONERS.md)), and `master` stays UNPROTECTED with informational CI (the auto-commit daemon's direct pushes win over required status checks).
 
 ## Environment reality
 
@@ -60,7 +60,7 @@ Owner decisions recorded 2026-09-22: go-output v0.38.1 is NOT retracted (documen
 - The auto-commit daemon commits changes in fleet repos quickly (heuristic messages). Verify with `git log`, don't assume.
 - `reports/` (coverage output) and `.crush/` (session DB) are gitignored local artifacts — expected to be dirty, nothing to commit.
 
-## Known limitations (v0.2)
+## Known limitations
 
 - [docs/DEDUPLICATION.md](docs/DEDUPLICATION.md) is the accepted-duplication baseline; diff future art-dupl reports against it instead of re-litigating the intentional groups.
 

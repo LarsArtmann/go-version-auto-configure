@@ -1,114 +1,74 @@
 # TODO List
 
-Short- and mid-term actionable work. Ordered by impact (Pareto). Harvested from `docs/status/archived/2026-09-18_15-13_fleet-versioning-unification.md` (section f) on 2026-09-18; swept 2026-09-18 (T7 fleet-sweep enablers and T10 repo hygiene shipped — see CHANGELOG Unreleased); re-harvested 2026-09-19 from `docs/status/archived/2026-09-19_06-39_t7-t9-t10-shipped-lint-zero-full-gate-green.md` (section f → T11/T12, T3 additions); T11 fully shipped and T12 mostly dispositioned 2026-09-22 (see CHANGELOG Unreleased).
+Short- and mid-term actionable work, **open items only** — completed items live in [CHANGELOG.md](CHANGELOG.md). Rebuilt by the docs-health audit of 2026-10-03 (all DONE sections deleted: T0, T2, T4, T11, T13 fully shipped; T1/T3/T12/T14 reduced to their open rows — see the annotated reports in [docs/status/](docs/status/)). Long-term and cross-repo material lives in [ROADMAP.md](ROADMAP.md).
 
-## T0 — go.work-aware fixer: never strip the go.work patch floor below a module's requirement — DONE (2026-09-22, source-side fix shipped)
+## T14 — Supply-side re-tags still pending (largest fleet impact)
 
-- [x] **SHIPPED:** the fixer no longer normalizes a go.work `go` directive below any module's requirement. Under `go.work`, the go line must cover every module's directive at FULL patch granularity (`go work` errors with "module X listed in go.work requires go >= 1.27.1, but go.work lists go 1.27"); verified live on the BuildFlow workspace 2026-09-20 (BuildFlow gotcha #169). Implementation: `surface.Analyze` offers the patch-form strip only when the stripped minor form still covers `Surface.FullModuleFloor()` (max module go directive, patch included); when a module floor requires the patch, no strip is offered (that state is correct, not a violation). A go.work directive already BELOW the floor is the new `go-work-below-floor` rule with the always-safe mechanical fix (raise to the full floor); `fix.SyncGoWorkDirectives` is the scoped entry BuildFlow's go-work-sync arbiter calls. Regression tests: `TestAnalyze_GoWorkBelowFloorRestoresFullFloor` (S82 shape), `TestAnalyze_GoWorkPatchFormRequiredByFloorIsSilent`, `TestSyncGoWorkDirectives_*`. BuildFlow's downstream arbiter (`RestoreGoWorkFloor`) remains as defense-in-depth; its `DependsOn` ordering is now a safety net rather than a required repair.
+- [ ] Coordinated re-tag campaign for the remaining PENDING poisoners in [docs/POISONERS.md](docs/POISONERS.md): go-cqrs-lite v4 family (~27 modules, largest carrier set), go-health-dashboard v0.10.x (master already fixed 2026-09-25, needs the tag), go-etag, go-sse; map the cqrs-htmx poisoner surface (who-forces across its importers) before its re-tag
+- [ ] BuildFlow: decide retiring the go-work-sync `GoWorkFloorFinding`/`RestoreGoWorkFloor` defenses + `DependsOn` ordering (their TODO S87 safety-net precondition is met — gvac's go-work-aware fixer is active) and repin BuildFlow to gvac **v0.2.3** in the same motion (still at v0.2.1/v0.2.2)
 
-## T1 — Supply-side re-tag campaign (BLOCKING for fleet convergence) — DONE 2026-09-22
+## T1 — Fleet consumer campaign (remainder)
 
-Published library versions carried patch-form `go` floors that re-poisoned every consumer on `go mod tidy`. The campaign shipped 2026-09-22:
+- [ ] Consumer sweep: bump repos still requiring old tags (ADR-0001 appendix baseline 2026-09-22: 36/48 drifted; flagship go-health-dashboard resolved 2026-09-25). Now includes the **go-output → v0.38.3** consumer bump fleet-wide (2026-10-02 incident: repos pinning v0.38.2 keep re-poisoning until they bump). Re-run `check --quiet --expect-minor 1.27 ~/projects/*/` and update the ADR appendix counts
+- [ ] Re-verify the remaining POISONERS.md Active rows with fresh `who-forces` runs (go-health-dashboard v0.10.x, cqrs-htmx/oauth2, go-etag, go-sse — 2026-10-02 asked "are those still accurate?")
 
-- [x] `go-finding` **v1.13.0** (root floor `go 1.27`; all 4 modules at minor form on head)
-- [x] `go-atomic-write` **v0.6.0** (floor raise to `go 1.27` shipped as a 0.x minor, not v0.5.3 — the directive had already moved past v0.5.2's `go 1.26.7`)
-- [x] `go-error-family` **7-tag coordinated release** (root v0.10.2, agent/bridge/diagnose/git/postgres/examples at true floors: minor form except x/text-forced `1.26.0`)
-- [x] `go-output` **v0.38.2** (17 modules; supersedes broken v0.38.1 — owner decided 2026-09-22: NO retraction, v0.38.1 stays documented-only)
-- [x] `go-branded-id` **v0.6.0**, `linter-autoconfigure-sdk` **v0.3.0**
-- [x] Sibling autoconfigurers re-tagged: v0.8.2 / v0.6.4 / v0.2.1 (go-finding v1.13.0, directive `go 1.27`)
-- [x] Consumer bumps for this repo's graph: `fix` applied 0 / dep-forced 0; `tidy` stable
-- [x] Re-tag hygiene: no `replace` directives leaked (go-release Phase 3 checks)
-- [x] Post-release `go get @vX.Y.Z` proxy verification per tag
-- [ ] Remaining: consumer repos still requiring the old tags keep re-poisoning until they bump — ADR appendix holds the 2026-09-22 fleet baseline (36/48 repos with drift); sweep them with `check`/`fix` fleet-wide. First flagship consumer resolved 2026-09-25: go-health-dashboard (go-health v0.4.0 poisoner → v0.4.1 re-tag + gvac fix; see ADR appendix incident record)
+## T15 — who-forces honesty + wire goldens (post-v0.2.3)
 
-## T4 — Decide the fleet minor: 1.26 vs 1.27 — DONE 2026-09-22 (Option B: adopt 1.27)
+- [ ] `who-forces` at-parity carriers: when directive == max dep floor, name the carriers instead of answering "clean" — the exact question the 2026-10-02 session had to answer with raw `go list -m`
+- [ ] Golden-lock the `depForced.cause` wire field: a dep-forced `fix --json` golden scenario in cmd/ (the wire goldens cover held-back/fix only; the additive field is unit-tested in pkg/fix but not golden-locked — schema 2 can drift silently). Include a clean-state `--json` snapshot
+- [ ] Regression fixture: a synthetic consumer pinning go-output v0.38.2, asserting `fix` classifies dep-forced and names the carrier (validates the T14 classification work against the real incident)
+- [ ] `who-forces` provenance: additive `source: "vendor"|"list"` field so vendor-annotation fallback rows are visible to machines (owner policy call open — ROADMAP Open questions)
+- [ ] Vendor fallback covers only `## explicit` stanzas — indirect-only poisoners in a skewed vendor tree stay unnamed; parse the full stanza set or document the limitation in `--help`
+- [ ] Better error message when `GOTOOLCHAIN=auto` needs a toolchain download in offline CI (today: raw go output)
+- [ ] README: add a real `who-forces` output example block next to the dep-forced example (needs a poisoned fixture; this repo's own matrix reads clean)
 
-- [x] Decision recorded as [ADR-0001](docs/adr/0001-fleet-go-minor.md) (Option B, owner-confirmed; evidence appendix with fleet counts and the post-campaign consumer baseline)
-- [x] Encoded in the tool: `--expect-minor N` on `check`/`fix` (dogfooded: `check --expect-minor 1.27 .` exit 0)
+## T16 — Tooling, CI & test depth
 
-## T2 — BuildFlow blank-import wiring — DONE (shipped 2026-09-18, marked resolved 2026-09-25)
+- [ ] CI depth: pin golangci-lint to the devShell's version (reproducible lint), add an erraudit step, add a concurrency group
+- [ ] CI dogfood additions: `go mod tidy -diff` gate (catches floor drift before it ships — the 2026-09-30 sweep class), README floor-line check (assert README ≥ go.mod minor; the "Requires Go 1.26" lie survived 4 days), `version`-stamp assertion
+- [ ] e2e test running the real `go mod tidy -diff` gate against a seeded fixture repo (today the gate is always faked in unit tests)
+- [ ] Extend the `ParseDirective`-shared-verification invariant tests for the post-v0.38.3 clean state
+- [ ] Re-run `buildflow update` deliberately to prove the sweep now settles at `go 1.27` (not a re-poisoning loop)
+- [ ] Bump the go-nix-helpers pin (65+ commits behind; auto-newest `goPkgAttr` + eval-time floor check makes the FOD-class nix failure impossible instead of documented)
+- [ ] Flake: add a `checks` entry asserting the FOD go version ≥ go.mod floor (belt & braces for the `goPkgAttr` class)
+- [ ] Unify the dependency-floor triple model (`vendorModuleFloor` generalized to a shared `depFloor`) across who.go and floor.go — kills the last floor-parser split brain
+- [ ] Re-run the benchmark suite vs the T11 baseline (2026-09-22) after the v0.2.3 hot-path refactor (`who.go` `accumulateFloor`/`finalizeFloors` reshaped the path; never re-measured) and re-measure per-package coverage against the 80% bar
+- [ ] license-check flake isolation: run it N times in isolation, capture what differs (cache vs network vs package set); root-cause or add a reasoned skip
+- [ ] gomod-check ↔ go-mod-normalize disposition alignment (BuildFlow warning: this repo's go line flipped 20× in 20 commits — two steps fighting over the same directive)
+- [ ] Review the 9 "tools unavailable (health check failed)" BuildFlow doctor warnings; triage the vulnix gcc-10.4.0 CVE-2023-4039 advisory (warning-severity)
+- [ ] art-dupl 56 findings: diff against the [docs/DEDUPLICATION.md](docs/DEDUPLICATION.md) baseline (gate passed; is the delta all intentional?)
+- [ ] Test-depth backlog (small, batchable): flag-help property test vs old `--help` snapshot, `exitFrom*` outcome-combination table, `runSorted` zero-items + `--parallel 1`/`100` equivalence, `version` output golden through cmdguard, `BenchmarkApplyAll` with a temp git repo
+- [ ] Standing docs gate (script or BuildFlow step): lychee link check + "no `[x]` in TODO_LIST" grep + stale-report harvest probe — the three checks the 2026-09-19 audit wanted mechanical
 
-- [x] All three rows shipped with the original integration (BuildFlow gotcha #171: toolsdk self-registration, `ToolGoVersionAutoConfig` constant, blank import, registered test, convergence fixture, edge snapshots 232→235). This section sat stale as "PLANNED" for a week — found during the 2026-09-25 plan-session research sweep.
+## T17 — Fleet docs (ADR / POISONERS / glossary)
 
-## T3 — Publish this tool — DONE 2026-09-22 (v0.2.0; website pending)
-
-- [x] GitHub Actions CI: build + race tests + golangci-lint + dogfood gate (`check --quiet --expect-minor 1.27 .`, exit 0 required; `GOEXPERIMENT=jsonv2` in workflow env) — first run green 2026-09-22 (3m11s)
-- [x] GoReleaser config with ldflags version stamping (`pkg/version.injected={{ .Version }}`); release workflow on `v*` tags — v0.2.0 shipped 6 binaries (linux/darwin/windows × amd64/arm64 + checksums)
-- [x] v0.2.0 cut from the CHANGELOG release section; proxy-verified via `go get @v0.2.0`
-- [x] pkg.go.dev listing appears — verified 2026-09-26: [pkg.go.dev/github.com/larsartmann/go-version-auto-configure](https://pkg.go.dev/github.com/larsartmann/go-version-auto-configure) lists v0.2.2 (published Sep 25, 2026)
-- [ ] Website launch (sibling-project pattern) if it earns one
-- [x] Branch protection decision for `master`: owner decided 2026-09-22 — master stays UNPROTECTED, CI runs informational (required checks would break the auto-commit daemon's direct pushes)
-- [x] Module-path casing check (`github.com/larsartmann/…` vs `LarsArtmann`) with a real `go get` — verified 2026-09-22: lowercase path resolves from the proxy (`go get github.com/larsartmann/go-version-auto-configure@v0.1.0` + the three sibling apps at their new tags)
-- [x] Verify the README build-from-source steps in a clean environment — verified 2026-09-26: fresh clone, empty HOME/GOPATH/GOMODCACHE (`env -i`), only `GOEXPERIMENT=jsonv2` set as documented; build + `version` self-identification green. Stale README lines fixed on sight (`go get @v0.1.0` → `@latest`; "Requires Go 1.26 … 1.26.7 floor" → "Requires Go 1.27", ADR-0001 link)
-
-## T9 — Parser coverage — PARTIALLY DONE (toolchain directives shipped; flake.lock blocked by design)
-
-- [ ] flake.lock effective Go revision parsing — **blocked by design**: the lock records only a nixpkgs rev, not the Go version it packages; resolving it requires an impure `nix eval`, but `Discover` must stay pure (reads files, writes nothing). A separate opt-in command (or BuildFlow step) would be the right home — design sketch below
-  - Design sketch (2026-09-22): new command `gvac nix-pin [root ...]` (NOT part of `Discover`): for each flake.lock, `nix eval <locked nixpkgs rev>.go.version` (impure, cached by rev), compare against the flake's `goPkgAttr`/module floor, and report the same alignment findings as the pure path. BuildFlow home: a `nix-go-pin-check` step that can afford impurity and network. Exit contract identical to `check`; `--json` reuses the schema envelope with `source: "nix-pin"`
-
-## T11 — Tool hardening (from the 2026-09-19 full-gate session) — DONE 2026-09-22
-
-All twelve items shipped (see CHANGELOG Unreleased for the full list):
-
-- [x] Dogfood `who-forces` on real foreign repos (go-finding, go-atomic-write, go-error-family, go-output, linter-autoconfigure-sdk): real dependency graphs, network resolution, and the 1.27-floor-under-`GOTOOLCHAIN=local` failure mode verified (per-module errors recorded, fail-closed exit 2, `--allow-partial` exit 1)
-- [x] Benchmark the parallel sweep (`BenchmarkAnalyzeAll`, 8 seeded repos); worker count exposed as `--parallel N` on check/fix/who-forces (default: CPU count)
-- [x] Schema-version field ("schema": 1) added to all three `--json` documents
-- [x] Discovery issues surfaced in `fix --json` (`discovery` array) and human output; fix now exits 1 on discovery findings, matching check
-- [x] Provider tests against `toolchain`-directive fixtures (stale toolchain; toolchain raising the alignment floor)
-- [x] `Floor()`/`toolchainFloor()` unified onto a shared `highestMajorMinor` helper
-- [x] Per-package coverage measured: pkg/fix 90.3%, cmd 87.9%, provider 83.8%, surface 87.9% (all above the 80% bar)
-- [x] `check --quiet` (exit-code-only) for scripting; `--version` / `-version` flag aliases
-- [x] Non-version toolchain directives surfaced: `toolchain default` fires an informational `toolchain-non-version` finding; `toolchain local` (which the go tool rejects) now makes an unparseable go.work surface as `go-work-unparseable` instead of vanishing silently
-- [x] `who-forces` policy: `--allow-partial` downgrades module listing errors to exit 1 (fail-closed default kept); every forcing dependency carried with its own floor (`poisonerFloors`, sorted highest first); go.work rows marked `kind: go.work` and skipped with a note
-- [x] Multi-root pool-contention test (6 repos through `--parallel 1`)
-- [x] Mini-sweep validation: `check --json` across 6 fleet repos on real drift (go-finding 14 alignment suggestions, go-atomic-write/go-error-family/go-output patch-form findings)
-- [x] Benchmark baseline (2026-09-22, go1.27.1, `-benchmem`, Ryzen AI MAX+ 395): `BenchmarkDiscover` 51.3µs / 29.3KB / 435 allocs; `BenchmarkAnalyze` 4.0µs / 3.6KB / 79 allocs; `BenchmarkParseDirective` 1.65µs / 1.5KB / 24 allocs; `BenchmarkAnalyzeAll` (8 seeded repos) 112.6µs / 62.6KB / 855 allocs — re-run before/after hot-path changes
-
-## T12 — Lint & environment debt (from the 2026-09-19 full-mode run) — PARTIALLY DONE 2026-09-22
-
-- [x] cqrs-lint A009/A018 verified as false positives (zero go-cqrs-lite references in go.mod/go.sum, re-verified 2026-09-22) and suppressed via `skip_steps: [cqrs-lint]` with rationale
-- [x] go-error-modernization workflow run properly (`erraudit fix ./... --type-aware`: no auto-fixable; 5 `silent_swallow` findings dispositioned as deliberate skip-on-unparseable filters, each suppressed with `//nolint:erraudit` + reason; `nolint-audit` confirms 5 needed, 0 stale)
-- [x] BuildFlow findings gate: 3 critical branching-flow PHANTOM_TYPE findings on new `who.go` code fixed by restructuring `parseFloorLine` to return named types (`GoVersion`, `ModulePath`, `ModuleVersion`); gate now passes at `--fail-on=error`
-- [x] `buildflow doctor` run: the unavailable binaries (bandit, cargo-*, codespell, dprint, eslint, hadolint, jest, lychee, madge, …) are non-Go-ecosystem tools this Go-only repo never triggers ("not applicable", not failing); environment checks (disk, git identity, GOEXPERIMENT) green
-- [x] skip_steps WARN "go-mod-update matches no registered tool" diagnosed: cosmetic, single-step mode only — in full pipeline runs both entries skip correctly ("skipped via skip_steps config"); no tool-name drift
-- [x] Triage the 366 go-auto-upgrade findings (grew from 265): all are testify → stdlib/testing migration suggestions on test assertions — a fleet-wide policy call (migrate off testify or keep it), not repo debt; RESOLVED BY POLICY 2026-09-22 (owner decision: keep testify; `.go-auto-upgrade.json` excludes `testifyassert` here — apply fleet-wide or leave per-repo)
-- [ ] The remaining branching-flow INDEX_OUT_OF_RANGE warnings on the worker-pool `results[i] = …` pattern are provably safe (index bounded by the range) — root cause filed as branching-flow#1; un-nolint when it closes
-- [ ] dependabot-auto-configure 2 findings remain (documented false positive, AGENTS.md known-tool-bugs)
-- [ ] forbidigo vanishing (9 `fmt.Print*` hits gone after `buildflow format`) not reproducible in the 2026-09-22 run (forbidigo findings absent from both pre- and post-format states); watch for recurrence
-- [x] WATCH (2026-09-22): `check --json ~/projects/go-*` glob matches non-repo FILES — RESOLVED on head, re-verified 2026-09-26: a non-directory root now reports `"error": "… root is not a directory …"` (missing roots: stat error) and the run exits 2 instead of reporting an empty clean repo
-
-## T13 — cmdguard CLI surface migration (from the 2026-09-22 dedup session + Pareto plan) — MOSTLY DONE 2026-09-22
-
-Plan: `docs/planning/2026-09-22_22-07_cmdguard-cli-surface-and-verification-plan.md` (spike verdict addendum §6).
-
-- [x] WP-A exit-contract spike: silent exit-1-findings verified through `v4.ExitError` + selective `WithFangErrorHandler` suppression; verdict GO (plan §6)
-- [x] WP-B: all four command surfaces migrated to `github.com/larsartmann/cmdguard/v4`; `runFlags`/`newRunFlagSet`/`parseRoots`/`usage` deleted; shared flags via embedded exported flag structs (`CommonFlags`/`QuietFlags`/`AnalysisFlags` — cmdguard skips unexported embedded types)
-- [x] WP-C: exit-code matrix + `-h` contract tests; JSON wire contract locked by full-document goldens (schema 2)
-- [x] WP-D: guard-rails — shared-flag-contract golden test + `TestNoRawFlagSkeleton` (bans `flag`/cobra imports in `cmd/`)
-- [x] WP-F: `GOTOOLCHAIN=go1.27.1` pinned in flake.nix devShell; AGENTS commands de-prefixed; BuildFlow's global `GOWORK=off` overridden to empty (it broke `go work edit` tests inside `nix develop`)
-- [x] WP-J: `readLines`/`rootsFrom`/`workersFor` unit tests
-- [x] WP-K: [docs/DEDUPLICATION.md](docs/DEDUPLICATION.md) baseline; post-migration art-dupl run shows zero harmful `cmd/` clones
-- [x] WP-L: triplicated worker pools consolidated into the generic `runSorted[I, R]` (also shrinks the branching-flow warning surface)
-- [x] WP-I: who-forces child-process env — pass/normalize the toolchain so `go list` works on 1.27-floor repos from older shells — shipped 2026-09-22 as `moduleScopedExtraEnv` (GOTOOLCHAIN=auto appended when the parent pins local/nothing; explicit non-local pins inherited), regression-tested by `TestModuleScopedListSurvivesLocalOlderShell`; this box sat stale until the 2026-09-26 sweep
-- [x] WP-H: reconcile the AGENTS.md floor-policy text with the sibling plan's fleet-minor ADR (T4) outcome — done 2026-09-22 (AGENTS floor-poisoning section rewritten for the post-campaign state)
-- [x] WP-Q: go-atomic-write direct-dep tidy warning — resolved by the v0.6.0 bump (listed direct in go.mod, imported in pkg/fix)
+- [ ] ADR-0001 evidence appendix: record the 2026-09-26 classification-fix session AND the go-output v0.38.2 regression incident (2026-09-30 → 2026-10-02, roles-inverted-for-10-days) next to the go-health incident
+- [ ] POISONERS.md evidence convention: every "release X is clean" claim carries a proxy `.mod` URL + verification date; maintenance rule "no re-tag ships without published-`.mod` verification" (the rule that would have prevented the 10-day inversion)
+- [ ] docs/DOMAIN_LANGUAGE.md: document the incident mechanism (MVS floor propagation + pin-in-tag) as vocabulary
+- [ ] Check the sibling autoconfigurer repos for copies of the inverted "v0.38.2 is minor-form" claim (it lived in fleet docs for 10 days)
 
 ## T5 — Upstream gomod-checker rule: "tidy revert" detection — WORTH CONSIDERING
 
 - [ ] BuildFlow gomod-checker rule: go directive carrying a patch component after tidy (the poisoning signature) — closes the loop for repos that never run this tool
   - Rule spec sketch (2026-09-22): the rule fires when `go mod tidy` is a no-op AND some `go`/`toolchain` directive in the module graph carries a patch component that is NOT forced by a dependency floor — that is the accidental-minor signature. Fixtures: (a) x/text-forced `1.26.0` (legit, rule stays silent — the floor carrier is the dependency, named via `who-forces`), (b) json/v2-forced `1.27.1` std floor (legit, silent, message names the std floor), (c) `go 1.26.7` with max dep floor `go 1.26` (FIRE — this is the poisoning signature this tool strips). The rule must reuse `CompareDirective` semantics (bare minor ranks below zero patch) to avoid re-deriving them wrongly
-- [ ] Test style: ginkgo/gomega BDD suites for NEW behavior specs (owner decision 2026-09-22 keeps testify for the existing table-driven suites; see AGENTS.md Testing policy)
 
 ## T6 — Release-authority drift (Layer-B versioning) — WORTH CONSIDERING
 
 - [ ] Extend `pkg/surface` (or project-dependency-graph) to detect VERSION file vs CHANGELOG top vs newest git tag drift (known case: project-dependency-graph VERSION=0.7.0, tags at v0.2.0)
   - Design sketch (2026-09-22): read-only comparison of three sources — `VERSION` file, top `## [x.y.z]` in CHANGELOG.md, newest `v*` git tag (via `go/version` on annotated tags). Drift matrix reported as a new finding kind (`release-authority-drift`, suggest-only — which one is authoritative is per-repo policy, same reasoning as pin alignment). Stays out of `Discover`'s pure file walk only if git access is required; a pure first pass (VERSION vs CHANGELOG) can live in Discover with the tag comparison as an optional second pass
 
-## T14 — Poisoner-chain follow-ups (from the 2026-09-25 supply-side-closure session) — OPEN
+## T9 — Parser coverage — PARTIALLY DONE (flake.lock blocked by design)
 
-- [x] Fleet consumer sweep of go-health importers (2026-09-25): 12 importers — dashboard clean (v0.4.1), go-taskqueue clean, 7 dep-forced-correct (exit 0, directives legitimately held), 4 gate-protected with FAILED-instead-of-DEP-FORCED classification (zero mutations; see the two classification bugs below). Evidence: session log + docs/POISONERS.md
-- [x] BuildFlow repinned to gvac v0.2.1, rebuilt, user-profile binary installed and live-verified (dashboard step green, `buildflow version 1ba0fcb`)
-- [ ] BuildFlow: decide retiring the go-work-sync `GoWorkFloorFinding`/`RestoreGoWorkFloor` defenses + `DependsOn` ordering now that gvac v0.2.1's go-work-aware fixer is active (their TODO S87 calls the defenses a safety net pending exactly this repin)
-- [x] Classification bug (shipped in Unreleased, v0.2.3 candidate; fixed + re-verified live 2026-09-26): when `go mod tidy -diff` wants to raise the directive but no `go list -m` module floor exceeds the target, the tidy diff names the enforced floor and the go tool's diagnostic names the forcer (replace target / vendored module; std library as residual explanation) — classified dep-forced, not FAILED. Reproduce fixed: projects-management-automation/pkg/domain (dep-forced at 1.27.1 naming the `../../../go-output` replace target, exit 0). Investigation note: the live forcer there is the local go-output replace, not the std json/v2 floor originally suspected
-- [x] Classification bug (shipped in Unreleased, v0.2.3 candidate; fixed + re-verified live 2026-09-26): vendor-mode repos — when `go list -m` fails against a skewed vendor/modules.txt, the `## explicit; go X` annotations resolve floor + carriers (path@version) for BOTH `fix` and `who-forces`. Reproduce fixed: dnsblockd (dep-forced at 1.27.1 naming 7 vendored carriers; who-forces error row → resolved row, exit 0)
-- [ ] Supply-side re-tags pending (2026-09-25 sweep discovery, largest impact first): go-cqrs-lite v4 family (~27 modules), go-health-dashboard v0.10.x, go-etag, go-sse — all still ship `go 1.27.1` floors; see docs/POISONERS.md
+- [ ] flake.lock effective Go revision parsing — **blocked by design**: the lock records only a nixpkgs rev, not the Go version it packages; resolving it requires an impure `nix eval`, but `Discover` must stay pure (reads files, writes nothing). A separate opt-in command (or BuildFlow step) would be the right home — design sketch below. Decide the home (CLI command vs BuildFlow step) before implementing
+  - Design sketch (2026-09-22): new command `gvac nix-pin [root ...]` (NOT part of `Discover`): for each flake.lock, `nix eval <locked nixpkgs rev>.go.version` (impure, cached by rev), compare against the flake's `goPkgAttr`/module floor, and report the same alignment findings as the pure path. BuildFlow home: a `nix-go-pin-check` step that can afford impurity and network. Exit contract identical to `check`; `--json` reuses the schema envelope with `source: "nix-pin"`
+
+## T12 — Lint & environment debt (open watch items)
+
+- [ ] The remaining branching-flow INDEX_OUT_OF_RANGE warnings on the worker-pool `results[i] = …` pattern are provably safe (index bounded by the range) — root cause filed as branching-flow#1; un-nolint when it closes
+- [ ] dependabot-auto-configure 2 findings remain (documented false positive, AGENTS.md known-tool-bugs; upstream dependabot-auto-configure#3) — un-ignore when it closes
+- [ ] forbidigo vanishing (9 `fmt.Print*` hits gone after `buildflow format`) not reproducible in the 2026-09-22 run — watch for recurrence
+- [ ] When go-cqrs-lite#42 closes (cqrs-lint none-import guard), un-skip `cqrs-lint` in .buildflow.yml
+
+## T3 — Publish (remainder)
+
+- [ ] Website launch (sibling-project pattern) if it earns one

@@ -6,9 +6,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
-### Fixed
+### Changed
 
-- Nothing yet.
+- Dependencies: go-output family bumped to v0.38.3 (2026-10-02). The 2026-09-30 dependency sweep had pulled in v0.38.2, whose published go.mod files are patch-form (`go 1.27.1`) — re-poisoning this repo's `go` directive via `go mod tidy`. v0.38.3 ships minor-form floors; the directive is back at `go 1.27`, tidy stable, `check` clean. Incident record: [docs/POISONERS.md](docs/POISONERS.md).
 
 ## [0.2.3] - 2026-09-27
 
