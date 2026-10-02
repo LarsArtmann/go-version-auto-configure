@@ -833,3 +833,19 @@ func TestRun_FixExpectMinorSurfacesSuggestions(t *testing.T) {
 
 	assert.True(t, found, "fix --json carries the expectation findings as suggestions")
 }
+
+// TestWhoForcesHelpDocumentsVendorLimitation pins the honesty note (T15-⑤):
+// the vendor fallback resolves only explicit stanzas, and --help says so.
+// (fang renders help outside the test writer, so the Long text is asserted
+// on the registered command.)
+func TestWhoForcesHelpDocumentsVendorLimitation(t *testing.T) {
+	t.Parallel()
+
+	cli, err := buildCLI(&strings.Builder{}, "test")
+	require.NoError(t, err)
+
+	cmd, _, err := cli.RootCommand().Find([]string{"who-forces"})
+	require.NoError(t, err)
+	require.NotNil(t, cmd)
+	assert.Contains(t, cmd.Long, "indirect", "the limitation is documented where users look")
+}

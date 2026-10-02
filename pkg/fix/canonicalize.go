@@ -65,7 +65,8 @@ func ExecSplitRunner() SplitRunner {
 
 		err = cmd.Run()
 
-		return stdoutBuf.String(), stderrBuf.String(), err
+		return stdoutBuf.String(), stderrBuf.String(),
+			hintToolchainDownload(stdoutBuf.String()+stderrBuf.String(), err)
 	}
 }
 

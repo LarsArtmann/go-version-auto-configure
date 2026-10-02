@@ -12,6 +12,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"slices"
 	"strings"
 
@@ -153,6 +154,27 @@ var (
 	errGateNotClean         = errors.New("go mod tidy -diff is not clean after the rewrite")
 )
 
+// toolchainDownloadFailed recognizes the go tool's failed toolchain fetch:
+// GOTOOLCHAIN=auto must download the toolchain a dependency requires and
+// cannot (offline CI, locked-down runner) — the raw output names
+// golang.org/toolchain or the go<version> download.
+var toolchainDownloadFailed = regexp.MustCompile(`golang\.org/toolchain@|downloading go\d`)
+
+// hintToolchainDownload appends the offline-toolchain hint when output
+// shows a failed toolchain download; other failures pass through
+// untouched, and the original error stays wrapped (errors.Is holds).
+func hintToolchainDownload(output string, err error) error {
+	if err == nil || !toolchainDownloadFailed.MatchString(output) {
+		return err
+	}
+
+	return fmt.Errorf(
+		"%w\n  hint: GOTOOLCHAIN=auto needs to download the toolchain a dependency requires; "+
+			"pre-install it (run once with network) or pin GOTOOLCHAIN to an installed version",
+		err,
+	)
+}
+
 // EditRunner returns the production runner: `go <args…>` executed in dir.
 // Module edits and module-graph listings run with GOWORK=off so a workspace
 // file cannot redirect them to a different module; workspace edits need the
@@ -183,11 +205,14 @@ func EditRunner() GoCommandRunner {
 		if err != nil {
 			return string(
 					out,
-				), fmt.Errorf(
-					"go %s: %s: %w",
-					strings.Join(args, " "),
-					strings.TrimSpace(string(out)),
-					err,
+				), hintToolchainDownload(
+					string(out),
+					fmt.Errorf(
+						"go %s: %s: %w",
+						strings.Join(args, " "),
+						strings.TrimSpace(string(out)),
+						err,
+					),
 				)
 		}
 
@@ -195,9 +220,6 @@ func EditRunner() GoCommandRunner {
 	}
 }
 
-// moduleScoped reports whether a go invocation must ignore any enclosing
-// workspace: module edits and module listings resolve the module under dir,
-// never the workspace above it.
 // moduleScopedExtraEnv returns the extra environment module-scoped commands
 // need beyond GOWORK=off. GOTOOLCHAIN=auto is appended when the parent shell
 // pins "local" (or nothing): a `go list -m` must reflect the analyzed
@@ -214,6 +236,9 @@ func moduleScopedExtraEnv() []string {
 	}
 }
 
+// moduleScoped reports whether a go invocation must ignore any enclosing
+// workspace: module edits and module listings resolve the module under dir,
+// never the workspace above it.
 func moduleScoped(args []string) bool {
 	return len(args) > 0 && (args[0] == "mod" || args[0] == "list")
 }

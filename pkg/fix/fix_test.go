@@ -259,3 +259,26 @@ func TestReport_Empty(t *testing.T) {
 	assert.Equal(t, "no fixes", (*Result)(nil).Report())
 	assert.True(t, strings.HasPrefix((&Result{}).Report(), "applied 0"))
 }
+
+// TestHintToolchainDownload wraps only toolchain-download failures: the
+// offline-CI case (GOTOOLCHAIN=auto fetching golang.org/toolchain without
+// network) gains an actionable hint; other failures and nil errors pass
+// through untouched with errors.Is identity intact.
+func TestHintToolchainDownload(t *testing.T) {
+	t.Parallel()
+
+	sentinel := errors.New("exit status 1")
+
+	offline := hintToolchainDownload(
+		"go: golang.org/toolchain@v0.0.1-go1.28.0.linux-amd64: "+
+			"Get \"https://proxy.golang.org/\": dial tcp: lookup proxy.golang.org: no such host",
+		sentinel,
+	)
+	assert.ErrorIs(t, offline, sentinel, "the original error stays wrapped")
+	assert.Contains(t, offline.Error(), "hint: GOTOOLCHAIN=auto")
+
+	assert.Same(t, sentinel, hintToolchainDownload("go: some other failure", sentinel),
+		"non-download failures pass through unwrapped")
+
+	assert.NoError(t, hintToolchainDownload("golang.org/toolchain@ mention", nil))
+}

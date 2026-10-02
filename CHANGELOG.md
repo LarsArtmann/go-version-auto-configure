@@ -6,9 +6,20 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+## [0.2.4] - 2026-10-03
+
+### Added
+
+- **`who-forces` answers "who holds me at parity"** (the 2026-10-02 go-output incident's core unanswered question): when a directive equals the max dependency floor, the carriers are named — human output lines `at parity: module@version holds the directive at go X`, JSON gains an additive `parityFloors` array (schema stays 2). `poisoned`, the exit contract, and below-parity rows are unchanged.
+- **`who-forces` floor provenance**: an additive `source` field (`"list"` | `"vendor"`) marks whether a row's floors resolved from `go list -m` or from vendor/modules.txt annotations; the human directive line appends `(floors via vendor/modules.txt)` on vendor rows.
+- Wire-trust goldens in cmd/: the `fix --json` contract is now golden-locked end-to-end against the REAL `go mod tidy -diff` gate via an offline-safe dep-forced fixture (replace-to-local poisoner), including the dep-forced shape (floor present, `cause` absent while a listed dependency carries it), clean-state snapshots for `check` and `fix`, and an incident-shaped consumer pinning a fake `github.com/larsartmann/go-output` at floor 1.27.1 asserting dep-forced classification, carrier naming, exit 0, and untouched files.
+- Offline-CI errors are actionable: a failed toolchain download (GOTOOLCHAIN=auto fetching golang.org/toolchain without network) gains a hint naming the two fixes (pre-install the toolchain or pin GOTOOLCHAIN); other failures pass through with `errors.Is` identity intact.
+- `who-forces --help` documents the vendor-annotation limitation: modules.txt annotates only explicit requirements, so indirect-only carriers in a skewed vendor tree stay unnamed.
+
 ### Changed
 
 - Dependencies: go-output family bumped to v0.38.3 (2026-10-02). The 2026-09-30 dependency sweep had pulled in v0.38.2, whose published go.mod files are patch-form (`go 1.27.1`) — re-poisoning this repo's `go` directive via `go mod tidy`. v0.38.3 ships minor-form floors; the directive is back at `go 1.27`, tidy stable, `check` clean. Incident record: [docs/POISONERS.md](docs/POISONERS.md).
+- Internal: the who-forces row type `PoisonerFloor` is renamed `DependencyFloor` (it now serves both the poisoner and parity lists); JSON wire names are unchanged.
 
 ## [0.2.3] - 2026-09-27
 
