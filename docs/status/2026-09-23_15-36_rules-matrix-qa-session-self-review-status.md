@@ -67,7 +67,7 @@ Grouped, roughly impact-ordered. Sources: `[session]` noticed this session, `[TO
 ~~11. Website for the tool (T3 says "website pending"; website-launch pattern exists fleet-wide). `[TODO_LIST]`~~ routed — TODO_LIST T3
 
 **Fleet consumer campaign (the known remaining half of the floor war):**
-12. Enumerate consumer repos still on OLD tags (pre-2026-09-22) from the ADR-0001 appendix baseline. `[AGENTS.md]`
+~~12. Enumerate consumer repos still on OLD tags (pre-2026-09-22) from the ADR-0001 appendix baseline. `[AGENTS.md]`~~ routed — TODO_LIST T1
 ~~13. Bump each stale consumer to the new floors (go-atomic-write v0.6.0, go-finding v1.13.0, go-error-family v0.10.2, go-output v0.38.2, go-branded-id v0.6.0, linter-autoconfigure-sdk v0.3.0, autoconfigurers v0.8.2/v0.6.4/v0.2.1). `[AGENTS.md]`~~ routed — TODO_LIST T1
 ~~14. Re-run fleet sweep with this tool's `fix` after bumps; confirm zero re-poisoning. `[AGENTS.md]`~~ routed — TODO_LIST T1
 ~~15. Track `golang.org/x/text` (`go 1.26.0`) and `encoding/json/v2` patch floors as the only accepted poisoners — verify nothing new joined them. `[AGENTS.md]`~~ done — both documented as ACCEPTED in POISONERS.md
@@ -82,13 +82,13 @@ Grouped, roughly impact-ordered. Sources: `[session]` noticed this session, `[TO
 ~~20. Consider surfacing dep-forced rejections more prominently in `--json` output (consumers scripting fleet sweeps). `[session, speculative]`~~ done — depForced array + additive cause field carry it (v0.2.3)
 ~~21. CI YAML matrix expressions (`${{ }}`) and ranges (`1.26.x`) are intentionally skipped — document that exclusion in README if not already. `[AGENTS.md]`~~ done — documented in FEATURES + AGENTS known limitations
 ~~22. `check` counts discovery issues as plain findings — consider a distinct JSON flag/severity so `go-mod-unparseable` isn't conflated with drift. `[AGENTS.md]`~~ declined — counts.discovery already separates them in --json; further split awaits a consumer ask
-23. BDD (Ginkgo) consideration for new behavior-spec suites — parked per testing policy; revisit only for genuinely new suites. `[AGENTS.md]`
+~~23. BDD (Ginkgo) consideration for new behavior-spec suites — parked per testing policy; revisit only for genuinely new suites. `[AGENTS.md]`~~ done by policy — parked as future consideration (AGENTS testing policy)
 
 **Docs / meta:**
 ~~24. Harvest sections of this report (if the owner wants): items 1–5 are new TODO candidates. `[session]`~~ done (this pass, 2026-10-03)
 ~~25. Confirm pkg.go.dev listing caught up to v0.2.0. `[AGENTS.md]`~~ done — pkg.go.dev verified 2026-09-26
 ~~26. Keep DEDUPLICATION.md baseline diff-based on next art-dupl run — no re-litigation. `[AGENTS.md]`~~ routed — TODO_LIST T16 (art-dupl baseline diff)
-27. Re-verify the cosmetic `-s <tool>` skip_steps WARN note still holds after next BuildFlow update. `[AGENTS.md]`
+~~27. Re-verify the cosmetic `-s <tool>` skip_steps WARN note still holds after next BuildFlow update. `[AGENTS.md]`~~ done — re-confirmed in full pipeline runs 2026-09-26 (0 failed steps)
 
 **Stretch / ROADMAP-flavored (brainstorm grade):**
 ~~28. Fleet-wide scheduled sweep (cron/BuildFlow) running this tool across all repos with drift alerting.~~ routed — ROADMAP theme 1 (early-warning monitor)
@@ -101,7 +101,7 @@ Grouped, roughly impact-ordered. Sources: `[session]` noticed this session, `[TO
 ~~35. Golden-file tests for the `--json` wire DTOs to freeze the machine contract.~~ done — full-document wire goldens (v0.2.0)
 ~~36. Consider a `doctor` command printing the evidence this session lacked: which rules carry fixes, which gates apply, which toolchain runs.~~ declined — no consumer signal; buildflow doctor + gates cover the need
 ~~37. README quickstart explicitly covering multi-root + parallel behavior (fleet users assume single-root).~~ done — README fleet-sweeps paragraph covers multi-root + parallel
-38. Add this repo to its own BuildFlow fleet sweep dogfooding list (if not already) — the tool should check the tool.
+~~38. Add this repo to its own BuildFlow fleet sweep dogfooding list (if not already) — the tool should check the tool.~~ done — BuildFlow runs the step fleet-wide (repinned v0.2.x, live-verified)
 
 ## g) Questions I can NOT figure out myself
 

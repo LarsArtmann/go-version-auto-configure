@@ -33,6 +33,7 @@ The supply-side re-tags unblock the consumer half of convergence. The raw, not-y
 - Performance characterization: benchmark `Discover` on the largest fleet monorepo before scaling the sweep
 - `check --deps` flag (reuse `AnalyzeFloors`) so check pre-classifies dep-forced patch forms without the tidy gate
 - Schema-version bump policy (when does schema 2 → 3): ADR-0002 candidate
+- Release hardening: generated release notes (GoReleaser `changelog.disable: true` today), artifact signing (cosign) or documented checksum verification
 - Sweep ergonomics: `--fail-fast` or aggregated root-error rows for multi-root runs; `--rules` filter flag for consumers that care about a subset
 
 ### 4. Ecosystem integration
@@ -50,10 +51,10 @@ The supply-side re-tags unblock the consumer half of convergence. The raw, not-y
 
 Tracked here so they survive archiving; each belongs to its own repo:
 
-- **go-output** (from the 2026-10-02 v0.38.3 incident): verify CI goes green post-pin-fix; diagnose the `release.yml` tag trigger (dark since v0.38.0); add `go-licenses` to the devShell + the license-check known-tool-bug note to its AGENTS.md; fix `RELEASE_CHECKLIST.md` 2b ordering + document bump-before-tag for poisoner fixes; refresh its AGENTS.md dev-shell line (Go 1.27); backfill GitHub Releases v0.38.1/2; verify all 17 v0.38.3 tags + pkg.go.dev; fix the stale `vendorHash.nix` preflight warn; digit-safe sibling-pin bump script; drop one of `cyclop`/`gocyclo`; CHANGELOG-drift check in `pre-tag-check.sh`; review the 5 daemon commits under the v0.38.3 tag; website redeploy state
+- **go-output** (from the 2026-10-02 v0.38.3 incident): verify CI goes green post-pin-fix; diagnose the `release.yml` tag trigger (dark since v0.38.0); add `go-licenses` to the devShell + the license-check known-tool-bug note to its AGENTS.md; fix `RELEASE_CHECKLIST.md` 2b ordering + document bump-before-tag for poisoner fixes; refresh its AGENTS.md dev-shell line (Go 1.27); backfill GitHub Releases v0.38.1/2; verify all 17 v0.38.3 tags + pkg.go.dev; fix the stale `vendorHash.nix` preflight warn; digit-safe sibling-pin bump script; drop one of `cyclop`/`gocyclo`; CHANGELOG-drift check in `pre-tag-check.sh`; review the 5 daemon commits under the v0.38.3 tag; website redeploy state; keep bdd/examples/integration directives minor-form; adopt the go-release pre-release-check wrapper; minor polish (tui ansi constants)
 - **BuildFlow**: make `--format finding` emit JSON for every tool step (golangci-only today); reconcile the gomod-check vs go-mod-normalize dispositions (this repo's go line flipped 20× in 20 commits)
 - **crush-config**: record the tag-then-bump vs bump-then-tag fleet lesson (v0.38.3 case study); the sed-digit lesson if it generalizes
-- **Fleet tooling**: teach the auto-commit daemon session attribution so parallel sessions don't interleave in one heuristic commit; fleet-standard devShell/GOTOOLCHAIN-pin pattern doc (owning repo TBD)
+- **Fleet tooling**: teach the auto-commit daemon session attribution so parallel sessions don't interleave in one heuristic commit; fleet-standard devShell/GOTOOLCHAIN-pin pattern doc (owning repo TBD); pin golangci-lint versions in CI workflows fleet-wide (two repos went red from lint@latest drift); sweep fleet AGENTS.md files for stale "Go 1.26 dev shell" claims
 
 ## Explicit non-goals
 

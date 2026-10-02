@@ -55,10 +55,10 @@
 
 ## b) PARTIALLY DONE
 
-1. **v0.2.3 release** — the candidate is complete on master (code + tests + changelog), but NOT tagged/cut (no push without explicit request). Fleet (BuildFlow pinned at v0.2.1/v0.2.2) does not benefit until tagged.
-2. **license-check instability** — documented (AGENTS known-tool-bug, intermittent, go-licenses#128 mechanism), not root-caused, not fixed (upstream/tooling issue).
-3. **who-forces vendor rows provenance** — works, silent source switch (deliberate; flagged for a policy decision).
-4. **POISONERS registry accuracy** — cqrs-htmx/oauth2 added from one data point (dnsblockd v4.11.0); the full cqrs-htmx poisoner surface is unmapped.
+~~1. **v0.2.3 release** — the candidate is complete on master (code + tests + changelog), but NOT tagged/cut (no push without explicit request). Fleet (BuildFlow pinned at v0.2.1/v0.2.2) does not benefit until tagged.~~ done — v0.2.3 tagged 2026-09-27 (9eca6e4); BuildFlow repin tracked in TODO_LIST T14
+~~2. **license-check instability** — documented (AGENTS known-tool-bug, intermittent, go-licenses#128 mechanism), not root-caused, not fixed (upstream/tooling issue).~~ routed — TODO_LIST T16 (license-check isolation row)
+~~3. **who-forces vendor rows provenance** — works, silent source switch (deliberate; flagged for a policy decision).~~ routed — TODO_LIST T15 (provenance row; policy question in ROADMAP open questions)
+~~4. **POISONERS registry accuracy** — cqrs-htmx/oauth2 added from one data point (dnsblockd v4.11.0); the full cqrs-htmx poisoner surface is unmapped.~~ routed — TODO_LIST T14/T1 (cqrs-htmx mapping + Active-row re-verification)
 
 ## c) NOT STARTED (known, open, out of session scope)
 
@@ -94,41 +94,41 @@ Nothing in this session's work is broken (suite + race + gates + two live repros
 
 ## f) NEXT (impact-sorted; 1–10 are the real shortlist, 11+ are backlog/roadmap fuel)
 
-1. **Cut v0.2.3** from Unreleased (classification fixes + nix fix), GoReleaser, proxy-verify, repin BuildFlow.
-2. **go-cqrs-lite v4 family re-tag** (~27 modules, largest poisoner set; go-release protocol).
-3. **go-health-dashboard v0.10.x re-tag** (master already fixed; needs the tag).
-4. **go-etag + go-sse re-tags** (small, unblock dnsblockd-class consumers).
-5. **cqrs-htmx poisoner surface mapping** (who-forces across its importers) + re-tag.
-6. **BuildFlow: retire go-work-sync defenses** (S87 precondition met) + repin to v0.2.3 in one motion.
-7. **Fleet consumer sweep** `check --quiet --expect-minor 1.27 ~/projects/*/` — update the ADR appendix baseline (36/48 → now).
-8. **dep-forced JSON golden scenario** (locks `cause`; probably a fixture + fake-gate e2e in cmd tests).
-9. **who-forces `source` provenance field** (additive, schema 2).
-10. **go-nix-helpers pin bump** here + file-and-image-renamer (same pin) with the auto-newest default.
-11. Dedup the floor-triple model (vendorModuleFloor → shared depFloor).
-12. Re-run benchmark suite; record against T11 baseline in CHANGELOG.
-13. license-check flake isolation (N isolated runs, diff the inputs).
-14. T5 gomod-checker "tidy revert" rule (spec sketch ready; reuse CompareDirective).
-15. T6 release-authority drift finding (pure pass: VERSION vs CHANGELOG in Discover).
-16. T9 `nix-pin` impure command (design sketch in TODO_LIST).
-17. Website launch decision (sibling pattern; demo video per website-launch skill).
-18. dnsblockd consumer bump once cqrs-lite re-tags land (gvac fix then `go mod vendor` re-sync).
-19. projects-management-automation: fix or accept the local go-output replace floor (its own repo decision).
-20. README floor-line CI dogfood check (assert README ≥ go.mod minor).
-21. Vendor-fallback indirect-stanza support or help-text limitation note.
-22. AGENTS.md: prune the now-closed classification-gap notes after v0.2.3 ships (they describe the fixed state twice).
-23. ADR-0001 appendix: record the 2026-09-26 session's classification-fix evidence next to the go-health incident.
-24. Add `docs/status/archived/` routing for the two 2026-09-25 reports if superseded.
-25. Review the 9 "tools unavailable (health check failed)" BuildFlow doctor warnings (noticed in output, never inspected).
-26. vulnix gcc-10.4.0 CVE-2023-4039 advisory triage (warning-severity, noticed in full run).
-27. art-dupl 56 findings: diff against docs/DEDUPLICATION.md baseline (gate passed; is the delta all intentional?).
-28. branching-flow#1 un-nolint check (upstream issue status unknown).
-29. dependabot-auto-configure#3 un-ignore check (same).
-30. `.buildflow.yml`: consider documenting the license-check intermittent in skip rationale ONLY if the flake recurs (do not skip preemptively).
-31. Flake: add a `checks` entry asserting the FOD go version ≥ go.mod floor (belt & braces for the goPkgAttr class).
-32. Fleet-wide `go-auto-upgrade` testify policy: apply the `testifyassert` exclusion everywhere or drop per-repo configs (owner call, parked since 09-22).
-33. Explore `--allow-partial` default change for who-forces in vendor-mode fleets (policy call).
-34. Consider e2e test running the real `go mod tidy -diff` gate against a seeded fixture repo (today the gate is always faked in unit tests).
-35. TODO_LIST T9 nix-pin: decide BuildFlow step vs CLI command home before anyone implements.
+~~1. **Cut v0.2.3** from Unreleased (classification fixes + nix fix), GoReleaser, proxy-verify, repin BuildFlow.~~ done — v0.2.3 tagged 2026-09-27 (9eca6e4); CHANGELOG cut; proxy release
+~~2. **go-cqrs-lite v4 family re-tag** (~27 modules, largest poisoner set; go-release protocol).~~ routed — TODO_LIST T14
+~~3. **go-health-dashboard v0.10.x re-tag** (master already fixed; needs the tag).~~ routed — TODO_LIST T14
+~~4. **go-etag + go-sse re-tags** (small, unblock dnsblockd-class consumers).~~ routed — TODO_LIST T14
+~~5. **cqrs-htmx poisoner surface mapping** (who-forces across its importers) + re-tag.~~ routed — TODO_LIST T14
+~~6. **BuildFlow: retire go-work-sync defenses** (S87 precondition met) + repin to v0.2.3 in one motion.~~ routed — TODO_LIST T14 (retire + repin v0.2.3 in one motion)
+~~7. **Fleet consumer sweep** `check --quiet --expect-minor 1.27 ~/projects/*/` — update the ADR appendix baseline (36/48 → now).~~ routed — TODO_LIST T1
+~~8. **dep-forced JSON golden scenario** (locks `cause`; probably a fixture + fake-gate e2e in cmd tests).~~ routed — TODO_LIST T15
+~~9. **who-forces `source` provenance field** (additive, schema 2).~~ routed — TODO_LIST T15
+~~10. **go-nix-helpers pin bump** here + file-and-image-renamer (same pin) with the auto-newest default.~~ routed — TODO_LIST T16
+~~11. Dedup the floor-triple model (vendorModuleFloor → shared depFloor).~~ routed — TODO_LIST T16
+~~12. Re-run benchmark suite; record against T11 baseline in CHANGELOG.~~ routed — TODO_LIST T16
+~~13. license-check flake isolation (N isolated runs, diff the inputs).~~ routed — TODO_LIST T16
+~~14. T5 gomod-checker "tidy revert" rule (spec sketch ready; reuse CompareDirective).~~ routed — TODO_LIST T5
+~~15. T6 release-authority drift finding (pure pass: VERSION vs CHANGELOG in Discover).~~ routed — TODO_LIST T6
+~~16. T9 `nix-pin` impure command (design sketch in TODO_LIST).~~ routed — TODO_LIST T9
+~~17. Website launch decision (sibling pattern; demo video per website-launch skill).~~ routed — TODO_LIST T3
+~~18. dnsblockd consumer bump once cqrs-lite re-tags land (gvac fix then `go mod vendor` re-sync).~~ routed — TODO_LIST T1 (post-re-tag consumer bumps)
+~~19. projects-management-automation: fix or accept the local go-output replace floor (its own repo decision).~~ declined — projects-management-automation's own repo decision (local replace is theirs)
+~~20. README floor-line CI dogfood check (assert README ≥ go.mod minor).~~ routed — TODO_LIST T16
+~~21. Vendor-fallback indirect-stanza support or help-text limitation note.~~ routed — TODO_LIST T15
+~~22. AGENTS.md: prune the now-closed classification-gap notes after v0.2.3 ships (they describe the fixed state twice).~~ done — pruned 2026-10-03 (version + toolchain-floor bullets compressed; POISONERS.md owns history)
+~~23. ADR-0001 appendix: record the 2026-09-26 session's classification-fix evidence next to the go-health incident.~~ routed — TODO_LIST T17
+~~24. Add `docs/status/archived/` routing for the two 2026-09-25 reports if superseded.~~ done — both 2026-09-25 reports annotated + archived this pass (2026-10-03)
+~~25. Review the 9 "tools unavailable (health check failed)" BuildFlow doctor warnings (noticed in output, never inspected).~~ routed — TODO_LIST T16
+~~26. vulnix gcc-10.4.0 CVE-2023-4039 advisory triage (warning-severity, noticed in full run).~~ routed — TODO_LIST T16
+~~27. art-dupl 56 findings: diff against docs/DEDUPLICATION.md baseline (gate passed; is the delta all intentional?).~~ routed — TODO_LIST T16
+~~28. branching-flow#1 un-nolint check (upstream issue status unknown).~~ routed — TODO_LIST T12
+~~29. dependabot-auto-configure#3 un-ignore check (same).~~ routed — TODO_LIST T12
+~~30. `.buildflow.yml`: consider documenting the license-check intermittent in skip rationale ONLY if the flake recurs (do not skip preemptively).~~ done — left unskipped (correct posture); recurrence watch lives in TODO_LIST T16
+~~31. Flake: add a `checks` entry asserting the FOD go version ≥ go.mod floor (belt & braces for the goPkgAttr class).~~ routed — TODO_LIST T16
+~~32. Fleet-wide `go-auto-upgrade` testify policy: apply the `testifyassert` exclusion everywhere or drop per-repo configs (owner call, parked since 09-22).~~ routed — ROADMAP open questions (owner call)
+~~33. Explore `--allow-partial` default change for who-forces in vendor-mode fleets (policy call).~~ routed — ROADMAP open questions (owner call)
+~~34. Consider e2e test running the real `go mod tidy -diff` gate against a seeded fixture repo (today the gate is always faked in unit tests).~~ routed — TODO_LIST T16
+~~35. TODO_LIST T9 nix-pin: decide BuildFlow step vs CLI command home before anyone implements.~~ routed — TODO_LIST T9 (home-decision note added to the row)
 
 ## g) Questions I cannot answer myself
 
