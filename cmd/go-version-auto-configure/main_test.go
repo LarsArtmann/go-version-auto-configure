@@ -704,7 +704,7 @@ func TestPrintFloorsRendersEveryRowShape(t *testing.T) {
 			Module:      "example.com/m",
 			Directive:   "1.26",
 			MaxDepFloor: "1.26.7",
-			PoisonerFloors: []fix.PoisonerFloor{
+			PoisonerFloors: []fix.DependencyFloor{
 				{Module: "github.com/larsartmann/go-finding", Version: "v1.12.0", Floor: "1.26.7"},
 			},
 			Poisoned: true,

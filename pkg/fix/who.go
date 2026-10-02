@@ -15,11 +15,12 @@ import (
 // toolchain versions (GoVersion), which parse differently.
 type ModuleVersion string
 
-// PoisonerFloor is one dependency whose own `go` floor exceeds the module's
-// declared directive: it forces the floor upward on tidy. Unlike Poisoners
-// (which names only the carriers of the single highest floor), this list
-// carries every forcing dependency with its own floor.
-type PoisonerFloor struct {
+// DependencyFloor is one dependency with the `go` floor it declares: the
+// row shape of both who-forces lists — a poisoned row's PoisonerFloors
+// (dependencies forcing the floor ABOVE the directive) and an at-parity
+// row's ParityFloors (dependencies holding the directive exactly where it
+// is).
+type DependencyFloor struct {
 	// Module is the dependency's module path.
 	Module surface.ModulePath `json:"module"`
 	// Version is the dependency's released version, e.g. "v1.10.0".
@@ -27,6 +28,18 @@ type PoisonerFloor struct {
 	// Floor is the `go` directive the dependency declares.
 	Floor surface.GoVersion `json:"floor"`
 }
+
+// FloorSource names the authority a row's floors were resolved from — the
+// provenance of the numbers, additive on wire schema 2.
+type FloorSource string
+
+const (
+	// FloorSourceList marks rows resolved via `go list -m`.
+	FloorSourceList FloorSource = "list"
+	// FloorSourceVendor marks rows resolved via vendor/modules.txt
+	// annotations after a skewed vendor tree refused both listings.
+	FloorSourceVendor FloorSource = "vendor"
+)
 
 // ModuleFloors is one module's dependency-floor matrix row: the floor the
 // dependencies collectively force, and which of them carry it. The json
@@ -48,7 +61,16 @@ type ModuleFloors struct {
 	// directive, each with its floor, sorted highest floor first; empty
 	// unless Poisoned. Schema 2 of the wire contract removed the flat
 	// `poisoners` list; every carrier is named here with its floor.
-	PoisonerFloors []PoisonerFloor `json:"poisonerFloors,omitempty"`
+	PoisonerFloors []DependencyFloor `json:"poisonerFloors,omitempty"`
+	// ParityFloors lists every dependency whose floor EQUALS the directive
+	// when the row sits at parity (directive == MaxDepFloor): the carriers
+	// holding the module at its current floor — strip the directive and
+	// tidy re-raises it to exactly these. Empty unless at parity; Poisoned
+	// stays false and the exit contract is unchanged.
+	ParityFloors []DependencyFloor `json:"parityFloors,omitempty"`
+	// Source names the authority the floors were resolved from ("list" or
+	// "vendor"); empty when the row errored and nothing resolved.
+	Source FloorSource `json:"source,omitempty"`
 	// Poisoned reports whether `go mod tidy` would re-raise the directive:
 	// the dependency floor exceeds the declared directive.
 	Poisoned bool `json:"poisoned"`
@@ -97,7 +119,7 @@ func floorsForModule(ctx context.Context, root string, m surface.ModuleDirective
 
 	dir := filepath.Join(root, filepath.Dir(m.Path))
 
-	var forcers []PoisonerFloor
+	var forcers, parity []DependencyFloor
 
 	out, err := run(ctx, dir, "list", "-m", "-f", "{{.GoVersion}}\t{{.Path}}\t{{.Version}}", "all")
 	if err != nil {
@@ -109,10 +131,12 @@ func floorsForModule(ctx context.Context, root string, m surface.ModuleDirective
 		}
 
 		for _, v := range vendored {
-			accumulateFloor(&row, &forcers, v.Floor, v.Module, v.Version)
+			accumulateFloor(&row, &forcers, &parity, v.Floor, v.Module, v.Version)
 		}
 
-		return finalizeFloors(row, forcers)
+		row.Source = FloorSourceVendor
+
+		return finalizeFloors(row, forcers, parity)
 	}
 
 	for line := range strings.SplitSeq(strings.TrimSuffix(out, "\n"), "\n") {
@@ -121,17 +145,21 @@ func floorsForModule(ctx context.Context, root string, m surface.ModuleDirective
 			continue
 		}
 
-		accumulateFloor(&row, &forcers, floor, dep, version)
+		accumulateFloor(&row, &forcers, &parity, floor, dep, version)
 	}
 
-	return finalizeFloors(row, forcers)
+	row.Source = FloorSourceList
+
+	return finalizeFloors(row, forcers, parity)
 }
 
 // accumulateFloor folds one dependency floor triple into the row's max
-// floor and forcer list.
+// floor, the forcer list (floors above the directive), and the parity list
+// (floors equal to the directive — the carriers that hold it there).
 func accumulateFloor(
 	row *ModuleFloors,
-	forcers *[]PoisonerFloor,
+	forcers *[]DependencyFloor,
+	parity *[]DependencyFloor,
 	floor surface.GoVersion,
 	dep surface.ModulePath,
 	version ModuleVersion,
@@ -140,27 +168,41 @@ func accumulateFloor(
 		row.MaxDepFloor = floor
 	}
 
-	if surface.GreaterVersion(string(floor), string(row.Directive)) {
-		*forcers = append(*forcers, PoisonerFloor{Module: dep, Version: version, Floor: floor})
+	entry := DependencyFloor{Module: dep, Version: version, Floor: floor}
+
+	switch {
+	case surface.GreaterVersion(string(floor), string(row.Directive)):
+		*forcers = append(*forcers, entry)
+	case floor == row.Directive:
+		*parity = append(*parity, entry)
 	}
 }
 
-// finalizeFloors marks poisoning and orders the forcers highest floor
-// first.
-func finalizeFloors(row ModuleFloors, forcers []PoisonerFloor) ModuleFloors {
+// finalizeFloors marks poisoning, orders the forcers highest floor first,
+// and — on a non-poisoned row sitting exactly at its max dependency floor —
+// names the parity carriers so "who holds me here" has a one-command
+// answer. The poisoned semantics and the exit contract are unchanged.
+func finalizeFloors(row ModuleFloors, forcers []DependencyFloor, parity []DependencyFloor) ModuleFloors {
 	row.Poisoned = surface.GreaterVersion(string(row.MaxDepFloor), string(row.Directive))
 
 	if row.Poisoned {
 		row.PoisonerFloors = forcers
-		slices.SortFunc(row.PoisonerFloors, comparePoisonerFloors)
+		slices.SortFunc(row.PoisonerFloors, compareDependencyFloors)
+
+		return row
+	}
+
+	if row.Directive != "" && row.MaxDepFloor == row.Directive && len(parity) > 0 {
+		row.ParityFloors = parity
+		slices.SortFunc(row.ParityFloors, compareDependencyFloors)
 	}
 
 	return row
 }
 
-// comparePoisonerFloors orders poisoners by floor (highest first), then by
+// compareDependencyFloors orders poisoners by floor (highest first), then by
 // module path for determinism.
-func comparePoisonerFloors(a, b PoisonerFloor) int {
+func compareDependencyFloors(a, b DependencyFloor) int {
 	switch {
 	case surface.GreaterVersion(string(a.Floor), string(b.Floor)):
 		return -1

@@ -135,7 +135,7 @@ func TestAnalyzeFloors_MarksWorkspaceRowWithoutAnalysis(t *testing.T) {
 	assert.Empty(t, workRow.Error)
 }
 
-func TestAnalyzeFloors_PoisonerFloorsCarryEachForcersFloor(t *testing.T) {
+func TestAnalyzeFloors_DependencyFloorsCarryEachForcersFloor(t *testing.T) {
 	t.Parallel()
 
 	root := t.TempDir()
@@ -160,12 +160,12 @@ func TestAnalyzeFloors_PoisonerFloorsCarryEachForcersFloor(t *testing.T) {
 	assert.Equal(t, surface.GoVersion("1.27"), row.MaxDepFloor)
 
 	require.Len(t, row.PoisonerFloors, 2, "every forcing dependency is listed, not only the max carriers")
-	assert.Equal(t, PoisonerFloor{
+	assert.Equal(t, DependencyFloor{
 		Module:  "github.com/larsartmann/go-atomic-write",
 		Version: "v0.5.0",
 		Floor:   "1.27",
 	}, row.PoisonerFloors[0])
-	assert.Equal(t, PoisonerFloor{
+	assert.Equal(t, DependencyFloor{
 		Module:  "github.com/larsartmann/go-finding",
 		Version: "v1.12.0",
 		Floor:   "1.26.7",
@@ -189,21 +189,21 @@ func TestAnalyzeFloors_ListFailureRecordedPerModule(t *testing.T) {
 	assert.False(t, rows[0].Poisoned, "an unanalyzable module is not claimed as poisoned")
 }
 
-func TestComparePoisonerFloorsOrdersByFloorThenModule(t *testing.T) {
+func TestCompareDependencyFloorsOrdersByFloorThenModule(t *testing.T) {
 	t.Parallel()
 
-	high, low := PoisonerFloor{Module: "b", Floor: "1.27"}, PoisonerFloor{Module: "a", Floor: "1.26.7"}
-	sameFloorA, sameFloorB := PoisonerFloor{Module: "z", Floor: "1.26"}, PoisonerFloor{Module: "a", Floor: "1.26"}
+	high, low := DependencyFloor{Module: "b", Floor: "1.27"}, DependencyFloor{Module: "a", Floor: "1.26.7"}
+	sameFloorA, sameFloorB := DependencyFloor{Module: "z", Floor: "1.26"}, DependencyFloor{Module: "a", Floor: "1.26"}
 
-	assert.Negative(t, comparePoisonerFloors(high, low), "higher floor sorts first")
-	assert.Positive(t, comparePoisonerFloors(low, high))
+	assert.Negative(t, compareDependencyFloors(high, low), "higher floor sorts first")
+	assert.Positive(t, compareDependencyFloors(low, high))
 	assert.Positive(
 		t,
-		comparePoisonerFloors(sameFloorA, sameFloorB),
+		compareDependencyFloors(sameFloorA, sameFloorB),
 		"same floor orders by module path (z after a)",
 	)
-	assert.Negative(t, comparePoisonerFloors(sameFloorB, sameFloorA))
-	assert.Equal(t, 0, comparePoisonerFloors(sameFloorB, sameFloorB))
+	assert.Negative(t, compareDependencyFloors(sameFloorB, sameFloorA))
+	assert.Equal(t, 0, compareDependencyFloors(sameFloorB, sameFloorB))
 }
 
 func TestAnalyzeFloors_DiscoverFailureAborts(t *testing.T) {
