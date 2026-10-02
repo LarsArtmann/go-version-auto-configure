@@ -6,7 +6,7 @@
 - **Purpose:** Detect Go toolchain version-surface drift (patch components in `go` directives, `go.work` below the workspace floor, Nix/CI pins trailing the module floor) and auto-fix the mechanically safe part
 - **Repo:** `github.com/larsartmann/go-version-auto-configure`
 - **Version:** v0.2.2 (latest tag, 2026-09-25; pkg.go.dev listing live at v0.2.2). Unreleased on master (v0.2.3 candidate): the T14 dep-forced classification fixes — tidy-diff forced floor (replace target / std json/v2 naming) and vendor/modules.txt annotation fallback for fix AND who-forces
-- **Toolchain floor (updated 2026-09-22, post re-tags):** the module `go` directive is `go 1.27` (minor-only) and stays there: every published dependency now carries a minor-form or aligned floor (go-finding v1.13.0 `go 1.27`, toolsdk v1.13.0, linter-autoconfigure-sdk v0.3.0, go-atomic-write v0.6.0). `fix` applied 0 / dep-forced 0 and `tidy` is stable — the T1 supply-side state is fully landed for this repo's graph.
+- **Toolchain floor (updated 2026-10-02):** the module `go` directive is **dep-forced to `go 1.27.1`** by go-output v0.38.2, which entered the graph in the 2026-09-30 update sweep (commit cce3c0f, alongside toolsdk v1.13.1 and linter-autoconfigure-sdk v0.7.0). Its published go.mod is patch-form; v0.38.1 was the minor-form tag — the 2026-09-22 "v0.38.2 is minor-form" claim was inverted (module-cache evidence in [docs/POISONERS.md](docs/POISONERS.md)). Every other dependency carries a minor-form floor (`go 1.27`: go-finding v1.13.0, toolsdk v1.13.1, linter-autoconfigure-sdk v0.7.0, go-atomic-write v0.6.0). The supply-side fix is committed untagged on go-output master (`go 1.27`, cac4497 2026-09-30): until a v0.38.3+ tag ships and consumers bump, `fix` refusing the downgrade is correct (dep-forced) and `tidy` is not stable.
 
 ## Build & Run
 
@@ -52,7 +52,7 @@ The supply-side campaign has now shipped (2026-09-22): go-atomic-write v0.6.0, g
 
 What remains is the consumer campaign: repos still requiring the OLD tags keep re-poisoning until they bump. Baseline and progress live in the ADR appendix (`docs/adr/0001-fleet-go-minor.md`). This tool fixes form; tidy reverts form only while a consumer's graph still holds a poisoner.
 
-Owner decisions recorded 2026-09-22: go-output v0.38.1 is NOT retracted (documented-only; v0.38.2 is the good release — do not re-litigate), and `master` stays UNPROTECTED with informational CI (the auto-commit daemon's direct pushes win over required status checks).
+Owner decisions recorded 2026-09-22: go-output v0.38.1 is NOT retracted (documented-only — the retraction question stays closed), and `master` stays UNPROTECTED with informational CI (the auto-commit daemon's direct pushes win over required status checks). Premise correction 2026-10-02: "v0.38.2 is the good release" is falsified — v0.38.2 ships the patch-form floor and v0.38.1 was the minor-form tag ([docs/POISONERS.md](docs/POISONERS.md)); the remediation is a v0.38.3+ re-tag from go-output master, not a retraction.
 
 ## Environment reality
 
