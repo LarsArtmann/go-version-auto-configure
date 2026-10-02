@@ -273,7 +273,7 @@ func TestJSONWireContractGoldens(t *testing.T) {
 					map[string]any{
 						"path": "go.mod", "module": "example.com/m",
 						"kind": "go.mod", "directive": "1.26",
-						"poisoned": false,
+						"poisoned": false, "source": "list",
 					},
 				},
 			},

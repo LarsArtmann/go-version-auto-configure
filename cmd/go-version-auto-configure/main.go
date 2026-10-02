@@ -271,6 +271,11 @@ func buildCLI(out io.Writer, ver string) (*v4.CLI[appConfig], error) {
 			return runWhoForces(out, ctx, f)
 		},
 		v4.WithShort("name the dependencies forcing each go directive"),
+		v4.WithLong("name the dependencies forcing each go directive\n\n"+
+			"Floors resolve from `go list -m`; when a skewed vendor tree refuses both listings,\n"+
+			"vendor/modules.txt annotations resolve the row instead (JSON source \"vendor\").\n"+
+			"Limitation: modules.txt annotates only explicit requirements — indirect-only\n"+
+			"carriers in a skewed vendor tree stay unnamed."),
 		v4.WithMinimumArgs(0),
 	)
 	if err != nil {

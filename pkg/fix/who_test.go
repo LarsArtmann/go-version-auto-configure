@@ -59,6 +59,8 @@ func TestAnalyzeFloors_NamesPoisoners(t *testing.T) {
 	assert.Equal(t, ModuleVersion("v1.12.0"), row.PoisonerFloors[0].Version)
 	assert.Equal(t, surface.GoVersion("1.26.7"), row.PoisonerFloors[0].Floor)
 	assert.True(t, row.Poisoned, "tidy re-raises go 1.26 to the 1.26.7 dependency floor")
+	assert.Empty(t, row.ParityFloors, "a poisoned row carries poisoners, not parity carriers")
+	assert.Equal(t, FloorSourceList, row.Source)
 	assert.Empty(t, row.Error)
 }
 
@@ -80,6 +82,40 @@ func TestAnalyzeFloors_DirectiveAboveFloorsIsClean(t *testing.T) {
 	assert.Equal(t, surface.GoVersion("1.26.7"), rows[0].MaxDepFloor)
 	assert.False(t, rows[0].Poisoned, "the 1.26.7 floor is below the 1.27 directive")
 	assert.Empty(t, rows[0].PoisonerFloors, "only dependencies forcing above the directive are listed")
+	assert.Empty(t, rows[0].ParityFloors, "a directive above every floor sits at parity with nobody")
+}
+
+// TestAnalyzeFloors_AtParityListsCarriers answers the 2026-10-02 incident
+// question ("who holds me at parity?") without raw `go list -m`: when the
+// directive equals the max dependency floor, the carriers are named, the
+// row stays clean, and no exit semantics change.
+func TestAnalyzeFloors_AtParityListsCarriers(t *testing.T) {
+	t.Parallel()
+
+	root := t.TempDir()
+	seedGoMod(t, root, "1.27.1")
+
+	run := fakeList(strings.Join([]string{
+		"1.27.1\texample.com/m\t(devel)",
+		"1.27.1\tgithub.com/larsartmann/go-output\tv0.38.2",
+		"1.27\tgithub.com/larsartmann/go-finding\tv1.13.0",
+	}, "\n"))
+
+	rows, err := AnalyzeFloors(context.Background(), root, run)
+	require.NoError(t, err)
+	require.Len(t, rows, 1)
+
+	row := rows[0]
+	assert.False(t, row.Poisoned, "at parity is clean: no dependency forces a HIGHER floor")
+	assert.Equal(t, surface.GoVersion("1.27.1"), row.MaxDepFloor)
+	assert.Empty(t, row.PoisonerFloors)
+	require.Len(t, row.ParityFloors, 1, "the dependency holding the directive at its value is named")
+	assert.Equal(t, DependencyFloor{
+		Module:  "github.com/larsartmann/go-output",
+		Version: "v0.38.2",
+		Floor:   "1.27.1",
+	}, row.ParityFloors[0])
+	assert.Equal(t, FloorSourceList, row.Source)
 }
 
 func TestAnalyzeFloors_NoDependencies(t *testing.T) {
@@ -258,6 +294,7 @@ func TestAnalyzeFloors_VendorSkewResolvesFromAnnotations(t *testing.T) {
 		"equal floors tie-break by module path",
 	)
 	assert.Equal(t, surface.ModulePath("github.com/larsartmann/go-sse"), row.PoisonerFloors[1].Module)
+	assert.Equal(t, FloorSourceVendor, row.Source, "the vendor fallback is visible as provenance")
 }
 
 func TestAnalyzeFloors_ListFailureWithoutVendorRecordsError(t *testing.T) {
@@ -276,4 +313,40 @@ func TestAnalyzeFloors_ListFailureWithoutVendorRecordsError(t *testing.T) {
 
 	assert.NotEmpty(t, rows[0].Error, "without vendor annotations the per-module listing error stands")
 	assert.False(t, rows[0].Poisoned)
+	assert.Empty(t, rows[0].Source, "an unresolved row claims no provenance")
+}
+
+// TestAnalyzeFloors_VendorAtParityCarriesVendorSource pins the additive
+// provenance on the at-parity path too: a vendored carrier holding the
+// directive is named with source vendor, still clean.
+func TestAnalyzeFloors_VendorAtParityCarriesVendorSource(t *testing.T) {
+	t.Parallel()
+
+	root := t.TempDir()
+	seedGoMod(t, root, "1.27.1")
+
+	require.NoError(t, os.MkdirAll(filepath.Join(root, "vendor"), 0o755))
+	require.NoError(
+		t,
+		os.WriteFile(
+			filepath.Join(root, "vendor", "modules.txt"),
+			[]byte("# github.com/larsartmann/go-output v0.38.2\n## explicit; go 1.27.1\n"),
+			0o644,
+		),
+	)
+
+	run := fakeRunner(func(string, []string) (string, error) {
+		return "", errFakeList
+	})
+
+	rows, err := AnalyzeFloors(context.Background(), root, run)
+	require.NoError(t, err)
+	require.Len(t, rows, 1)
+
+	row := rows[0]
+	assert.Empty(t, row.Error)
+	assert.False(t, row.Poisoned)
+	assert.Equal(t, FloorSourceVendor, row.Source)
+	require.Len(t, row.ParityFloors, 1)
+	assert.Equal(t, surface.ModulePath("github.com/larsartmann/go-output"), row.ParityFloors[0].Module)
 }
