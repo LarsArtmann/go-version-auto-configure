@@ -70,4 +70,4 @@ Short- and mid-term actionable work, **open items only** — completed items liv
 
 ## T3 — Publish (remainder)
 
-- [ ] Website launch (sibling-project pattern) if it earns one
+- [ ] Website launch — **decision 2026-10-03: demand-gated non-commitment.** Revisit only on a real demand signal (external user question, adoption spike, owner request). If triggered: sibling-project Astro+Starlight pattern per the website-launch skill, demo video as landing centerpiece. Do not spend a session on this otherwise.

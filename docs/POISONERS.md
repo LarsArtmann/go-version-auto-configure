@@ -31,3 +31,23 @@ Vendor-mode note (2026-09-25, dnsblockd; fixed in v0.2.3): when `go list -m` can
 - When `who-forces` names a new poisoner: add it to Active, open a supply-side re-tag task in its repo, link the consumer evidence here.
 - When a re-tag ships: move the row to Resolved with the tag pair and date.
 - This file replaces the poisoner list previously maintained inline in AGENTS.md (which now links here).
+
+### Evidence convention (2026-10-03)
+
+Every Resolved row cites at least one **published `.mod` verification**: the
+exact tag whose `go` directive was read from the resolution path a consumer
+actually uses, plus the date. Two accepted forms:
+
+- proxy URL: `https://proxy.golang.org/<module-path>/@v/<tag>.mod` (public repos)
+- fresh fetch: `go get <module>@<tag>` in a scratch module, then read
+  `$(go env GOMODCACHE)/cache/download/<path>/@v/<tag>.mod` — also the
+  correct form for `GOPRIVATE` repos, where resolution is direct-VCS and the
+  cache file reflects the pushed tag (verified 2026-10-03 on go-output's
+  submodules: the pushed v0.38.3 tags serve `go 1.27` even though
+  proxy.golang.org is bypassed).
+
+**No re-tag ships without published-`.mod` verification** — a locally-stripped
+tree proves nothing about what consumers resolve (the go-output v0.38.2
+registry inversion survived partly because a claim about tags was recorded
+without reading one). A local `git show <tag>:<dir>/go.mod` reading is a
+complement (it catches tag-vs-tree drift), never a substitute.

@@ -100,3 +100,31 @@ unconditional fixability.
 | Fix                                        | v0.4.1 re-tag + consumer bump          |
 | Gate verification                          | dep-forced, go.mod untouched (v0.2.0)  |
 | Related false positive found during triage | nix pin comment matched (fixed v0.2.1) |
+
+### Incident record: dep-forced classification gaps (2026-09-26 session)
+
+Three classification gaps found by fleet dogfooding and closed in v0.2.3
+(2026-09-27):
+
+1. **Untidy trees**: `go list -m` refuses a module graph whose go.sum is
+   stale; the gate then misclassified dep-forced rewrites as plain failures.
+   Fix: `-e` fallback listing.
+2. **Skewed vendor trees** (dnsblockd): neither listing works; the gate now
+   falls back to `vendor/modules.txt` `## explicit; go X` annotations and
+   names the vendored carriers (path@version).
+3. **Unlisted forcers**: a tidy-diff `+go X` raise that no listed module
+   carries (replace target, vendored module, or the std json/v2 toolchain
+   floor) is dep-forced with the forcer named in `cause` — the fixer no
+   longer promises a re-write that tidy silently reverts.
+
+### Incident record: go-output v0.38.2 regression (2026-10-02)
+
+The 2026-09-22 registry note claimed "v0.38.2+ is minor-form" — inverted:
+v0.38.2 REGRESSED to patch-form (`go 1.27.1` across the 17-module family).
+The claim had been recorded without reading a published `.mod`. Consumer
+evidence: this repo's own directive lifted `go 1.27 → go 1.27.1` on
+2026-09-30 (the exact poisoner class this tool exists to catch). Resolution:
+v0.38.3 re-tag ships minor-form floors AND v0.38.3 sibling pins inside the
+tagged tree (pin-in-tag; without it every submodule graph kept the floor
+alive). Structural fix: the POISONERS.md evidence convention (2026-10-03)
+forbids recording tag claims without published-`.mod` verification.

@@ -8,6 +8,10 @@ on:
 env:
   GOEXPERIMENT: jsonv2
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   verify:
     name: Build, test (race), lint, dogfood
@@ -25,15 +29,47 @@ jobs:
       - name: Build
         run: go build ./...
 
+      # The 2026-09-30 class (a sweep re-poisoning the go directive) dies here:
+      # tidy -diff is non-clean exactly when the committed go.mod/go.sum drift
+      # from what the dependency graph requires.
+      - name: Tidy gate (go mod tidy -diff)
+        run: go mod tidy -diff
+
+      - name: Error-handling audit (erraudit)
+        run: |
+          go install github.com/larsartmann/erraudit/cmd/erraudit@latest
+          erraudit ./... --type-aware
+
       - name: Test (race)
         run: go test -race -count=1 ./...
 
       - name: Lint
         uses: golangci/golangci-lint-action@ba0d7d2ec06a0ea1cb5fa41b2e4a3ab91d21278a # v9.3.0
         with:
+          version: v2.14.0 # pinned to the devShell's version (reproducible lint)
           args: --timeout 5m
 
       - name: Dogfood check (this repo must be clean)
         run: |
           go build -o /tmp/gvac ./cmd/go-version-auto-configure
           /tmp/gvac check --quiet --expect-minor 1.27 .
+
+      # The "Requires Go 1.26" lie survived 4 days; a stated requirement in
+      # README must not understate the go.mod floor.
+      - name: README floor-line dogfood
+        run: |
+          floor=$(sed -n 's/^go //p' go.mod | head -1)
+          stated=$(grep -oE '[Rr]equires? Go 1\.[0-9]+' README.md | grep -oE '1\.[0-9]+' | sort -uV | head -1 || true)
+          if [ -n "$stated" ] && [ "$stated" != "$floor" ] && [ "$(printf '%s\n%s\n' "$stated" "$floor" | sort -uV | head -1)" = "$stated" ]; then
+            echo "README states 'Requires Go $stated' but go.mod floor is $floor"
+            exit 1
+          fi
+
+      - name: Version-stamp assertion
+        run: |
+          v=$(/tmp/gvac version | awk '{print $2}')
+          echo "version stamp: $v"
+          echo "$v" | grep -Eq '^[0-9a-f]{7}(-dirty)?$' || {
+            echo "version stamp is not a VCS shortrev (got '$v') - pkg/version stamping is broken"
+            exit 1
+          }
