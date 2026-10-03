@@ -26,6 +26,12 @@ type ModulePath string
 // every surface location.
 type FilePath string
 
+// ReleaseVersion is a version from the repository's release-authority
+// files (VERSION, CHANGELOG.md heading), e.g. "0.7.0" or "4.16.0" — NOT a
+// Go toolchain version; the distinction keeps release stamps out of
+// floor arithmetic.
+type ReleaseVersion string
+
 // Policy rules reported by Analyze.
 const (
 	// RuleGoDirectivePatchForm fires when a go.mod `go` directive carries a
@@ -92,6 +98,16 @@ const (
 	// (ADR-0001 sets the fleet minor to 1.27). Suggestion-only: moving a
 	// surface down is a maintainer decision and is never auto-applied.
 	RuleMinorExceedsExpectation Rule = "minor-exceeds-expectation"
+
+	// RuleReleaseAuthorityDrift fires when the repository's pure-file
+	// release authorities disagree: the root VERSION stamp names a different
+	// release than the top released CHANGELOG.md section (the first
+	// versioned `## [...]` heading, `[Unreleased]` skipped). Suggest-only:
+	// which source is authoritative is per-repo policy — the same reasoning
+	// as pin alignment — and neither side is a mechanical rewrite. Known
+	// case: project-dependency-graph carried VERSION=0.7.0 while its
+	// changelog topped out far lower (found 2026-09-22).
+	RuleReleaseAuthorityDrift Rule = "release-authority-drift"
 )
 
 // DirectiveKind distinguishes which file declares a Go version.
@@ -176,6 +192,28 @@ type Surface struct {
 	NixPins []Pin
 	// CIPins holds CI workflow go-version pins.
 	CIPins []Pin
+	// Release is the repository's release authority (root VERSION stamp
+	// vs top released CHANGELOG.md section); nil when neither file exists.
+	Release *ReleaseAuthority
+}
+
+// ReleaseAuthority collects the release versions declared by the
+// repository's pure-file release sources. A single source alone cannot
+// drift; the comparison lives in Analyze (RuleReleaseAuthorityDrift).
+type ReleaseAuthority struct {
+	// VersionFile is the release version stamped in the root VERSION file,
+	// normalized without a leading v; empty when the file is absent or
+	// carries no recognizable version (dynamic stamps like "dev" are legal
+	// and stay silent).
+	VersionFile ReleaseVersion
+	// ChangelogTop is the topmost released section in the root CHANGELOG.md
+	// (the first versioned `## [...]` heading, `[Unreleased]` skipped),
+	// normalized without a leading v; empty when the changelog is absent or
+	// has no versioned section.
+	ChangelogTop ReleaseVersion
+	// ChangelogLine is the 1-based line of the ChangelogTop heading
+	// (0 when ChangelogTop is empty).
+	ChangelogLine int
 }
 
 // Floor returns the highest declared major.minor across module directives,
