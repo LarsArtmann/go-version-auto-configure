@@ -67,7 +67,24 @@ applied 0, dep-forced 1, held back 0, failed 0
               fix supply-side: re-tag those modules with a major.minor-only go directive, then bump consumers
 ```
 
+Directive rewrites are **byte-preserving text surgery**, not `go mod edit` reflows: only the `go` line changes, so unrelated lines never churn. Every rewrite must survive a non-mutating `go mod tidy -diff` dependency-floor gate before it sticks — otherwise it is classified dep-forced (above) and the file is restored atomically. The `CanonicalizeGoMod` entry point (what BuildFlow's `go-mod-normalize` step calls) derives the same changes itself, adds an installed-toolchain guard, and optionally strips `toolchain` directives outright (`StripToolchain`) for consumers whose fleet policy bans them; the CLI keeps the conservative default (model, never strip).
+
 `who-forces` reports the same matrix for every module up front — directive, highest dependency floor, and who carries it (every forcing dependency with its own floor, not just the max carriers) — without touching anything. At parity (directive == max dependency floor) the carriers holding that exact floor are named in `parityFloors` — one-command answer to "who holds me here". The additive `source` field marks whether floors resolved from `go list -m` (`"list"`) or from `vendor/modules.txt` annotations (`"vendor"`). `--allow-partial` downgrades per-module `go list` failures from exit 2 to exit 1 for fleets where some modules cannot resolve.
+
+Real run (2026-10-03, a scratch module pinned to the pre-remediation `event/v4 v4.12.0` — the patch-form floor propagates transitively through schema, snapshot, and storage/memory):
+
+```text
+$ go-version-auto-configure who-forces .
+go.mod  verify.example/readme-who
+  directive: go 1.27.1   max dep floor: go 1.27.1
+  clean: no dependency forces a higher floor
+  at parity: github.com/larsartmann/go-cqrs-lite/event/v4@v4.12.0 holds the directive at go 1.27.1
+  at parity: github.com/larsartmann/go-cqrs-lite/schema/v4@v4.4.1 holds the directive at go 1.27.1
+  at parity: github.com/larsartmann/go-cqrs-lite/snapshot/v4@v4.5.1 holds the directive at go 1.27.1
+  at parity: github.com/larsartmann/go-cqrs-lite/storage/memory/v4@v4.5.2 holds the directive at go 1.27.1
+```
+
+Four carriers, one re-tag train: this exact matrix drove the 2026-10-03 cqrs-lite 92-tag remediation.
 
 #### JSON contract
 
