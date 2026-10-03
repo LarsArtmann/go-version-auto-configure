@@ -5,7 +5,6 @@ Short- and mid-term actionable work, **open items only** — completed items liv
 ## T14 — Supply-side re-tags still pending (largest fleet impact)
 
 - [ ] Coordinated re-tag campaign for the remaining PENDING poisoners in [docs/POISONERS.md](docs/POISONERS.md): go-cqrs-lite v4 family (~27 modules, largest carrier set), go-health-dashboard v0.10.x (master already fixed 2026-09-25, needs the tag), go-etag, go-sse; map the cqrs-htmx poisoner surface (who-forces across its importers) before its re-tag
-- [ ] BuildFlow: decide retiring the go-work-sync `GoWorkFloorFinding`/`RestoreGoWorkFloor` defenses + `DependsOn` ordering (their TODO S87 safety-net precondition is met — gvac's go-work-aware fixer is active) and repin BuildFlow to gvac **v0.2.3** in the same motion (still at v0.2.1/v0.2.2)
 
 ## T1 — Fleet consumer campaign (remainder)
 

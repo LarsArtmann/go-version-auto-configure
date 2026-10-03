@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+### Changed
+
+- BuildFlow repinned to gvac **v0.2.4** (flake input rev `57f9cfe`; all three workspace members; single vendor stanza; profile binary upgraded to `eb35fce`) — the v0.2.4 gate, go-work-aware fixer, at-parity `who-forces`, and vendor fallback are live in the binary that runs fleet-wide. S87 disposition: `GoWorkFloorFinding`/`RestoreGoWorkFloor` stay retired in BuildFlow (the floor-safe gvac fixer is the defense); go-work-sync `DependsOn` KEPT as belt-and-suspenders. Closes TODO T14-② (recorded in BuildFlow AGENTS.md gotcha #187).
+
 ## [0.2.4] - 2026-10-03
 
 ### Added
