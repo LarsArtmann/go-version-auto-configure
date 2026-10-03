@@ -110,4 +110,4 @@ WP-05 (fleet sweep + go-output v0.38.2 pinner bumps + ADR-0001 counts — NOTE: 
 
 ---
 
-*Honesty ledger additions (d1–d7). Fleet-critical facts: cqrs-lite master fully pushed (0 ahead); 97/97 green; POISONERS Active list is down to ONE family (cqrs-htmx, in flight); nothing else pushed this session besides the 3 supply-side tags (httputil v1.4.1, go-codec v0.3.1, go-idempotency v0.3.1 — each published-`.mod` verified).*
+_Honesty ledger additions (d1–d7). Fleet-critical facts: cqrs-lite master fully pushed (0 ahead); 97/97 green; POISONERS Active list is down to ONE family (cqrs-htmx, in flight); nothing else pushed this session besides the 3 supply-side tags (httputil v1.4.1, go-codec v0.3.1, go-idempotency v0.3.1 — each published-`.mod` verified)._
