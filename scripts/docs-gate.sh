@@ -39,7 +39,7 @@ cutoff_days=21
 now=$(date +%s)
 stale=0
 while IFS= read -r -d '' f; do
-  age=$(( (now - $(stat -c %Y "$f")) / 86400 ))
+  age=$(((now - $(stat -c %Y "$f")) / 86400))
   if [ "$age" -ge "$cutoff_days" ]; then
     echo "ADVISORY: $f is ${age}d old and not archived — harvest open items into TODO_LIST, then move to docs/status/archived/"
     stale=1

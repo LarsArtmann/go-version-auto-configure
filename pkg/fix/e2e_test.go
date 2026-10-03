@@ -42,6 +42,7 @@ func seedRealGateFixture(t *testing.T, directive string) string {
 		"require example.com/poisoner v0.0.0\n\n" +
 		"replace example.com/poisoner => ../poisoner\n"
 	require.NoError(t, os.WriteFile(filepath.Join(consumer, "go.mod"), []byte(goMod), 0o644))
+
 	mainGo := "package main\n\nimport _ \"example.com/poisoner\"\n\nfunc main() {}\n"
 	require.NoError(t, os.WriteFile(filepath.Join(consumer, "main.go"), []byte(mainGo), 0o644))
 
