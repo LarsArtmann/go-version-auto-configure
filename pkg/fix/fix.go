@@ -464,67 +464,39 @@ func classifyGateRejection(ctx context.Context, abs string, fx surface.Fix, run 
 	}
 }
 
-// resolveDepFloor lists the module's dependency graph and returns the
-// highest dependency `go` floor — the value tidy enforces — together with
-// the published dependencies carrying it. Replaced development versions
-// ("(devel)") count toward the floor but are never named as poisoners,
-// since there is nothing to re-tag.
+// resolveDepFloor resolves the module's dependency floors through the
+// shared authority walk and returns the highest `go` floor — the value
+// tidy enforces — together with the published dependencies carrying it.
+// Replaced development versions ("(devel)") count toward the floor but
+// are never named as poisoners, since there is nothing to re-tag; listed
+// carriers are named by module path, vendored carriers as path@version
+// (the annotation authority knows no list order, so the version pins
+// which stanza carried the floor).
 func resolveDepFloor(ctx context.Context, dir string, run GoCommandRunner) (surface.GoVersion, []string, error) {
-	out, err := listDependencyFloors(ctx, dir, run)
+	resolved, source, err := resolveDependencyFloors(ctx, dir, readModulePath(dir), run)
 	if err != nil {
-		// A vendored tree can refuse BOTH listings when vendor/modules.txt
-		// is skewed against go.mod ("in vendor/modules.txt requires go >=
-		// X"); the annotations still record every vendored module's true
-		// floor.
-		if vendored, ok := readVendorModuleFloors(dir); ok {
-			floor, carriers := maxVendorFloor(vendored)
-
-			return floor, carriers, nil
-		}
-
-		return "", nil, fmt.Errorf("list dependency floors: %w", err)
+		return "", nil, err
 	}
 
-	var (
-		floor     surface.GoVersion
-		poisoners []string
-	)
+	floor, carriers := maxDependencyFloor(resolved)
 
-	for line := range strings.SplitSeq(out, "\n") {
-		fields := strings.Fields(strings.TrimSpace(line))
-		if len(fields) != 3 || fields[0] == "" || fields[2] == "" {
+	poisoners := make([]string, 0, len(carriers))
+
+	for _, carrier := range carriers {
+		if !carrier.published() {
 			continue
 		}
 
-		if floor == "" || surface.GreaterVersion(fields[2], string(floor)) {
-			floor = surface.GoVersion(fields[2])
-			poisoners = nil
-		}
+		if source == FloorSourceVendor {
+			poisoners = append(poisoners, string(carrier.Module)+"@"+string(carrier.Version))
 
-		if fields[1] == "(devel)" || fields[1] == "" {
 			continue
 		}
 
-		if fields[2] == string(floor) {
-			poisoners = append(poisoners, fields[0])
-		}
+		poisoners = append(poisoners, string(carrier.Module))
 	}
 
 	return floor, poisoners, nil
-}
-
-// listDependencyFloors runs `go list -m` for every dependency's declared
-// floor. The rewritten tree is untidy exactly when tidy is about to revert
-// the fix, and a plain list refuses to load that graph; -e lists the module
-// graph anyway, so the floor and the dependencies carrying it stay nameable
-// in the dep-forced report.
-func listDependencyFloors(ctx context.Context, dir string, run GoCommandRunner) (string, error) {
-	out, err := run(ctx, dir, "list", "-m", "-f", "{{.Path}} {{.Version}} {{.GoVersion}}", "all")
-	if err != nil {
-		return run(ctx, dir, "list", "-m", "-e", "-f", "{{.Path}} {{.Version}} {{.GoVersion}}", "all")
-	}
-
-	return out, nil
 }
 
 // DepForcedError reports a form fix that tidy reverts because a dependency

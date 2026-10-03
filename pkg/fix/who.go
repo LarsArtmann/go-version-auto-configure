@@ -10,37 +10,6 @@ import (
 	"github.com/larsartmann/go-version-auto-configure/pkg/surface"
 )
 
-// ModuleVersion is a released module version as listed by `go list -m`,
-// e.g. "v1.10.0". A named type keeps module versions distinct from Go
-// toolchain versions (GoVersion), which parse differently.
-type ModuleVersion string
-
-// DependencyFloor is one dependency with the `go` floor it declares: the
-// row shape of both who-forces lists — a poisoned row's PoisonerFloors
-// (dependencies forcing the floor ABOVE the directive) and an at-parity
-// row's ParityFloors (dependencies holding the directive exactly where it
-// is).
-type DependencyFloor struct {
-	// Module is the dependency's module path.
-	Module surface.ModulePath `json:"module"`
-	// Version is the dependency's released version, e.g. "v1.10.0".
-	Version ModuleVersion `json:"version"`
-	// Floor is the `go` directive the dependency declares.
-	Floor surface.GoVersion `json:"floor"`
-}
-
-// FloorSource names the authority a row's floors were resolved from — the
-// provenance of the numbers, additive on wire schema 2.
-type FloorSource string
-
-const (
-	// FloorSourceList marks rows resolved via `go list -m`.
-	FloorSourceList FloorSource = "list"
-	// FloorSourceVendor marks rows resolved via vendor/modules.txt
-	// annotations after a skewed vendor tree refused both listings.
-	FloorSourceVendor FloorSource = "vendor"
-)
-
 // ModuleFloors is one module's dependency-floor matrix row: the floor the
 // dependencies collectively force, and which of them carry it. The json
 // tags are the stable machine contract for the who-forces --json output.
@@ -110,45 +79,34 @@ func AnalyzeFloors(ctx context.Context, root string, run GoCommandRunner) ([]Mod
 	return rows, nil
 }
 
-// floorsForModule lists one module's dependency graph and extracts its
-// floor matrix row. A vendor directory skewed against go.mod ("inconsistent
-// vendoring") makes `go list` refuse the graph; the modules.txt
-// annotations still record every vendored floor and resolve the row then.
+// floorsForModule resolves one module's dependency floors through the
+// shared authority walk and extracts its floor matrix row. Unreleased
+// records ((devel) replacements) carry no floor here: the matrix answers
+// which published tags force the directive, and there is nothing to re-tag
+// in a local working copy.
 func floorsForModule(ctx context.Context, root string, m surface.ModuleDirective, run GoCommandRunner) ModuleFloors {
 	row := ModuleFloors{Path: m.Path, Kind: m.Kind, Module: m.Module, Directive: m.Version}
 
 	dir := filepath.Join(root, filepath.Dir(m.Path))
 
-	var forcers, parity []DependencyFloor
-
-	out, err := run(ctx, dir, "list", "-m", "-f", "{{.GoVersion}}\t{{.Path}}\t{{.Version}}", "all")
+	resolved, source, err := resolveDependencyFloors(ctx, dir, m.Module, run)
 	if err != nil {
-		vendored, ok := readVendorModuleFloors(dir)
-		if !ok {
-			row.Error = FailureCause(err.Error())
+		row.Error = FailureCause(err.Error())
 
-			return row
-		}
-
-		for _, v := range vendored {
-			accumulateFloor(&row, &forcers, &parity, v.Floor, v.Module, v.Version)
-		}
-
-		row.Source = FloorSourceVendor
-
-		return finalizeFloors(row, forcers, parity)
+		return row
 	}
 
-	for line := range strings.SplitSeq(strings.TrimSuffix(out, "\n"), "\n") {
-		floor, dep, version, ok := parseFloorLine(line, m.Module)
-		if !ok {
+	var forcers, parity []DependencyFloor
+
+	for _, entry := range resolved {
+		if !entry.published() {
 			continue
 		}
 
-		accumulateFloor(&row, &forcers, &parity, floor, dep, version)
+		accumulateFloor(&row, &forcers, &parity, entry.Floor, entry.Module, entry.Version)
 	}
 
-	row.Source = FloorSourceList
+	row.Source = source
 
 	return finalizeFloors(row, forcers, parity)
 }
@@ -211,25 +169,4 @@ func compareDependencyFloors(a, b DependencyFloor) int {
 	default:
 		return strings.Compare(string(a.Module), string(b.Module))
 	}
-}
-
-// parseFloorLine splits one `go list -m` line into its dependency floor,
-// the module carrying it, and the module's released version. The main
-// module itself and unreplaced development versions carry no floor here.
-// Results, in order: floor, carrying module, version, ok.
-func parseFloorLine(
-	line string,
-	module surface.ModulePath,
-) (surface.GoVersion, surface.ModulePath, ModuleVersion, bool) {
-	fields := strings.Split(line, "\t")
-
-	if len(fields) != 3 || fields[0] == "" || fields[1] == "" || fields[1] == string(module) {
-		return "", "", "", false
-	}
-
-	if fields[2] == "" || fields[2] == "(devel)" {
-		return "", "", "", false
-	}
-
-	return surface.GoVersion(fields[0]), surface.ModulePath(fields[1]), ModuleVersion(fields[2]), true
 }

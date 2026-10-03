@@ -4,8 +4,11 @@ package fix
 // cannot (or will not) name the carrier: the tidy diff itself names the
 // forced directive, the go tool's diagnostics name the forcer, and a
 // vendored tree carries its floors in vendor/modules.txt annotations.
+// This file owns the shared floor model and the authority walk every
+// floor consumer (fix classification, who-forces) reduces from.
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -103,11 +106,158 @@ func depForcedCause(detail string, forced surface.GoVersion) string {
 	)
 }
 
-// vendorModuleFloor is one vendored dependency's recorded go floor.
-type vendorModuleFloor struct {
-	Module  surface.ModulePath
-	Version ModuleVersion
-	Floor   surface.GoVersion
+// ModuleVersion is a released module version as listed by `go list -m`,
+// e.g. "v1.10.0". A named type keeps module versions distinct from Go
+// toolchain versions (GoVersion), which parse differently.
+type ModuleVersion string
+
+// DependencyFloor is one dependency with the `go` floor it declares: the
+// shared row shape every floor authority (go list -m, vendor/modules.txt
+// annotations) resolves into, and the row of both who-forces lists — a
+// poisoned row's PoisonerFloors (dependencies forcing the floor ABOVE the
+// directive) and an at-parity row's ParityFloors (dependencies holding the
+// directive exactly where it is).
+type DependencyFloor struct {
+	// Module is the dependency's module path.
+	Module surface.ModulePath `json:"module"`
+	// Version is the dependency's released version, e.g. "v1.10.0".
+	Version ModuleVersion `json:"version"`
+	// Floor is the `go` directive the dependency declares.
+	Floor surface.GoVersion `json:"floor"`
+}
+
+// develVersion marks a `go list -m` record pinned to a local working copy
+// by a replace directive: it carries a floor tidy still enforces, but
+// names no published version to re-tag.
+const develVersion ModuleVersion = "(devel)"
+
+// published reports whether a resolved floor names a released version — a
+// re-taggable carrier. Development versions and empty versions are replaced
+// local working copies or unresolvable records: their floors may still
+// count toward enforcement, but they are never named as poisoners.
+func (d DependencyFloor) published() bool {
+	return d.Version != "" && d.Version != develVersion
+}
+
+// FloorSource names the authority a row's floors were resolved from — the
+// provenance of the numbers, additive on wire schema 2.
+type FloorSource string
+
+const (
+	// FloorSourceList marks rows resolved via `go list -m`.
+	FloorSourceList FloorSource = "list"
+	// FloorSourceVendor marks rows resolved via vendor/modules.txt
+	// annotations after a skewed vendor tree refused both listings.
+	FloorSourceVendor FloorSource = "vendor"
+)
+
+// resolveDependencyFloors walks the floor authorities in order for one
+// module directory: `go list -m` (plain, then error-tolerant for the
+// untidy trees a rejected fix or a mid-fix consumer presents), then the
+// vendor/modules.txt annotations a skewed vendor tree still answers with.
+// The main module's own record never carries a dependency floor.
+func resolveDependencyFloors(
+	ctx context.Context,
+	dir string,
+	main surface.ModulePath,
+	run GoCommandRunner,
+) ([]DependencyFloor, FloorSource, error) {
+	out, err := listDependencyFloors(ctx, dir, run)
+	if err == nil {
+		return parseDependencyFloors(out, main), FloorSourceList, nil
+	}
+
+	if vendored, ok := readVendorModuleFloors(dir); ok {
+		return vendored, FloorSourceVendor, nil
+	}
+
+	return nil, "", fmt.Errorf("list dependency floors: %w", err)
+}
+
+// listDependencyFloors runs `go list -m` for every dependency's declared
+// floor, one record per line in the GoVersion/Path/Version tab format. A
+// plain list refuses an untidy graph — exactly the tree a rejected fix
+// leaves behind — so the listing retries with -e, which tolerates load
+// errors and still reports every module's recorded floor.
+func listDependencyFloors(ctx context.Context, dir string, run GoCommandRunner) (string, error) {
+	const format = "{{.GoVersion}}\t{{.Path}}\t{{.Version}}"
+
+	out, err := run(ctx, dir, "list", "-m", "-f", format, "all")
+	if err != nil {
+		return run(ctx, dir, "list", "-m", "-e", "-f", format, "all")
+	}
+
+	return out, nil
+}
+
+// parseDependencyFloors splits `go list -m` output into dependency floors.
+// Malformed lines, empty floors, and the main module's own record carry
+// nothing a dependency forced. Development versions stay: a replaced local
+// module's floor is real (tidy enforces it), so callers decide how devel
+// rows reduce — counted-but-unnamed for fix classification, dropped for
+// the who-forces matrix.
+func parseDependencyFloors(out string, main surface.ModulePath) []DependencyFloor {
+	floors := make([]DependencyFloor, 0)
+
+	for line := range strings.SplitSeq(out, "\n") {
+		fields := strings.Split(line, "\t")
+		if len(fields) != 3 {
+			continue
+		}
+
+		floor, path, version := fields[0], fields[1], fields[2]
+		if floor == "" || path == "" || path == string(main) {
+			continue
+		}
+
+		floors = append(floors, DependencyFloor{
+			Floor:   surface.GoVersion(floor),
+			Module:  surface.ModulePath(path),
+			Version: ModuleVersion(version),
+		})
+	}
+
+	return floors
+}
+
+// maxDependencyFloor reduces resolved floors to the enforced floor and the
+// dependencies carrying it, in resolution order.
+func maxDependencyFloor(floors []DependencyFloor) (surface.GoVersion, []DependencyFloor) {
+	var floor surface.GoVersion
+
+	for _, entry := range floors {
+		if floor == "" || surface.GreaterVersion(string(entry.Floor), string(floor)) {
+			floor = entry.Floor
+		}
+	}
+
+	carriers := make([]DependencyFloor, 0, len(floors))
+
+	for _, entry := range floors {
+		if entry.Floor == floor {
+			carriers = append(carriers, entry)
+		}
+	}
+
+	return floor, carriers
+}
+
+// readModulePath parses the module path out of the go.mod in dir. A missing
+// or unparseable file yields "": the main-module record then simply stays
+// in the listing, which only ever over-reports a floor the module itself
+// already declares.
+func readModulePath(dir string) surface.ModulePath {
+	data, err := os.ReadFile(filepath.Join(dir, "go.mod"))
+	if err != nil {
+		return ""
+	}
+
+	path, err := surface.ParseModulePath(surface.KindGoMod, data)
+	if err != nil {
+		return ""
+	}
+
+	return path
 }
 
 // vendorModuleFloors extracts every dependency go floor recorded in a
@@ -121,9 +271,9 @@ type vendorModuleFloor struct {
 // The annotations record exactly what the vendored graph requires, so they
 // resolve floors when a skewed vendor directory makes `go list -m` refuse
 // to load the module graph at all ("inconsistent vendoring").
-func vendorModuleFloors(content string) []vendorModuleFloor {
+func vendorModuleFloors(content string) []DependencyFloor {
 	var (
-		floors  = make([]vendorModuleFloor, 0)
+		floors  = make([]DependencyFloor, 0)
 		path    string
 		version string
 	)
@@ -142,7 +292,7 @@ func vendorModuleFloors(content string) []vendorModuleFloor {
 				continue
 			}
 
-			floors = append(floors, vendorModuleFloor{
+			floors = append(floors, DependencyFloor{
 				Module:  surface.ModulePath(path),
 				Version: ModuleVersion(version),
 				Floor:   surface.GoVersion(annotated),
@@ -173,7 +323,7 @@ func annotationGoVersion(annotation string) (string, bool) {
 // readVendorModuleFloors reads the vendored dependency floors from the
 // vendor/modules.txt under dir. ok is false when the file is absent or
 // records no go annotations, leaving the verdict to the caller.
-func readVendorModuleFloors(dir string) ([]vendorModuleFloor, bool) {
+func readVendorModuleFloors(dir string) ([]DependencyFloor, bool) {
 	data, err := os.ReadFile(filepath.Join(dir, "vendor", "modules.txt"))
 	if err != nil {
 		return nil, false
@@ -182,26 +332,4 @@ func readVendorModuleFloors(dir string) ([]vendorModuleFloor, bool) {
 	floors := vendorModuleFloors(string(data))
 
 	return floors, len(floors) > 0
-}
-
-// maxVendorFloor reduces vendored floors to the enforced floor and the
-// vendored modules carrying it, named as path@version.
-func maxVendorFloor(floors []vendorModuleFloor) (surface.GoVersion, []string) {
-	var floor surface.GoVersion
-
-	for _, vendored := range floors {
-		if floor == "" || surface.GreaterVersion(string(vendored.Floor), string(floor)) {
-			floor = vendored.Floor
-		}
-	}
-
-	carriers := make([]string, 0, len(floors))
-
-	for _, vendored := range floors {
-		if vendored.Floor == floor {
-			carriers = append(carriers, string(vendored.Module)+"@"+string(vendored.Version))
-		}
-	}
-
-	return floor, carriers
 }
