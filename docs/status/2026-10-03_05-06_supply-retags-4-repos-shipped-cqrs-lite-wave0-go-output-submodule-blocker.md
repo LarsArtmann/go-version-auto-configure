@@ -13,7 +13,7 @@
 - `execution/go.mod:149` bumped v0.2.3 → v0.2.4 via `go mod edit` (the member the interrupted session missed); all three gvac-requiring members (root/tools/execution) now at v0.2.4.
 - `go work vendor` re-run inside devShell → **single** gvac stanza in vendor/modules.txt (v0.2.4, `## explicit; go 1.27`) — the two-stanza corruption is gone.
 - `nix run .#update-vendor-hash` (current, nothing to update) + `nix build .` **green**; profile binary upgraded via `nix profile upgrade buildflow` → `buildflow version` = **eb35fce** (was 5c5cfb8, 68 commits behind).
-- **Live gate proof through the installed binary:** seeded `/tmp/dfx/simple` (`go 1.26.7`) → `-s go-version-auto-configure` fires *"the go directive is a floor and must be major.minor only"* (1 finding, warning); `--fix` → `go 1.26`, "1 fixed". Gate + fixer + vendor fallback are live fleet-wide.
+- **Live gate proof through the installed binary:** seeded `/tmp/dfx/simple` (`go 1.26.7`) → `-s go-version-auto-configure` fires _"the go directive is a floor and must be major.minor only"_ (1 finding, warning); `--fix` → `go 1.26`, "1 fixed". Gate + fixer + vendor fallback are live fleet-wide.
 - **dependabot-auto-configure#3 fix confirmed live:** `-s dependabot-auto-configure` on gvac is silent on the "no update groups" false positive (issue closed 2026-10-02; old binary was the cause, exactly as diagnosed).
 - **S87 disposition recorded:** `GoWorkFloorFinding`/`RestoreGoWorkFloor` stay retired in BuildFlow (moved into gvac — the floor-safe fixer IS the defense); go-work-sync `DependsOn: [go-version-auto-configure]` **KEPT** as belt-and-suspenders. Written into BuildFlow AGENTS.md gotcha #187 (the stale "RELEASE-CRITICAL … flake input still pins gvac v0.1.0" paragraph rewritten to RESOLVED with full evidence).
 - gvac TODO_LIST **T14-② deleted** (completed-rows-to-CHANGELOG policy); CHANGELOG `[Unreleased]` records the repin + S87 decision.
@@ -31,12 +31,12 @@ go-cqrs-lite (89 modules; forced partly by go-sse — fixed)  →  cqrs-htmx (14
 
 Every tag below was verified by resolving it in a scratch module and reading the cached proxy `.mod` (the evidence rule):
 
-| Repo | Tags cut | Proxy `.mod` | Notes |
-| ---- | -------- | ------------- | ----- |
-| go-sse | `v0.6.2`, `sseparse/v0.2.1` | `go 1.27` both | tidy-stable, tests green pre-tag; ssetest converged on master afterwards (pins v0.6.2/v0.2.1, directive 1.27) — its tidy initially re-raised on the stale `sseparse v0.2.0` pin, fixed by pinning v0.2.1 |
-| go-datastar | `v0.6.2`, `broadcast/v0.6.2`, `datastartest/v0.6.2` | `go 1.27` all three | root cut+pushed first, then submodules pinned to it; static stays 1.26 (already clean) |
-| go-etag | `v0.6.1` ×5 (root, client, entitytag, metrics, server) | `go 1.27` all five | internal DAG entitytag→server→{root,metrics,client} via forward pins; go.work replaces moved to v0.6.1 keys + directive 1.27; post-push standalone tidy+build per module |
-| go-health-dashboard | `v0.10.2` | `go 1.27` | pins bumped to sse/datastar v0.6.2; pre-existing golden drift regenerated (see §d/§e); full suite green ×2 after |
+| Repo                | Tags cut                                               | Proxy `.mod`        | Notes                                                                                                                                                                                                    |
+| ------------------- | ------------------------------------------------------ | ------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| go-sse              | `v0.6.2`, `sseparse/v0.2.1`                            | `go 1.27` both      | tidy-stable, tests green pre-tag; ssetest converged on master afterwards (pins v0.6.2/v0.2.1, directive 1.27) — its tidy initially re-raised on the stale `sseparse v0.2.0` pin, fixed by pinning v0.2.1 |
+| go-datastar         | `v0.6.2`, `broadcast/v0.6.2`, `datastartest/v0.6.2`    | `go 1.27` all three | root cut+pushed first, then submodules pinned to it; static stays 1.26 (already clean)                                                                                                                   |
+| go-etag             | `v0.6.1` ×5 (root, client, entitytag, metrics, server) | `go 1.27` all five  | internal DAG entitytag→server→{root,metrics,client} via forward pins; go.work replaces moved to v0.6.1 keys + directive 1.27; post-push standalone tidy+build per module                                 |
+| go-health-dashboard | `v0.10.2`                                              | `go 1.27`           | pins bumped to sse/datastar v0.6.2; pre-existing golden drift regenerated (see §d/§e); full suite green ×2 after                                                                                         |
 
 CHANGELOGs cut in all four repos (Keep-a-Changelog sections with the de-poisoning rationale; Unreleased folded where present). Daemon races on commits were absorbed/retried with `commit -am --no-verify` (their documented mechanical-sweep pattern).
 
@@ -138,4 +138,4 @@ WP-05 (fleet sweep + ADR counts), WP-09 (CI depth), WP-10 (test truth), WP-11 (n
 
 ---
 
-*Point-in-time snapshot 2026-10-03 05:06 CEST. Session ends in WAITING FOR INSTRUCTIONS; no further work started until the owner answers.*
+_Point-in-time snapshot 2026-10-03 05:06 CEST. Session ends in WAITING FOR INSTRUCTIONS; no further work started until the owner answers._

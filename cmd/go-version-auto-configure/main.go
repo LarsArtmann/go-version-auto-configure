@@ -816,6 +816,7 @@ func printFloors(out io.Writer, rows []fix.ModuleFloors) {
 			goVersionOrNone(string(row.Directive)),
 			goVersionOrNone(string(row.MaxDepFloor)),
 		)
+
 		if row.Source == fix.FloorSourceVendor {
 			fmt.Fprint(out, "   (floors via vendor/modules.txt)")
 		}
@@ -826,7 +827,13 @@ func printFloors(out io.Writer, rows []fix.ModuleFloors) {
 			fmt.Fprintln(out, "  clean: no dependency forces a higher floor")
 
 			for _, carrier := range row.ParityFloors {
-				fmt.Fprintf(out, "  at parity: %s@%s holds the directive at go %s\n", carrier.Module, carrier.Version, carrier.Floor)
+				fmt.Fprintf(
+					out,
+					"  at parity: %s@%s holds the directive at go %s\n",
+					carrier.Module,
+					carrier.Version,
+					carrier.Floor,
+				)
 			}
 
 			continue

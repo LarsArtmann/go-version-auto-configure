@@ -67,11 +67,17 @@ func seedDepForcedRepo(t *testing.T, poisonerModule string) string {
 
 	poisoner := filepath.Join(root, "poisoner")
 	consumer := filepath.Join(root, "consumer")
+
 	require.NoError(t, os.MkdirAll(poisoner, 0o755))
 	require.NoError(t, os.MkdirAll(consumer, 0o755))
 
 	writeFile(t, poisoner, "go.mod", "module "+poisonerModule+"\n\ngo "+depForcedFloor+"\n")
-	writeFile(t, poisoner, "poisoner.go", "package poisoner\n\n// Version is the module's released tag.\nconst Version = \"v0.38.2\"\n")
+	writeFile(
+		t,
+		poisoner,
+		"poisoner.go",
+		"package poisoner\n\n// Version is the module's released tag.\nconst Version = \"v0.38.2\"\n",
+	)
 	writeFile(
 		t,
 		consumer,

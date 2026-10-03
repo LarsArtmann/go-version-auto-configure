@@ -59,6 +59,7 @@
 ## b) Partially done — WP-04 BuildFlow repin (interrupted mid-flight)
 
 **Done (all committed by BuildFlow's daemon):**
+
 - Flake input ref `v0.2.3` → `v0.2.4` + version comment; `nix flake update go-version-auto-configure` (lock rev `57f9cfe` = tag target).
 - `tools/go.mod` require → v0.2.4; root `go.mod` indirect → v0.2.4.
 - S87 research complete: `GoWorkFloorFinding`/`RestoreGoWorkFloor` were REMOVED from BuildFlow 2026-09-22 (gotcha #187 — logic moved upstream into gvac); CHANGELOG records S87 RESOLVED at v0.2.1 repin; the only remaining defense is go-work-sync `DependsOn: [go-version-auto-configure]`, documented as belt-and-suspenders. My retirement verdict: KEEP DependsOn (cheap determinism), record as decided.
