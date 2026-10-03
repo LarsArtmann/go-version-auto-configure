@@ -4,6 +4,7 @@ import (
 	"context"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/larsartmann/go-version-auto-configure/pkg/surface"
@@ -115,7 +116,7 @@ func TestVendorModuleFloors(t *testing.T) {
 	tests := []struct {
 		name    string
 		modules string
-		want    []vendorModuleFloor
+		want    []DependencyFloor
 	}{
 		{
 			name: "skewed vendor tree carries the cqrs family floor",
@@ -127,7 +128,7 @@ func TestVendorModuleFloors(t *testing.T) {
 				"github.com/larsartmann/go-cqrs-lite/record/v4\n" +
 				"# github.com/charmbracelet/x/ansi v0.1.2\n" +
 				"## explicit; go 1.24.0\n",
-			want: []vendorModuleFloor{
+			want: []DependencyFloor{
 				{Module: "github.com/larsartmann/go-sse", Version: "v0.6.1", Floor: "1.27.1"},
 				{Module: "github.com/larsartmann/go-cqrs-lite/record/v4", Version: "v4.5.1", Floor: "1.27.1"},
 				{Module: "github.com/charmbracelet/x/ansi", Version: "v0.1.2", Floor: "1.24.0"},
@@ -136,22 +137,22 @@ func TestVendorModuleFloors(t *testing.T) {
 		{
 			name:    "annotations without go versions carry no floor",
 			modules: "# example.com/dep v1.0.0\n## explicit\n",
-			want:    []vendorModuleFloor{},
+			want:    []DependencyFloor{},
 		},
 		{
 			name:    "malformed versions are ignored",
 			modules: "# example.com/dep v1.0.0\n## explicit; go bananas\n",
-			want:    []vendorModuleFloor{},
+			want:    []DependencyFloor{},
 		},
 		{
 			name:    "annotation before any module header is ignored",
 			modules: "## explicit; go 1.27.1\n# example.com/dep v1.0.0\n",
-			want:    []vendorModuleFloor{},
+			want:    []DependencyFloor{},
 		},
 		{
 			name:    "empty file",
 			modules: "",
-			want:    []vendorModuleFloor{},
+			want:    []DependencyFloor{},
 		},
 	}
 
@@ -164,17 +165,53 @@ func TestVendorModuleFloors(t *testing.T) {
 	}
 }
 
-func TestMaxVendorFloor(t *testing.T) {
+func TestMaxDependencyFloor(t *testing.T) {
 	t.Parallel()
 
-	floor, carriers := maxVendorFloor([]vendorModuleFloor{
+	floor, carriers := maxDependencyFloor([]DependencyFloor{
 		{Module: "example.com/low", Version: "v1.0.0", Floor: "1.24.0"},
 		{Module: "example.com/a", Version: "v2.0.0", Floor: "1.27.1"},
 		{Module: "example.com/b", Version: "v0.6.1", Floor: "1.27.1"},
 	})
 
 	assert.Equal(t, surface.GoVersion("1.27.1"), floor)
-	assert.Equal(t, []string{"example.com/a@v2.0.0", "example.com/b@v0.6.1"}, carriers)
+	assert.Equal(t, []string{"example.com/a", "example.com/b"}, moduleNames(carriers))
+}
+
+// moduleNames renders carrier rows as bare module paths, for assertions.
+func moduleNames(carriers []DependencyFloor) []string {
+	names := make([]string, 0, len(carriers))
+
+	for _, carrier := range carriers {
+		names = append(names, string(carrier.Module))
+	}
+
+	return names
+}
+
+// TestResolveDepFloor_CountsDevelFloorWithoutNamingIt pins the reduction
+// split: a replaced local module's floor is enforced by tidy and must count,
+// but a devel record names no re-taggable carrier.
+func TestResolveDepFloor_CountsDevelFloorWithoutNamingIt(t *testing.T) {
+	t.Parallel()
+
+	dir := t.TempDir()
+	require.NoError(
+		t,
+		os.WriteFile(filepath.Join(dir, "go.mod"), []byte("module example.com/m\n\ngo 1.27.1\n"), 0o644),
+	)
+
+	run := fakeRunner(func(_ string, _ []string) (string, error) {
+		return strings.Join([]string{
+			"1.27.1\texample.com/local\t(devel)",
+			"1.26\texample.com/pub\tv1.0.0",
+		}, "\n"), nil
+	})
+
+	floor, poisoners, err := resolveDepFloor(context.Background(), dir, run)
+	require.NoError(t, err)
+	assert.Equal(t, surface.GoVersion("1.27.1"), floor, "the devel replacement's floor still enforces")
+	assert.Empty(t, poisoners, "nothing is named: the only carrier is a local working copy")
 }
 
 func TestReadVendorModuleFloors(t *testing.T) {
@@ -208,7 +245,7 @@ func TestReadVendorModuleFloors(t *testing.T) {
 		require.True(t, ok)
 		assert.Equal(
 			t,
-			[]vendorModuleFloor{{Module: "example.com/dep", Version: "v2.0.0", Floor: "1.27.1"}},
+			[]DependencyFloor{{Module: "example.com/dep", Version: "v2.0.0", Floor: "1.27.1"}},
 			floors,
 		)
 	})
@@ -238,7 +275,7 @@ func TestApply_GateForcedFloorWithoutListedCarrierIsDepForced(t *testing.T) {
 	)
 
 	run := fakeRunner(func(string, []string) (string, error) {
-		return "example.com/m (devel) 1.27\nexample.com/x/dep v1.0.0 1.27\n", nil
+		return "1.27\texample.com/m\t(devel)\n1.27\texample.com/x/dep\tv1.0.0\n", nil
 	})
 
 	gate := fakeGate(func(string, []string) (string, string, error) {
@@ -282,7 +319,7 @@ func TestApply_StdLibraryFloorNamesLikelyForcer(t *testing.T) {
 	)
 
 	run := fakeRunner(func(string, []string) (string, error) {
-		return "example.com/m (devel) 1.27\nexample.com/x/dep v1.0.0 1.27\n", nil
+		return "1.27\texample.com/m\t(devel)\n1.27\texample.com/x/dep\tv1.0.0\n", nil
 	})
 
 	gate := fakeGate(func(string, []string) (string, string, error) {
@@ -375,7 +412,7 @@ func TestApply_UntidyGateWithoutGoRaiseStillFails(t *testing.T) {
 	)
 
 	run := fakeRunner(func(string, []string) (string, error) {
-		return "example.com/m (devel) 1.26\n", nil
+		return "1.26\texample.com/m\t(devel)\n1.25\texample.com/dep\tv1.0.0\n", nil
 	})
 
 	gate := fakeGate(func(string, []string) (string, string, error) {
@@ -395,5 +432,5 @@ func TestApply_UntidyGateWithoutGoRaiseStillFails(t *testing.T) {
 	require.NoError(t, err)
 	assert.Empty(t, res.DepForced)
 	require.Len(t, res.Failures, 1, "a dirty gate with no directive raise stays a plain failure")
-	assert.Contains(t, res.Failures[0].Cause, "dependency floor 1.26 does not exceed the target")
+	assert.Contains(t, res.Failures[0].Cause, "dependency floor 1.25 does not exceed the target")
 }

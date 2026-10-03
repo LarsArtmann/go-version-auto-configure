@@ -106,9 +106,9 @@ func TestApply_DepForcedFloorIsNamed(t *testing.T) {
 	require.NoError(t, os.WriteFile(goModPath, []byte(original), 0o644))
 
 	run := fakeRunner(func(string, []string) (string, error) {
-		return "example.com/m (devel) 1.26\n" +
-			"github.com/larsartmann/go-finding v1.10.0 1.26.7\n" +
-			"github.com/x/other v1.0.0 1.25\n", nil
+		return "1.26\texample.com/m\t(devel)\n" +
+			"1.26.7\tgithub.com/larsartmann/go-finding\tv1.10.0\n" +
+			"1.25\tgithub.com/x/other\tv1.0.0\n", nil
 	})
 
 	// The gate rejects the downgrade: tidy -diff wants changes (the

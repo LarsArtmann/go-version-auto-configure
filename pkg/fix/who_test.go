@@ -5,6 +5,7 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 
@@ -223,6 +224,36 @@ func TestAnalyzeFloors_ListFailureRecordedPerModule(t *testing.T) {
 	require.Len(t, rows, 1)
 	assert.Contains(t, rows[0].Error, "missing go.sum entry")
 	assert.False(t, rows[0].Poisoned, "an unanalyzable module is not claimed as poisoned")
+}
+
+// TestAnalyzeFloors_UntidyTreeResolvesViaErrorTolerantList pins the shared
+// authority walk on the who-forces side: a tree a plain `go list -m`
+// refuses (exactly what a rejected fix leaves behind) still resolves
+// through the error-tolerant listing, with list provenance — the same
+// walk fix classification has always used.
+func TestAnalyzeFloors_UntidyTreeResolvesViaErrorTolerantList(t *testing.T) {
+	t.Parallel()
+
+	root := t.TempDir()
+	seedGoMod(t, root, "1.26")
+
+	run := fakeRunner(func(_ string, args []string) (string, error) {
+		if !slices.Contains(args, "-e") {
+			return "", errFakeList
+		}
+
+		return "1.26.7\tgithub.com/larsartmann/go-finding\tv1.12.0\n", nil
+	})
+
+	rows, err := AnalyzeFloors(context.Background(), root, run)
+	require.NoError(t, err)
+	require.Len(t, rows, 1)
+
+	row := rows[0]
+	assert.Empty(t, row.Error, "the -e retry resolves what the plain listing refuses")
+	assert.True(t, row.Poisoned)
+	assert.Equal(t, surface.GoVersion("1.26.7"), row.MaxDepFloor)
+	assert.Equal(t, FloorSourceList, row.Source)
 }
 
 func TestCompareDependencyFloorsOrdersByFloorThenModule(t *testing.T) {
