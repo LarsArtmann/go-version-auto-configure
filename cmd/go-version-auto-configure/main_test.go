@@ -82,14 +82,15 @@ func seedDepForcedRepo(t *testing.T, poisonerModule string) string {
 		t,
 		consumer,
 		"go.mod",
-		"module example.com/consumer\n\ngo 1.26.7\n\nrequire "+poisonerModule+" v0.0.0\n\n" +
+		"module example.com/consumer\n\ngo 1.26.7\n\nrequire "+poisonerModule+" v0.0.0\n\n"+
 			"replace "+poisonerModule+" => ../poisoner\n",
 	)
 	writeFile(
 		t,
 		consumer,
 		"main.go",
-		"package main\n\nimport (\n\t\"fmt\"\n\n\t\""+poisonerModule+"\"\n)\n\nfunc main() { fmt.Println(poisoner.Version) }\n",
+		"package main\n\nimport (\n\t\"fmt\"\n\n\t\""+poisonerModule+"\"\n)\n\n"+
+			"func main() { fmt.Println(poisoner.Version) }\n",
 	)
 
 	return consumer

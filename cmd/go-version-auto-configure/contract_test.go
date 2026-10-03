@@ -230,7 +230,8 @@ func TestJSONWireContractGoldens(t *testing.T) {
 				"discovery": []any{},
 			},
 		},
-	}, jsonGolden(t, "fix", "--json", forced), "fix --json golden (dep-forced: floor present, cause absent when the carrier is listed)")
+	}, jsonGolden(t, "fix", "--json", forced),
+		"fix --json golden (dep-forced: floor present, cause absent when the carrier is listed)")
 
 	clean := seedCleanRepo(t)
 
