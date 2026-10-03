@@ -106,4 +106,4 @@ WP-02 (cqrs-htmx who-forces map → strip → 14 tags), WP-05 (fleet sweep + go-
 
 ---
 
-*Honesty ledger additions (d1–d7). Fleet-critical fact unchanged: 92/92 campaign tags live on remote; consumer convergence remains consumer-side; nothing pushed anywhere this session.*
+_Honesty ledger additions (d1–d7). Fleet-critical fact unchanged: 92/92 campaign tags live on remote; consumer convergence remains consumer-side; nothing pushed anywhere this session._
