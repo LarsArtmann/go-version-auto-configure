@@ -27,9 +27,10 @@ var errNotDirectory = errors.New("surface: root is not a directory")
 
 // Discover walks root and returns the repository's Go version surface:
 // every go.mod `go` directive, go.work `go` directive, flake.nix nixpkgs Go
-// pin, and CI workflow `go-version:` pin. Unparseable go.mod files surface
-// as issues (RuleGoModUnparseable) instead of aborting the walk, so one bad
-// fixture never hides the drift in a hundred real modules.
+// pin, and CI workflow `go-version:` pin, plus the root release-authority
+// files (VERSION, CHANGELOG.md top released section). Unparseable go.mod
+// files surface as issues (RuleGoModUnparseable) instead of aborting the
+// walk, so one bad fixture never hides the drift in a hundred real modules.
 func Discover(root string) (*Surface, []Issue, error) {
 	absRoot, err := filepath.Abs(root)
 	if err != nil {
@@ -117,6 +118,16 @@ func (s *Surface) absorbFile(path string, rel FilePath, name string) []Issue {
 		// (resolving it needs an impure nix eval, see TODO_LIST.md T9)
 	case isCIWorkflow(rel):
 		s.CIPins = append(s.CIPins, scanCIPins(path, rel)...)
+	case rel == "VERSION":
+		if version, ok := parseVersionStamp(path); ok {
+			s.release().VersionFile = version
+		}
+	case rel == "CHANGELOG.md":
+		if version, line, ok := parseChangelogTop(path); ok {
+			authority := s.release()
+			authority.ChangelogTop = version
+			authority.ChangelogLine = line
+		}
 	}
 
 	return nil

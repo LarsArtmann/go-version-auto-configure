@@ -52,20 +52,21 @@ func allDigits(s string) bool {
 }
 
 // parseVersionStamp reads a root VERSION file and returns its release
-// version. Unparseable content returns false (see parseReleaseVersion);
-// read errors return the error for Discover to surface.
-func parseVersionStamp(path string) (ReleaseVersion, bool, error) {
+// version. Unparseable content returns false (see parseReleaseVersion).
+// Read errors also return false: WalkDir has just visited the file, so a
+// failed read is a race not worth a finding.
+func parseVersionStamp(path string) (ReleaseVersion, bool) {
 	content, err := os.ReadFile(path)
 	if err != nil {
-		return "", false, fmt.Errorf("surface: read VERSION: %w", err)
+		return "", false
 	}
 
 	version, ok := parseReleaseVersion(string(content))
 	if !ok {
-		return "", false, nil
+		return "", false
 	}
 
-	return version, true, nil
+	return version, true
 }
 
 // parseChangelogTop reads a root CHANGELOG.md and returns the version of

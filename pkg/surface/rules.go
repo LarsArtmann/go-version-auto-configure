@@ -42,6 +42,7 @@ func Analyze(surf *Surface, opts ...AnalyzeOption) []Issue {
 	issues = append(issues, goWorkBelowFloor(surf, fullFloor, hasFull)...)
 	issues = append(issues, nonVersionToolchains(surf)...)
 	issues = append(issues, staleToolchains(surf)...)
+	issues = append(issues, releaseAuthorityIssues(surf)...)
 
 	if policy.hasExpectMinor {
 		issues = append(issues, exceedsExpectation(surf, policy.expectMinor)...)
