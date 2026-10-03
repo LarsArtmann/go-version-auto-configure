@@ -39,6 +39,23 @@
     flake-parts.lib.mkFlake { inherit inputs; } {
       imports = [ inputs.go-nix-helpers.flakeModules.go-standard ];
 
+      perSystem =
+        { pkgs, ... }:
+        {
+          # Standing docs gate (T16-14): link check + TODO_LIST hygiene +
+          # stale-report probe. Run: nix run .#docs-gate
+          apps.docs-gate = {
+            type = "app";
+            program =
+              (pkgs.writeShellApplication {
+                name = "docs-gate";
+                runtimeInputs = [ pkgs.lychee ];
+                text = ''exec bash "${./scripts/docs-gate.sh}" "$@"'';
+              })
+              + "/bin/docs-gate";
+          };
+        };
+
       go-standard = {
         pname = "go-version-auto-configure";
         inherit version src;

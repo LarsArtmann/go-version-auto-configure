@@ -25,6 +25,8 @@ Outside nix, prefix every command with `GOTOOLCHAIN=go1.27.1 GOEXPERIMENT=jsonv2
 
 All commands accept multiple roots (parallel, sorted output) and `--json` (stable machine contract). `fix` skips clean repos entirely, so fleet sweeps scale with drifted repos, not repo count.
 
+Standing docs gate (T16-⑭): `nix run .#docs-gate` — lychee link check over README/CHANGELOG/docs, TODO_LIST checked-box hygiene, stale-report probe (21d). Wire new docs through it; the script is `scripts/docs-gate.sh`.
+
 `GOEXPERIMENT=jsonv2` is required by the go-finding dependency (as in linter-autoconfigure-sdk and the other auto-configurers).
 
 ## Architecture (4 pkg packages + cmd/)

@@ -58,8 +58,8 @@ Short- and mid-term actionable work, **open items only** — completed items liv
 
 ## T9 — Parser coverage — PARTIALLY DONE (flake.lock blocked by design)
 
-- [ ] flake.lock effective Go revision parsing — **blocked by design**: the lock records only a nixpkgs rev, not the Go version it packages; resolving it requires an impure `nix eval`, but `Discover` must stay pure (reads files, writes nothing). A separate opt-in command (or BuildFlow step) would be the right home — design sketch below. Decide the home (CLI command vs BuildFlow step) before implementing
-  - Design sketch (2026-09-22): new command `gvac nix-pin [root ...]` (NOT part of `Discover`): for each flake.lock, `nix eval <locked nixpkgs rev>.go.version` (impure, cached by rev), compare against the flake's `goPkgAttr`/module floor, and report the same alignment findings as the pure path. BuildFlow home: a `nix-go-pin-check` step that can afford impurity and network. Exit contract identical to `check`; `--json` reuses the schema envelope with `source: "nix-pin"`
+- [ ] flake.lock effective Go revision parsing — **blocked by design**: the lock records only a nixpkgs rev, not the Go version it packages; resolving it requires an impure `nix eval`, but `Discover` must stay pure (reads files, writes nothing)
+  - **Decision 2026-10-03: the home is a BuildFlow step (`nix-go-pin-check`), not a gvac command.** Rationale: the check is impure by nature (network + `nix eval` against a remote rev); BuildFlow already owns impure steps and the rev→Go-version cache naturally belongs beside its other caches; a gvac CLI command would bolt a second impurity boundary onto a tool whose contract is pure discovery. gvac stays pure; the step consumes the pure surface (goPkgAttr + module floor from `check --json`) and adds the impure half. Implementation sketch unchanged: `nix eval <locked rev>.go.version`, cached by rev, findings isomorphic to `RuleNixPinBelowFloor`, `--json` envelope with `source: "nix-pin"`; tests against a fake `nix eval`. Track in BuildFlow's TODO, linked from here.
 
 ## T12 — Lint & environment debt (open watch items)
 
