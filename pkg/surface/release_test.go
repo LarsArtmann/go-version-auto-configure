@@ -7,12 +7,12 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// issuesWithRule filters issues down to one rule kind.
-func issuesWithRule(issues []Issue, rule Rule) []Issue {
+// releaseDriftIssues filters issues down to the release-authority rule.
+func releaseDriftIssues(issues []Issue) []Issue {
 	var matched []Issue
 
 	for _, issue := range issues {
-		if issue.Rule == rule {
+		if issue.Rule == RuleReleaseAuthorityDrift {
 			matched = append(matched, issue)
 		}
 	}
@@ -69,7 +69,7 @@ func TestDiscoverAndAnalyze_ReleaseAuthorityDriftFires(t *testing.T) {
 	assert.Equal(t, 7, surf.Release.ChangelogLine)
 
 	issues := Analyze(surf)
-	drift := issuesWithRule(issues, RuleReleaseAuthorityDrift)
+	drift := releaseDriftIssues(issues)
 	require.Len(t, drift, 1)
 
 	assert.Equal(t, "VERSION", drift[0].File)
@@ -96,7 +96,7 @@ func TestDiscoverAndAnalyze_ReleaseAuthorityAgreementIsSilent(t *testing.T) {
 	require.NotNil(t, surf.Release)
 	assert.Equal(t, ReleaseVersion("0.7.0"), surf.Release.ChangelogTop)
 
-	assert.Empty(t, issuesWithRule(Analyze(surf), RuleReleaseAuthorityDrift))
+	assert.Empty(t, releaseDriftIssues(Analyze(surf)))
 }
 
 func TestDiscoverAndAnalyze_SingleReleaseSourceIsSilent(t *testing.T) {
@@ -140,7 +140,7 @@ func TestDiscoverAndAnalyze_SingleReleaseSourceIsSilent(t *testing.T) {
 			surf, _, err := Discover(writeRepo(t, test.files))
 			require.NoError(t, err)
 
-			assert.Empty(t, issuesWithRule(Analyze(surf), RuleReleaseAuthorityDrift))
+			assert.Empty(t, releaseDriftIssues(Analyze(surf)))
 		})
 	}
 }
@@ -163,5 +163,5 @@ func TestDiscover_NestedReleaseFilesIgnored(t *testing.T) {
 	require.NotNil(t, surf.Release)
 	assert.Equal(t, ReleaseVersion("0.7.0"), surf.Release.VersionFile)
 	assert.Equal(t, ReleaseVersion("0.7.0"), surf.Release.ChangelogTop)
-	assert.Empty(t, issuesWithRule(Analyze(surf), RuleReleaseAuthorityDrift))
+	assert.Empty(t, releaseDriftIssues(Analyze(surf)))
 }

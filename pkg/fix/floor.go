@@ -43,6 +43,10 @@ var forcerMention = regexp.MustCompile(
 // (`# path version`); headers with other shapes carry no usable identity.
 const modulesTxtHeaderFields = 3
 
+// listModuleFields is the field count of one `go list -m` row
+// (floor, module path, version); other shapes carry no dependency floor.
+const listModuleFields = 3
+
 // forcedFloorFromTidyDiff extracts the go directive tidy would write from the
 // stdout diff of `go mod tidy -diff`. A raised directive above the fix target
 // means the rewrite is externally forced even when no listed module carries
@@ -201,7 +205,7 @@ func parseDependencyFloors(out string, main surface.ModulePath) []DependencyFloo
 
 	for line := range strings.SplitSeq(out, "\n") {
 		fields := strings.Split(line, "\t")
-		if len(fields) != 3 {
+		if len(fields) != listModuleFields {
 			continue
 		}
 

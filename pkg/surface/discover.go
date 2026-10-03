@@ -83,34 +83,8 @@ func Discover(root string) (*Surface, []Issue, error) {
 // discovery issues it raised. It is Discover's per-file dispatch.
 func (s *Surface) absorbFile(path string, rel FilePath, name string) []Issue {
 	switch {
-	case name == "go.mod":
-		module, toolchain, issue := parseGoMod(path, rel)
-
-		if issue != nil {
-			return []Issue{*issue}
-		}
-
-		if module != nil {
-			s.Modules = append(s.Modules, *module)
-		}
-
-		if toolchain != nil {
-			s.Toolchains = append(s.Toolchains, *toolchain)
-		}
-	case name == "go.work":
-		workspace, toolchain, issue := parseGoWork(path, rel)
-
-		if issue != nil {
-			return []Issue{*issue}
-		}
-
-		if workspace != nil {
-			s.Modules = append(s.Modules, *workspace)
-		}
-
-		if toolchain != nil {
-			s.Toolchains = append(s.Toolchains, *toolchain)
-		}
+	case name == "go.mod", name == "go.work":
+		return s.absorbDirectiveFile(path, rel, name)
 	case name == "flake.nix":
 		s.NixPins = append(s.NixPins, scanNixPins(path, rel)...)
 	case name == "flake.lock":
@@ -119,18 +93,62 @@ func (s *Surface) absorbFile(path string, rel FilePath, name string) []Issue {
 	case isCIWorkflow(rel):
 		s.CIPins = append(s.CIPins, scanCIPins(path, rel)...)
 	case rel == "VERSION":
-		if version, ok := parseVersionStamp(path); ok {
-			s.release().VersionFile = version
-		}
+		s.absorbVersionStamp(path)
 	case rel == "CHANGELOG.md":
-		if version, line, ok := parseChangelogTop(path); ok {
-			authority := s.release()
-			authority.ChangelogTop = version
-			authority.ChangelogLine = line
-		}
+		s.absorbChangelogTop(path)
 	}
 
 	return nil
+}
+
+// absorbDirectiveFile folds a go.mod or go.work into the surface and
+// returns any discovery issue the file raised.
+func (s *Surface) absorbDirectiveFile(path string, rel FilePath, name string) []Issue {
+	module, toolchain, issue := parseModuleDirectiveFile(path, rel, name)
+	if issue != nil {
+		return []Issue{*issue}
+	}
+
+	if module != nil {
+		s.Modules = append(s.Modules, *module)
+	}
+
+	if toolchain != nil {
+		s.Toolchains = append(s.Toolchains, *toolchain)
+	}
+
+	return nil
+}
+
+// parseModuleDirectiveFile dispatches go.mod vs go.work parsing.
+func parseModuleDirectiveFile(
+	path string,
+	rel FilePath,
+	name string,
+) (*ModuleDirective, *ToolchainDirective, *Issue) {
+	if name == "go.work" {
+		return parseGoWork(path, rel)
+	}
+
+	return parseGoMod(path, rel)
+}
+
+// absorbVersionStamp folds the root VERSION file into the release
+// authority; unparseable stamps stay silent (see parseReleaseVersion).
+func (s *Surface) absorbVersionStamp(path string) {
+	if version, ok := parseVersionStamp(path); ok {
+		s.release().VersionFile = version
+	}
+}
+
+// absorbChangelogTop folds the root CHANGELOG.md into the release
+// authority; a changelog without a versioned section stays silent.
+func (s *Surface) absorbChangelogTop(path string) {
+	if version, line, ok := parseChangelogTop(path); ok {
+		authority := s.release()
+		authority.ChangelogTop = version
+		authority.ChangelogLine = line
+	}
 }
 
 // parseGoMod extracts the module path, the `go` directive, and the
