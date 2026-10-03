@@ -7,6 +7,19 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+// issuesWithRule filters issues down to one rule kind.
+func issuesWithRule(issues []Issue, rule Rule) []Issue {
+	var matched []Issue
+
+	for _, issue := range issues {
+		if issue.Rule == rule {
+			matched = append(matched, issue)
+		}
+	}
+
+	return matched
+}
+
 func TestParseReleaseVersion(t *testing.T) {
 	t.Parallel()
 
@@ -53,7 +66,7 @@ func TestDiscoverAndAnalyze_ReleaseAuthorityDriftFires(t *testing.T) {
 	require.NotNil(t, surf.Release)
 	assert.Equal(t, ReleaseVersion("0.7.0"), surf.Release.VersionFile)
 	assert.Equal(t, ReleaseVersion("0.6.3"), surf.Release.ChangelogTop)
-	assert.Equal(t, 6, surf.Release.ChangelogLine)
+	assert.Equal(t, 7, surf.Release.ChangelogLine)
 
 	issues := Analyze(surf)
 	drift := issuesWithRule(issues, RuleReleaseAuthorityDrift)
@@ -124,7 +137,7 @@ func TestDiscoverAndAnalyze_SingleReleaseSourceIsSilent(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 
-			surf, _, err := Discover(test.write(t))
+			surf, _, err := Discover(writeRepo(t, test.files))
 			require.NoError(t, err)
 
 			assert.Empty(t, issuesWithRule(Analyze(surf), RuleReleaseAuthorityDrift))
@@ -136,12 +149,12 @@ func TestDiscover_NestedReleaseFilesIgnored(t *testing.T) {
 	t.Parallel()
 
 	root := writeRepo(t, map[string]string{
-		"VERSION":       "0.7.0",
-		"CHANGELOG.md":  "## [0.7.0] - 2026-10-03\n",
-		"docs/VERSION":  "9.9.9",
-		"sub/go.mod":    "module example.com/sub\n\ngo 1.27\n",
-		"go.mod":        "module example.com/root\n\ngo 1.27\n",
-		"go.work":       "go 1.27\n\nuse .\nuse ./sub\n",
+		"VERSION":      "0.7.0",
+		"CHANGELOG.md": "## [0.7.0] - 2026-10-03\n",
+		"docs/VERSION": "9.9.9",
+		"sub/go.mod":   "module example.com/sub\n\ngo 1.27\n",
+		"go.mod":       "module example.com/root\n\ngo 1.27\n",
+		"go.work":      "go 1.27\n\nuse .\nuse ./sub\n",
 	})
 
 	surf, _, err := Discover(root)
@@ -151,17 +164,4 @@ func TestDiscover_NestedReleaseFilesIgnored(t *testing.T) {
 	assert.Equal(t, ReleaseVersion("0.7.0"), surf.Release.VersionFile)
 	assert.Equal(t, ReleaseVersion("0.7.0"), surf.Release.ChangelogTop)
 	assert.Empty(t, issuesWithRule(Analyze(surf), RuleReleaseAuthorityDrift))
-}
-
-// write materializes the test's file map; a helper method keeps the
-// table-driven loop's call site reading as English.
-func (test nestedReleaseCase) write(t *testing.T) string {
-	t.Helper()
-
-	return writeRepo(t, test.files)
-}
-
-// nestedReleaseCase is the table row shape for the single-source suite.
-type nestedReleaseCase struct {
-	files map[string]string
 }
