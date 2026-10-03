@@ -1,11 +1,111 @@
 package surface
 
 import (
+	"errors"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+// TestParseDirective pins the single shared parsing entry point for both
+// discovery and fix verification. The post-v0.38.3 fleet state is
+// minor-form directives; the invariants below hold for both forms and for
+// the exact byte shapes a fix's text surgery produces (trailing comment
+// preserved, unrelated require lines untouched).
+func TestParseDirective(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name    string
+		kind    DirectiveKind
+		data    string
+		want    GoVersion
+		wantLn  int
+		wantErr error
+	}{
+		{
+			name: "go.mod minor form (the fleet target state)",
+			kind: KindGoMod,
+			data: "module example.com/m\n\ngo 1.27\n",
+			want: "1.27",
+			wantLn: 3,
+		},
+		{
+			name: "go.mod patch form (the poisoner state)",
+			kind: KindGoMod,
+			data: "module example.com/m\n\ngo 1.27.1\n",
+			want: "1.27.1",
+			wantLn: 3,
+		},
+		{
+			name: "post-surgery shape keeps the version and the comment",
+			kind: KindGoMod,
+			data: "module example.com/m\n\ngo 1.27 // floor\n",
+			want: "1.27",
+			wantLn: 3,
+		},
+		{
+			name: "module paths containing go do not match",
+			kind: KindGoMod,
+			data: "module example.com/go-sse\n\ngo 1.26\n\nrequire example.com/gofrs v1.0.0\n",
+			want: "1.26",
+			wantLn: 3,
+		},
+		{
+			name:    "well-formed go.mod without a directive is ErrNoDirective",
+			kind:    KindGoMod,
+			data:    "module example.com/m\n",
+			wantErr: ErrNoDirective,
+		},
+		{
+			name:    "unparseable go.mod is an error, not a missing directive",
+			kind:    KindGoMod,
+			data:    "module\n",
+			wantErr: assert.AnError,
+		},
+		{
+			name: "go.work directive and line",
+			kind: KindGoWork,
+			data: "go 1.27\n\nuse .\n",
+			want: "1.27",
+			wantLn: 1,
+		},
+		{
+			name:    "go.work without a directive is ErrNoDirective",
+			kind:    KindGoWork,
+			data:    "use .\n",
+			wantErr: ErrNoDirective,
+		},
+		{
+			name:    "unknown kind is rejected",
+			kind:    DirectiveKind("weird"),
+			data:    "go 1.27\n",
+			wantErr: assert.AnError,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			got, line, err := ParseDirective(tt.kind, []byte(tt.data))
+			if tt.wantErr != nil {
+				require.Error(t, err)
+
+				if !errors.Is(tt.wantErr, assert.AnError) {
+					require.ErrorIs(t, err, tt.wantErr)
+				}
+
+				return
+			}
+
+			require.NoError(t, err)
+			assert.Equal(t, tt.want, got)
+			assert.Equal(t, tt.wantLn, line, "the 1-based directive line feeds the fix's surgical rewrite")
+		})
+	}
+}
 
 func TestParseMajorMinor(t *testing.T) {
 	t.Parallel()
