@@ -6,8 +6,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+### Added
+
+- **E2E test truth: `pkg/fix` now runs the REAL `go mod tidy -diff` gate** (seeded fixture, `GOTOOLCHAIN=auto` where needed) instead of faking the tidy outcome — the dep-forced classification, carrier naming, and revert-on-rejected-downgrade paths are exercised against the actual go command this tool gates on (WP-10).
+- **`ParseDirective`-shared-verification invariants extended for the post-v0.38.3 state** (`pkg/surface/parse_test.go`): discovery and fix-verification still share the single parsing entry point, with new invariant cases pinning the minor-form floor shapes the 2026-10-02/03 campaigns established (WP-10).
+
 ### Changed
 
+- **Internal: dependency-floor resolution unified** — `pkg/fix`'s split floor parsers are one model now: the vendor-annotation parser (`vendorModuleFloors`) and the `go list -m` path both produce the shared `DependencyFloor` type (with `FloorSource` list/vendor provenance) through `resolveDependencyFloors`, consumed identically by the fix gate (`floor.go`) and `who-forces` (`who.go`). Behavior-identical; the wire-trust goldens and the full suite prove it (WP-12, kills the last floor-parser split brain).
 - BuildFlow repinned to gvac **v0.2.4** (flake input rev `57f9cfe`; all three workspace members; single vendor stanza; profile binary upgraded to `eb35fce`) — the v0.2.4 gate, go-work-aware fixer, at-parity `who-forces`, and vendor fallback are live in the binary that runs fleet-wide. S87 disposition: `GoWorkFloorFinding`/`RestoreGoWorkFloor` stay retired in BuildFlow (the floor-safe gvac fixer is the defense); go-work-sync `DependsOn` KEPT as belt-and-suspenders. Closes TODO T14-② (recorded in BuildFlow AGENTS.md gotcha #187).
 
 ## [0.2.4] - 2026-10-03
