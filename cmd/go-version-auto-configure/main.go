@@ -115,9 +115,11 @@ type QuietFlags struct {
 	Quiet bool `default:"false" flag:"quiet" help:"exit-code-only: suppress the human report (--json still emitted)"`
 }
 
-// AnalysisFlags is shared by check and fix: fleet-policy expectation.
+// AnalysisFlags is shared by check and fix: fleet-policy expectation and
+// patch-floor policy.
 type AnalysisFlags struct {
-	ExpectMinor string `default:"" flag:"expect-minor" help:"fleet-expected Go minor (e.g. 1.27); higher surfaces drift"`
+	ExpectMinor       string `default:"" flag:"expect-minor" help:"fleet-expected Go minor (e.g. 1.27); higher surfaces drift"`
+	RespectPatchFloor bool   `default:"false" flag:"respect-patch-floor" help:"leave patch-form go directives alone while they do not exceed the installed toolchain"`
 }
 
 type checkFlags struct {
@@ -174,7 +176,7 @@ func addCommand[F any](cli *v4.CLI[appConfig], name string, cmd v4.Command[appCo
 func runCheck(out io.Writer, ctx context.Context, f *checkFlags) error {
 	roots := rootsFrom(v4.ArgsFromContext(ctx))
 
-	opts, code := expectMinorOptions(out, f.ExpectMinor)
+	opts, code := analysisOptions(out, f.AnalysisFlags)
 	if code != exitOK {
 		return codeFrom(code)
 	}
@@ -197,7 +199,7 @@ func runCheck(out io.Writer, ctx context.Context, f *checkFlags) error {
 func runFix(out io.Writer, ctx context.Context, f *fixFlags) error {
 	roots := rootsFrom(v4.ArgsFromContext(ctx))
 
-	opts, code := expectMinorOptions(out, f.ExpectMinor)
+	opts, code := analysisOptions(out, f.AnalysisFlags)
 	if code != exitOK {
 		return codeFrom(code)
 	}
@@ -439,22 +441,44 @@ func workersFor(work, limit int) int {
 	return n
 }
 
-// expectMinorOptions validates the --expect-minor flag value into Analyze
-// options. An invalid value is a usage error: the message names the
-// offending value and the accepted shape, exit 2.
-func expectMinorOptions(out io.Writer, value string) ([]surface.AnalyzeOption, int) {
-	if value == "" {
-		return nil, exitOK
+// analysisOptions validates the shared analysis flags into Analyze
+// options. The installed toolchain backing --respect-patch-floor is probed
+// once here and rides the option, so every root compares against the same
+// version. An invalid value is a usage error: the message names the
+// offending flag and the accepted shape, exit 2.
+func analysisOptions(out io.Writer, f AnalysisFlags) ([]surface.AnalyzeOption, int) {
+	var opts []surface.AnalyzeOption
+
+	if f.ExpectMinor != "" {
+		opt, err := surface.WithExpectedMinor(f.ExpectMinor)
+		if err != nil {
+			fmt.Fprintf(out, "--expect-minor: %v (want major.minor, e.g. 1.27)\n", err)
+
+			return nil, exitError
+		}
+
+		opts = append(opts, opt)
 	}
 
-	opt, err := surface.WithExpectedMinor(value)
-	if err != nil {
-		fmt.Fprintf(out, "--expect-minor: %v (want major.minor, e.g. 1.27)\n", err)
+	if f.RespectPatchFloor {
+		installed, err := fix.InstalledToolchain(context.Background(), ".")
+		if err != nil {
+			fmt.Fprintf(out, "--respect-patch-floor: %v\n", err)
 
-		return nil, exitError
+			return nil, exitError
+		}
+
+		opt, err := surface.WithRespectPatchFloor(string(installed))
+		if err != nil {
+			fmt.Fprintf(out, "--respect-patch-floor: %v\n", err)
+
+			return nil, exitError
+		}
+
+		opts = append(opts, opt)
 	}
 
-	return []surface.AnalyzeOption{opt}, exitOK
+	return opts, exitOK
 }
 
 // printCheckReports renders every repository's findings for humans.

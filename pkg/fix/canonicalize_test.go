@@ -292,3 +292,146 @@ func probeInstalledVersion(t *testing.T) string {
 
 	return strings.TrimSpace(strings.TrimPrefix(strings.TrimSpace(stdout), "go"))
 }
+
+// TestCanonicalizeGoMod_RespectPatchFloor covers the patch-floor policy on
+// the canonicalizer: a patch pin the installed toolchain already satisfies
+// is deliberate and must survive both detect-side flags and repair-side
+// rewrites, at or below (full granularity), while a pin above the installed
+// toolchain stays drift.
+func TestCanonicalizeGoMod_RespectPatchFloor(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name string
+		// pin is the go directive written into the fixture.
+		pin string
+		// installed is the declared InstalledToolchain.
+		installed string
+		// respect toggles RespectPatchFloor.
+		respect bool
+		// wantSkip asserts the "patch floor respected" skip.
+		wantSkip bool
+		// wantChanged asserts the rewrite happened.
+		wantChanged bool
+	}{
+		{
+			name:        "pin below installed is respected",
+			pin:         "1.26.7",
+			installed:   "1.27.1",
+			respect:     true,
+			wantSkip:    true,
+			wantChanged: false,
+		},
+		{
+			name:        "pin equal installed is respected",
+			pin:         "1.27.1",
+			installed:   "go1.27.1",
+			respect:     true,
+			wantSkip:    true,
+			wantChanged: false,
+		},
+		{
+			name:        "pin above installed at patch granularity still rewrites",
+			pin:         "1.27.1",
+			installed:   "1.27.0",
+			respect:     true,
+			wantChanged: true,
+		},
+		{
+			name:        "pin below installed without the flag still rewrites",
+			pin:         "1.26.7",
+			installed:   "1.27.1",
+			wantChanged: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			original := "module example.com/norm\n\ngo " + tt.pin + "\n"
+			path := writeGoModFixture(t, original)
+
+			res, err := CanonicalizeGoMod(context.Background(), path, CanonicalizeOptions{
+				RespectPatchFloor:  tt.respect,
+				InstalledToolchain: surface.GoVersion(tt.installed),
+			}, noopGate())
+			require.NoError(t, err)
+
+			if tt.wantSkip {
+				assert.True(t, res.Skipped)
+				assert.Contains(t, res.SkipReason, "patch floor respected")
+			} else {
+				assert.False(t, res.Skipped)
+			}
+
+			assert.Equal(t, tt.wantChanged, res.Changed)
+
+			data, readErr := os.ReadFile(path)
+			require.NoError(t, readErr)
+
+			if tt.wantChanged {
+				minor := string(surface.MinorForm(surface.GoVersion(tt.pin)))
+				assert.Equal(t, "module example.com/norm\n\ngo "+minor+"\n", string(data))
+			} else {
+				assert.Equal(t, original, string(data), "a respected pin is left byte-identical")
+			}
+		})
+	}
+}
+
+// TestCanonicalizeGoMod_RespectPatchFloorKeepsStripIndependent pins the
+// combination: the go-line pin is respected while an explicitly requested
+// toolchain strip still happens (and needs no gate).
+func TestCanonicalizeGoMod_RespectPatchFloorKeepsStripIndependent(t *testing.T) {
+	t.Parallel()
+
+	original := "module example.com/norm\n\ngo 1.26.7\n\ntoolchain go1.26.7\n"
+	path := writeGoModFixture(t, original)
+
+	gate := fakeGate(func(string, []string) (string, string, error) {
+		return "", "", errGateMustNotRun
+	})
+
+	res, err := CanonicalizeGoMod(context.Background(), path, CanonicalizeOptions{
+		RespectPatchFloor:  true,
+		StripToolchain:     true,
+		InstalledToolchain: "1.27.1",
+	}, gate)
+	require.NoError(t, err)
+	assert.False(t, res.Skipped, "the strip is still planned")
+	assert.True(t, res.Changed)
+	assert.Equal(t, []string{"remove toolchain directive go1.26.7"}, res.Changes)
+
+	data, readErr := os.ReadFile(path)
+	require.NoError(t, readErr)
+	assert.Equal(t, "module example.com/norm\n\ngo 1.26.7\n", string(data),
+		"the patch pin survives; only the toolchain line is stripped")
+}
+
+// TestCanonicalizeGoMod_RespectPatchFloorDepForcedInterplay pins that a pin
+// ABOVE the installed toolchain under RespectPatchFloor still flows into the
+// dependency gate: dep-forced floors keep reporting HeldBackByDepFloor, the
+// option only shields pins the toolchain satisfies.
+func TestCanonicalizeGoMod_RespectPatchFloorDepForcedInterplay(t *testing.T) {
+	t.Parallel()
+
+	original := "module example.com/norm\n\ngo 1.26.7\n"
+	path := writeGoModFixture(t, original)
+
+	gate := fakeGate(func(string, []string) (string, string, error) {
+		return "\ndiff: tidy would raise the directive\n", "", nil
+	})
+
+	res, err := CanonicalizeGoMod(context.Background(), path, CanonicalizeOptions{
+		RespectPatchFloor:  true,
+		InstalledToolchain: "1.26.6",
+	}, gate)
+	require.NoError(t, err)
+	assert.False(t, res.Skipped)
+	assert.True(t, res.HeldBackByDepFloor)
+
+	data, readErr := os.ReadFile(path)
+	require.NoError(t, readErr)
+	assert.Equal(t, original, string(data))
+}

@@ -203,3 +203,79 @@ func TestRepair_CleanRepo(t *testing.T) {
 	require.NoError(t, err)
 	assert.Contains(t, result.Description, "no mechanical")
 }
+
+func TestProviderDeclaresRespectPatchFloorOption(t *testing.T) {
+	t.Parallel()
+
+	require.NotEmpty(t, Provider.Options, "the spec must declare its tool options")
+
+	for _, opt := range Provider.Options {
+		if opt.Name != providerOptionRespectPatchFloor {
+			continue
+		}
+
+		assert.Equal(t, toolsdk.OptionKindBool, opt.Kind)
+		assert.Equal(t, false, opt.Default)
+
+		return
+	}
+
+	t.Fatalf("spec does not declare option %q", providerOptionRespectPatchFloor)
+}
+
+// TestDetect_RespectPatchFloorOption pins the DAG-side plumbing end to end:
+// with the tool option set through the options context, a patch pin at or
+// below the INSTALLED toolchain stops being a finding. The fixture pins the
+// installed minor at patch .0, so the pin is at or below it on every host
+// that satisfies the module floor.
+func TestDetect_RespectPatchFloorOption(t *testing.T) {
+	t.Parallel()
+
+	installed := probeInstalledVersion(t)
+	pin := string(surface.MinorForm(surface.GoVersion(installed))) + ".0"
+
+	root := t.TempDir()
+	require.NoError(
+		t,
+		os.WriteFile(filepath.Join(root, "go.mod"), []byte("module example.com/m\n\ngo "+pin+"\n"), 0o644),
+	)
+
+	ctx := finding.WithWorkingDir(context.Background(), root)
+	ctx = toolsdk.WithOptions(ctx, toolsdk.OptionValues{providerOptionRespectPatchFloor: true})
+
+	findings, err := Provider.Detect.Detect(ctx)
+	require.NoError(t, err)
+
+	for _, f := range findings {
+		assert.NotEqual(t, "go-directive-patch-form", string(f.Rule),
+			"pin %s is at or below installed %s and must be respected", pin, installed)
+	}
+}
+
+// TestDetect_RespectPatchFloorOptionUnsetStillFlags pins the default: the
+// same fixture without the option keeps reporting the patch form, so the
+// policy change is opt-in per repo.
+func TestDetect_RespectPatchFloorOptionUnsetStillFlags(t *testing.T) {
+	t.Parallel()
+
+	installed := probeInstalledVersion(t)
+	pin := string(surface.MinorForm(surface.GoVersion(installed))) + ".0"
+
+	root := t.TempDir()
+	require.NoError(
+		t,
+		os.WriteFile(filepath.Join(root, "go.mod"), []byte("module example.com/m\n\ngo "+pin+"\n"), 0o644),
+	)
+
+	ctx := finding.WithWorkingDir(context.Background(), root)
+
+	findings, err := Provider.Detect.Detect(ctx)
+	require.NoError(t, err)
+
+	rules := map[string]bool{}
+	for _, f := range findings {
+		rules[string(f.Rule)] = true
+	}
+
+	assert.True(t, rules["go-directive-patch-form"], "without the option the pin stays drift")
+}

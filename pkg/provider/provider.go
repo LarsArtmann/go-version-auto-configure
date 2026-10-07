@@ -25,6 +25,11 @@ const (
 	// toolName is the BuildFlow DAG tool name.
 	toolName = "go-version-auto-configure"
 
+	// providerOptionRespectPatchFloor is the declared tool option (set via
+	// BuildFlow's tool_options config key) that leaves patch-form go
+	// directives alone while they do not exceed the installed toolchain.
+	providerOptionRespectPatchFloor = "respect_patch_floor"
+
 	// description appears in BuildFlow --list output.
 	description = "Detects Go toolchain version-surface drift (patch versions in go directives, " +
 		"Nix/CI pins below the module floor) and auto-fixes directive form via go mod edit / go work edit"
@@ -50,6 +55,13 @@ func mustProvider() toolsdk.Spec {
 
 	spec.Trigger = toolsdk.OnFiles("go", "go.mod", "go.work")
 	spec.HealthCheck = fix.SelfCheck
+	spec.Options = []toolsdk.Option{{
+		Name:    providerOptionRespectPatchFloor,
+		Kind:    toolsdk.OptionKindBool,
+		Default: false,
+		Description: "leave patch-form go directives alone while they do not exceed the " +
+			"installed toolchain (fleet hosts pinning an exact patch); above it they stay drift",
+	}}
 
 	return toolsdk.Register(spec)
 }
@@ -58,6 +70,11 @@ func mustProvider() toolsdk.Spec {
 // converts policy issues into SDK config issues.
 func analyze(ctx context.Context) ([]autoconfigure.ConfigIssue, error) {
 	root := workingDir(ctx)
+
+	analyzeOpts, err := respectPatchFloorOptions(ctx, root)
+	if err != nil {
+		return nil, err
+	}
 
 	surf, discoverIssues, err := surface.Discover(root)
 	if err != nil {
@@ -75,7 +92,7 @@ func analyze(ctx context.Context) ([]autoconfigure.ConfigIssue, error) {
 		})
 	}
 
-	for _, issue := range surface.Analyze(surf) {
+	for _, issue := range surface.Analyze(surf, analyzeOpts...) {
 		issues = append(issues, toConfigIssue(issue))
 	}
 
@@ -107,6 +124,11 @@ func toConfigIssue(issue surface.Issue) autoconfigure.ConfigIssue {
 func repair(ctx context.Context) (string, error) {
 	root := workingDir(ctx)
 
+	analyzeOpts, err := respectPatchFloorOptions(ctx, root)
+	if err != nil {
+		return "", err
+	}
+
 	s, _, err := surface.Discover(root)
 	if err != nil {
 		return "", fmt.Errorf("%s repair: %w", toolName, err)
@@ -114,7 +136,7 @@ func repair(ctx context.Context) (string, error) {
 
 	var fixes []surface.Fix
 
-	for _, issue := range surface.Analyze(s) {
+	for _, issue := range surface.Analyze(s, analyzeOpts...) {
 		if issue.Fix != nil {
 			fixes = append(fixes, *issue.Fix)
 		}
@@ -130,6 +152,37 @@ func repair(ctx context.Context) (string, error) {
 	}
 
 	return res.Report(), nil
+}
+
+// respectPatchFloorOptions reads the respect_patch_floor tool option from
+// the context (set per repo via BuildFlow's tool_options key) and resolves
+// it into the surface analyze option: installed toolchain probed once per
+// call, passed to every rule. A run without the option (or with it unset)
+// analyzes on the default policy. A probe failure is an error, not a silent
+// fallback: flipping the policy mid-fleet would rewrite exactly the pins
+// the option exists to protect.
+func respectPatchFloorOptions(ctx context.Context, root string) ([]surface.AnalyzeOption, error) {
+	values, ok := toolsdk.OptionsFromContext(ctx)
+	if !ok {
+		return nil, nil
+	}
+
+	respect, ok := values[providerOptionRespectPatchFloor].(bool)
+	if !ok || !respect {
+		return nil, nil
+	}
+
+	installed, err := fix.InstalledToolchain(ctx, root)
+	if err != nil {
+		return nil, fmt.Errorf("%s: resolve installed toolchain for %s: %w", toolName, providerOptionRespectPatchFloor, err)
+	}
+
+	opt, err := surface.WithRespectPatchFloor(string(installed))
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", toolName, err)
+	}
+
+	return []surface.AnalyzeOption{opt}, nil
 }
 
 // workingDir resolves the project directory from the context, falling back
