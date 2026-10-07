@@ -1,6 +1,7 @@
 package surface
 
 import (
+	"slices"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -23,7 +24,7 @@ func TestWithRespectPatchFloor_ValidatesValue(t *testing.T) {
 
 	for _, ok := range []string{"1.27.1", "go1.27.1", "1.27"} {
 		_, err := WithRespectPatchFloor(ok)
-		assert.NoError(t, err, "version %q must parse", ok)
+		require.NoError(t, err, "version %q must parse", ok)
 	}
 
 	for _, bad := range []string{"", "go", "1", "x.y.z", "stable"} {
@@ -113,7 +114,7 @@ func TestAnalyze_RespectPatchFloor(t *testing.T) {
 				path = "go.work"
 			}
 
-			s := &Surface{
+			surf := &Surface{
 				Root: "/repo",
 				Modules: []ModuleDirective{{
 					Path:    path,
@@ -129,7 +130,7 @@ func TestAnalyze_RespectPatchFloor(t *testing.T) {
 				opts = append(opts, respectOption(t, tt.installed))
 			}
 
-			rules := issueRules(Analyze(s, opts...))
+			rules := issueRules(Analyze(surf, opts...))
 
 			assert.Equal(t, tt.wantFlagged,
 				containsRule(rules, formRule(tt.kind)),
@@ -143,13 +144,7 @@ func TestAnalyze_RespectPatchFloor(t *testing.T) {
 // comparable element type and Rule is a string alias, but an explicit helper
 // keeps the failure message ours.
 func containsRule(rules []Rule, want Rule) bool {
-	for _, r := range rules {
-		if r == want {
-			return true
-		}
-	}
-
-	return false
+	return slices.Contains(rules, want)
 }
 
 // TestAnalyze_RespectPatchFloor_KeepsOtherRules verifies the option scopes
@@ -158,7 +153,7 @@ func containsRule(rules []Rule, want Rule) bool {
 func TestAnalyze_RespectPatchFloor_KeepsOtherRules(t *testing.T) {
 	t.Parallel()
 
-	s := &Surface{
+	surf := &Surface{
 		Root: "/repo",
 		Modules: []ModuleDirective{{
 			Path:    "go.mod",
@@ -177,7 +172,7 @@ func TestAnalyze_RespectPatchFloor_KeepsOtherRules(t *testing.T) {
 
 	opt := respectOption(t, "1.27.1")
 
-	rules := issueRules(Analyze(s, opt))
+	rules := issueRules(Analyze(surf, opt))
 
 	assert.NotContains(t, rules, RuleGoDirectivePatchForm,
 		"the patch pin at or below the installed toolchain is policy, not drift")
@@ -193,7 +188,7 @@ func TestAnalyze_RespectPatchFloor_KeepsOtherRules(t *testing.T) {
 func TestAnalyze_RespectPatchFloor_GoWorkRequiredPatchStaysSilent(t *testing.T) {
 	t.Parallel()
 
-	s := &Surface{
+	surf := &Surface{
 		Root: "/repo",
 		Modules: []ModuleDirective{
 			{
@@ -214,7 +209,7 @@ func TestAnalyze_RespectPatchFloor_GoWorkRequiredPatchStaysSilent(t *testing.T) 
 
 	opt := respectOption(t, "1.27.1")
 
-	rules := issueRules(Analyze(s, opt))
+	rules := issueRules(Analyze(surf, opt))
 
 	assert.NotContains(t, rules, RuleWorkDirectivePatchForm,
 		"the floor requires the patch form; the strip was never offered")

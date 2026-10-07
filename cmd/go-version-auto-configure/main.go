@@ -115,23 +115,30 @@ type QuietFlags struct {
 	Quiet bool `default:"false" flag:"quiet" help:"exit-code-only: suppress the human report (--json still emitted)"`
 }
 
-// AnalysisFlags is shared by check and fix: fleet-policy expectation and
-// patch-floor policy.
+// AnalysisFlags is shared by check and fix: fleet-policy expectation.
 type AnalysisFlags struct {
 	ExpectMinor string `default:"" flag:"expect-minor" help:"fleet-expected Go minor (e.g. 1.27); higher surfaces drift"`
-	RespectPatchFloor bool `default:"false" flag:"respect-patch-floor" help:"leave patch go directives alone while not exceeding the installed toolchain"`
+}
+
+// RespectPatchFloorFlags is shared by check and fix: patch-floor policy. Its
+// own struct keeps the ExpectMinor tag line under the line-length budget
+// (field alignment would otherwise pad it past 120).
+type RespectPatchFloorFlags struct {
+	RespectPatchFloor bool `default:"false" flag:"respect-patch-floor" help:"keep patch go pins the toolchain satisfies"`
 }
 
 type checkFlags struct {
 	CommonFlags
 	QuietFlags
 	AnalysisFlags
+	RespectPatchFloorFlags
 }
 
 type fixFlags struct {
 	CommonFlags
 	QuietFlags
 	AnalysisFlags
+	RespectPatchFloorFlags
 
 	DryRun bool `default:"false" flag:"dry-run" help:"report what would change without touching files"`
 }
@@ -176,7 +183,7 @@ func addCommand[F any](cli *v4.CLI[appConfig], name string, cmd v4.Command[appCo
 func runCheck(out io.Writer, ctx context.Context, f *checkFlags) error {
 	roots := rootsFrom(v4.ArgsFromContext(ctx))
 
-	opts, code := analysisOptions(ctx, out, f.AnalysisFlags)
+	opts, code := analysisOptions(ctx, out, f.ExpectMinor, f.RespectPatchFloor)
 	if code != exitOK {
 		return codeFrom(code)
 	}
@@ -199,7 +206,7 @@ func runCheck(out io.Writer, ctx context.Context, f *checkFlags) error {
 func runFix(out io.Writer, ctx context.Context, f *fixFlags) error {
 	roots := rootsFrom(v4.ArgsFromContext(ctx))
 
-	opts, code := analysisOptions(ctx, out, f.AnalysisFlags)
+	opts, code := analysisOptions(ctx, out, f.ExpectMinor, f.RespectPatchFloor)
 	if code != exitOK {
 		return codeFrom(code)
 	}
@@ -446,11 +453,16 @@ func workersFor(work, limit int) int {
 // once here and rides the option, so every root compares against the same
 // version. An invalid value is a usage error: the message names the
 // offending flag and the accepted shape, exit 2.
-func analysisOptions(ctx context.Context, out io.Writer, f AnalysisFlags) ([]surface.AnalyzeOption, int) {
+func analysisOptions(
+	ctx context.Context,
+	out io.Writer,
+	expectMinor string,
+	respectPatchFloor bool,
+) ([]surface.AnalyzeOption, int) {
 	var opts []surface.AnalyzeOption
 
-	if f.ExpectMinor != "" {
-		opt, err := surface.WithExpectedMinor(f.ExpectMinor)
+	if expectMinor != "" {
+		opt, err := surface.WithExpectedMinor(expectMinor)
 		if err != nil {
 			fmt.Fprintf(out, "--expect-minor: %v (want major.minor, e.g. 1.27)\n", err)
 
@@ -460,7 +472,7 @@ func analysisOptions(ctx context.Context, out io.Writer, f AnalysisFlags) ([]sur
 		opts = append(opts, opt)
 	}
 
-	if f.RespectPatchFloor {
+	if respectPatchFloor {
 		installed, err := fix.InstalledToolchain(ctx, ".")
 		if err != nil {
 			fmt.Fprintf(out, "--respect-patch-floor: %v\n", err)

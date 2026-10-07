@@ -174,7 +174,9 @@ func respectPatchFloorOptions(ctx context.Context, root string) ([]surface.Analy
 
 	installed, err := fix.InstalledToolchain(ctx, root)
 	if err != nil {
-		return nil, fmt.Errorf("%s: resolve installed toolchain for %s: %w", toolName, providerOptionRespectPatchFloor, err)
+		return nil, fmt.Errorf(
+			"%s: resolve installed toolchain for %s: %w", toolName, providerOptionRespectPatchFloor, err,
+		)
 	}
 
 	opt, err := surface.WithRespectPatchFloor(string(installed))

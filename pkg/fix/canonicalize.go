@@ -416,6 +416,7 @@ func resolveInstalledToolchain(
 	if explicit != "" {
 		return explicit, nil
 	}
+
 	stdout, _, err := gate(ctx, dir, "env", "GOVERSION")
 	if err != nil {
 		return "", fmt.Errorf("canonicalize: resolve installed toolchain: %w", err)
