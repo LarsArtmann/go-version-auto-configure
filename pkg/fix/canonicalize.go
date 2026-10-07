@@ -158,6 +158,12 @@ type CanonicalizeOptions struct {
 	// InstalledToolchain is the installed Go version, e.g. "1.27.1" (the
 	// "go" prefix is tolerated). Empty resolves it via `go env GOVERSION`.
 	InstalledToolchain surface.GoVersion
+	// RespectPatchFloor keeps a patch-form go directive whose full version
+	// does not exceed the installed toolchain: fleet hosts pin an exact
+	// patch, and a pin the local toolchain already satisfies is deliberate
+	// policy, not drift. The toolchain-strip path is independent: a strip
+	// requested explicitly still happens.
+	RespectPatchFloor bool
 }
 
 // CanonicalizeResult summarizes one CanonicalizeGoMod run.
@@ -265,7 +271,8 @@ func CanonicalizeGoMod(
 
 	dir := filepath.Dir(goModPath)
 
-	if err := canonicalizeGuard(ctx, dir, opts, plan, gate, &res); err != nil {
+	plan, err = canonicalizeGuard(ctx, dir, opts, plan, gate, &res)
+	if err != nil {
 		return CanonicalizeResult{}, err
 	}
 
@@ -324,11 +331,15 @@ func (p canonicalizePlan) changes() []string {
 	return changes
 }
 
-// canonicalizeGuard resolves the installed toolchain and skips the rewrite
-// when the module's minor floor exceeds it (the gate could not resolve
-// anything anyway). Comparison is at minor granularity; an unparseable
-// installed version compares as "not exceeding", leaving the verdict to
-// the gate.
+// canonicalizeGuard resolves the installed toolchain and returns the
+// possibly amended plan: under RespectPatchFloor a patch pin the installed
+// toolchain already satisfies is dropped from the plan (patchPinned=false;
+// the rewrite is skipped as "patch floor respected" when nothing else
+// remains), independently of the toolchain-strip path. Without the flag it
+// only skips the whole rewrite when the module's minor floor exceeds the
+// installed toolchain (the gate could not resolve anything anyway).
+// Comparison is at full directive granularity; an unparseable installed
+// version compares as "not exceeding", leaving the verdict to the gate.
 func canonicalizeGuard(
 	ctx context.Context,
 	dir string,
@@ -336,10 +347,10 @@ func canonicalizeGuard(
 	plan canonicalizePlan,
 	gate SplitRunner,
 	res *CanonicalizeResult,
-) error {
+) (canonicalizePlan, error) {
 	installed, err := resolveInstalledToolchain(ctx, dir, opts.InstalledToolchain, gate)
 	if err != nil {
-		return err
+		return plan, err
 	}
 
 	if surface.GreaterVersion(string(surface.MinorForm(plan.goVersion)), string(surface.MinorForm(installed))) {
@@ -347,9 +358,23 @@ func canonicalizeGuard(
 			"go line %s exceeds installed toolchain %s; keeping patch floor",
 			plan.goVersion, installed,
 		)
+
+		return plan, nil
 	}
 
-	return nil
+	if opts.RespectPatchFloor && plan.patchPinned &&
+		!surface.GreaterVersion(string(plan.goVersion), string(installed)) {
+		plan.patchPinned = false
+
+		if !plan.stripToolchain {
+			res.Skipped, res.SkipReason = true, fmt.Sprintf(
+				"patch floor respected: go %s is at or below installed toolchain %s",
+				plan.goVersion, installed,
+			)
+		}
+	}
+
+	return plan, nil
 }
 
 // canonicalizeGate runs the dependency-floor gate for a go-line downgrade
@@ -391,16 +416,24 @@ func resolveInstalledToolchain(
 	if explicit != "" {
 		return explicit, nil
 	}
-
 	stdout, _, err := gate(ctx, dir, "env", "GOVERSION")
 	if err != nil {
 		return "", fmt.Errorf("canonicalize: resolve installed toolchain: %w", err)
 	}
 
 	installed := surface.GoVersion(strings.TrimSpace(stdout))
+
 	if installed == "" {
 		return "", errEmptyGoVersion
 	}
 
 	return installed, nil
+}
+
+// InstalledToolchain resolves the installed Go version via `go env GOVERSION`
+// run in dir. Providers use it to feed WithRespectPatchFloor once per run
+// instead of probing per module. The "go" prefix is kept as the tool
+// reports it ("go1.27.1"); callers tolerate either form.
+func InstalledToolchain(ctx context.Context, dir string) (surface.GoVersion, error) {
+	return resolveInstalledToolchain(ctx, dir, "", ExecSplitRunner())
 }

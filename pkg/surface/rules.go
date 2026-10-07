@@ -38,7 +38,7 @@ func Analyze(surf *Surface, opts ...AnalyzeOption) []Issue {
 
 	fullFloor, hasFull := surf.FullModuleFloor()
 
-	issues = append(issues, formIssues(surf, fullFloor, hasFull)...)
+	issues = append(issues, formIssues(surf, fullFloor, hasFull, policy)...)
 	issues = append(issues, goWorkBelowFloor(surf, fullFloor, hasFull)...)
 	issues = append(issues, nonVersionToolchains(surf)...)
 	issues = append(issues, staleToolchains(surf)...)
@@ -62,10 +62,13 @@ func Analyze(surf *Surface, opts ...AnalyzeOption) []Issue {
 type AnalyzeOption func(*analyzePolicy)
 
 // analyzePolicy carries the policy inputs Analyze applies beyond the
-// structural rules: currently only the fleet-expected minor.
+// structural rules: the fleet-expected minor and the installed-toolchain
+// patch floor.
 type analyzePolicy struct {
-	expectMinor    majorMinor
-	hasExpectMinor bool
+	expectMinor        majorMinor
+	hasExpectMinor     bool
+	respectPatchFloor  bool
+	installedToolchain GoVersion
 }
 
 // WithExpectedMinor sets the fleet-expected Go minor (e.g. "1.27", ADR-0001):
@@ -79,6 +82,23 @@ func WithExpectedMinor(v string) (AnalyzeOption, error) {
 	}
 
 	return func(p *analyzePolicy) { p.expectMinor, p.hasExpectMinor = mm, true }, nil
+}
+
+// WithRespectPatchFloor declares the installed toolchain version (e.g.
+// "1.27.1" or "go1.27.1") and instructs form rules to leave patch-form
+// `go` directives alone when the directive does not exceed it: a pin the
+// installed toolchain already satisfies is a deliberate floor (fleet hosts
+// run an exact patch), not drift. Directives ABOVE the installed toolchain
+// stay flagged: they break builds on exactly this host. The value must
+// parse as a Go version; the error names the offending value so callers
+// can surface it. Patch forms are compared at full granularity under the
+// go tool's directive ranking (go 1.26 < go 1.26.0 < go 1.26.7).
+func WithRespectPatchFloor(installed string) (AnalyzeOption, error) {
+	if _, err := parseMajorMinor(installed); err != nil {
+		return nil, fmt.Errorf("respect-patch-floor %q: %w", installed, err)
+	}
+
+	return func(p *analyzePolicy) { p.respectPatchFloor, p.installedToolchain = true, GoVersion(installed) }, nil
 }
 
 // exceedsExpectation reports every version surface whose minor is NEWER
@@ -189,11 +209,15 @@ func minorExceeds(v string, expect majorMinor) bool {
 // advisory by design, never an error: the remediation is re-tagging the
 // poisoner, which only the poisoner's repo can do (owner decision
 // 2026-09-25, see docs/adr/0001 appendix go-health v0.4.0).
-func formIssues(s *Surface, fullFloor GoVersion, hasFull bool) []Issue {
+func formIssues(s *Surface, fullFloor GoVersion, hasFull bool, policy analyzePolicy) []Issue {
 	var issues []Issue
 
 	for _, m := range s.Modules {
 		if !hasPatch(string(m.Version)) {
+			continue
+		}
+
+		if policy.respectPatchFloor && !GreaterVersion(string(m.Version), string(policy.installedToolchain)) {
 			continue
 		}
 
