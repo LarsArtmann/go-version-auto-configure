@@ -4,10 +4,13 @@ import (
 	"context"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/larsartmann/go-finding"
 	toolsdk "github.com/larsartmann/go-finding/toolsdk"
+	"github.com/larsartmann/go-version-auto-configure/pkg/fix"
+	"github.com/larsartmann/go-version-auto-configure/pkg/surface"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -202,6 +205,18 @@ func TestRepair_CleanRepo(t *testing.T) {
 	result, err := Provider.Repair.Repair(ctx)
 	require.NoError(t, err)
 	assert.Contains(t, result.Description, "no mechanical")
+}
+
+// probeInstalledVersion resolves the test environment's installed Go
+// version (full form, e.g. "1.27.1") through the fix package's probe so the
+// option tests build fixtures the local toolchain satisfies.
+func probeInstalledVersion(t *testing.T) string {
+	t.Helper()
+
+	installed, err := fix.InstalledToolchain(context.Background(), t.TempDir())
+	require.NoError(t, err, "the test environment always has a go binary")
+
+	return strings.TrimPrefix(string(installed), "go")
 }
 
 func TestProviderDeclaresRespectPatchFloorOption(t *testing.T) {

@@ -118,8 +118,8 @@ type QuietFlags struct {
 // AnalysisFlags is shared by check and fix: fleet-policy expectation and
 // patch-floor policy.
 type AnalysisFlags struct {
-	ExpectMinor       string `default:"" flag:"expect-minor" help:"fleet-expected Go minor (e.g. 1.27); higher surfaces drift"`
-	RespectPatchFloor bool   `default:"false" flag:"respect-patch-floor" help:"leave patch-form go directives alone while they do not exceed the installed toolchain"`
+	ExpectMinor string `default:"" flag:"expect-minor" help:"fleet-expected Go minor (e.g. 1.27); higher surfaces drift"`
+	RespectPatchFloor bool `default:"false" flag:"respect-patch-floor" help:"leave patch go directives alone while not exceeding the installed toolchain"`
 }
 
 type checkFlags struct {
@@ -176,7 +176,7 @@ func addCommand[F any](cli *v4.CLI[appConfig], name string, cmd v4.Command[appCo
 func runCheck(out io.Writer, ctx context.Context, f *checkFlags) error {
 	roots := rootsFrom(v4.ArgsFromContext(ctx))
 
-	opts, code := analysisOptions(out, f.AnalysisFlags)
+	opts, code := analysisOptions(ctx, out, f.AnalysisFlags)
 	if code != exitOK {
 		return codeFrom(code)
 	}
@@ -199,7 +199,7 @@ func runCheck(out io.Writer, ctx context.Context, f *checkFlags) error {
 func runFix(out io.Writer, ctx context.Context, f *fixFlags) error {
 	roots := rootsFrom(v4.ArgsFromContext(ctx))
 
-	opts, code := analysisOptions(out, f.AnalysisFlags)
+	opts, code := analysisOptions(ctx, out, f.AnalysisFlags)
 	if code != exitOK {
 		return codeFrom(code)
 	}
@@ -446,7 +446,7 @@ func workersFor(work, limit int) int {
 // once here and rides the option, so every root compares against the same
 // version. An invalid value is a usage error: the message names the
 // offending flag and the accepted shape, exit 2.
-func analysisOptions(out io.Writer, f AnalysisFlags) ([]surface.AnalyzeOption, int) {
+func analysisOptions(ctx context.Context, out io.Writer, f AnalysisFlags) ([]surface.AnalyzeOption, int) {
 	var opts []surface.AnalyzeOption
 
 	if f.ExpectMinor != "" {
@@ -461,7 +461,7 @@ func analysisOptions(out io.Writer, f AnalysisFlags) ([]surface.AnalyzeOption, i
 	}
 
 	if f.RespectPatchFloor {
-		installed, err := fix.InstalledToolchain(context.Background(), ".")
+		installed, err := fix.InstalledToolchain(ctx, ".")
 		if err != nil {
 			fmt.Fprintf(out, "--respect-patch-floor: %v\n", err)
 

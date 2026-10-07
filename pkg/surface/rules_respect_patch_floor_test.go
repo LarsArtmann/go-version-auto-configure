@@ -169,8 +169,8 @@ func TestAnalyze_RespectPatchFloor_KeepsOtherRules(t *testing.T) {
 		}},
 		NixPins: []Pin{{
 			Path:    "flake.nix",
-			Version: "1.26",
-			Raw:     "go_1_26",
+			Version: "1.25",
+			Raw:     "go_1_25",
 			Source:  PinNixFlake,
 		}},
 	}
