@@ -19,6 +19,26 @@ Worse: the drift **propagates**. `go mod tidy` copies a dependency's `go` floor 
 
 **Auto-fix** applies only to unambiguous form violations — via `go mod edit` / `go work edit`, never text rewriting, and every fix is verified by re-parsing the file. **Alignment** issues (which side moves: pin or floor?) carry suggestions only; downgrades are never auto-applied.
 
+## Rule × pin-semantics matrix
+
+Which rules fire regardless of the repo's pins, which honor them, and which can rewrite files:
+
+| Rule | Honors the repo's pins? | Auto-fix? | Notes |
+| --- | --- | --- | --- |
+| `go-directive-patch-form` | **YES** via `respect_patch_floor` (`WithRespectPatchFloor`; BuildFlow `tool_options.go-version-auto-configure.respect_patch_floor: true`, empty value resolves `go env GOVERSION`): a patch-form `go` directive at or below the installed toolchain is a deliberate floor and is left alone. Above it → flagged (breaks this host). | YES (strip the patch via `go mod edit`), tidy-gated; dep-forced findings are advisory, never error | The old fleet war (rewrite fights the flake's pin) is dead in this configuration. |
+| `go-work-patch-form` | Partially: the strip is offered only when the stripped minor still covers the full module floor — a dep-forced patch floor keeps the patch REQUIRED. | YES (strip) | |
+| `go-work-below-floor` | Floor-driven, direction-safe: raising a floor to cover modules never invalidates anything. | YES (raise `go.work` to the floor) | Fixes the "module X requires go >= N, but go.work lists go M" failure class. |
+| `nix-pin-below-floor` | Detect-only by design: raising a flake pin is a flake + lockfile decision. | NO (suggestion) | |
+| `ci-pin-below-floor` | Detect-only. | NO (suggestion) | |
+| `ci-pin-patch-form` | Detect-only. | NO (suggestion) | |
+| `toolchain-below-directive` | Detect-only (dead-weight line). | NO (suggestion) | |
+| `toolchain-non-version` | Informational (`local`/`default` opt out of resolution). | NO | |
+| `minor-exceeds-expectation` | Honors the fleet minor (`WithExpectedMinor`, ADR-0001: 1.27); surfaces above it. | NO (downgrades never auto-applied) | |
+| `release-authority-drift` | Detect-only (VERSION vs CHANGELOG). | NO (suggestion) | |
+| `go-mod-unparseable`, `go-work-unparseable` | Discovery failures. | NO | |
+
+**The honor-the-pin contract:** with `respect_patch_floor` set, gvac never rewrites a go directive the installed toolchain already satisfies — the pin is treated as repo policy (gotcha #232's taxonomy: pin vs track-latest is a preference, and preferences never converge under repair).
+
 ## Install
 
 ```bash
