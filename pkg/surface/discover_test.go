@@ -675,10 +675,10 @@ func TestReadLines(t *testing.T) {
 // (cqrs-htmx 27057e5c).
 func TestDiscover_SkipsTestdataTrees(t *testing.T) {
 	root := writeRepo(t, map[string]string{
-		"go.mod":               "module example.com/real\n\ngo 1.27\n",
-		"testdata/go.mod":      "module example.com/fixture\n\ngo 1.16\n",
-		"pkg/internal/go.mod":  "module example.com/real/pkg\n\ngo 1.27\n",
-		"pkg/testdata/go.mod":  "module example.com/pkgfixture\n\ngo 1.15\n",
+		"go.mod":              "module example.com/real\n\ngo 1.27\n",
+		"testdata/go.mod":     "module example.com/fixture\n\ngo 1.16\n",
+		"pkg/internal/go.mod": "module example.com/real/pkg\n\ngo 1.27\n",
+		"pkg/testdata/go.mod": "module example.com/pkgfixture\n\ngo 1.15\n",
 	})
 
 	surf, _, err := Discover(root)
