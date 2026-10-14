@@ -6,6 +6,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+## [0.2.6] - 2026-10-14
+
+### Added
+
+- **`Discover` never walks `testdata` trees (BF1)** — testdata is the go toolchain's own fixture convention (the go command never builds or tidies inside it), so fixture go.mod files are not part of a repository's version floor. Walking them made gvac tidy go.mod-only fixture modules, delete every require line, and vacuously pass fixture guard tests (cqrs-htmx 27057e5c). Red-first test pins root and nested testdata exclusion.
+
+## [0.2.5] - 2026-10-07
+
 ### Added
 
 - **Patch-floor policy: `--respect-patch-floor` (check/fix) and the `respect_patch_floor` BuildFlow tool option** — fleet hosts that pin an exact Go patch (Nix profiles, locked runners) now have a first-class way to say so: a patch-form `go` directive the INSTALLED toolchain already satisfies stops being drift. Detection (`surface.WithRespectPatchFloor(installed)`) leaves form findings silent for pins at or below the installed version under the go tool's full-granularity directive ranking (`go 1.26 < go 1.26.0 < go 1.26.7`); the canonicalizer (`CanonicalizeOptions.RespectPatchFloor`) skips the go-line rewrite for the same class with skip reason "patch floor respected", independently of the toolchain-strip path; pins ABOVE the installed toolchain stay flagged and rewritten — they break builds on exactly that host. The CLI resolves the installed toolchain once per run (`go env GOVERSION`) and rides it on the option; the BuildFlow provider declares `respect_patch_floor` (bool) via toolsdk Options, set per repo through BuildFlow's `tool_options` config key, honored by BOTH detect and repair. This is the knob that retires the 14-repo skip-step fleet (wise-go class deliberate pins) instead of masking them.
