@@ -39,6 +39,8 @@ Which rules fire regardless of the repo's pins, which honor them, and which can 
 
 **The honor-the-pin contract:** with `respect_patch_floor` set, gvac never rewrites a go directive the installed toolchain already satisfies — the pin is treated as repo policy (gotcha #232's taxonomy: pin vs track-latest is a preference, and preferences never converge under repair).
 
+**The contract is fleet-wide (2026-10-14):** BuildFlow's own `go-mod-normalize` (the second go-line rewriter, via `CanonicalizeGoMod`) reads the SAME `tool_options.go-version-auto-configure.respect_patch_floor` key as host policy — one knob, both rewriters, no flip-flop possible (verified live on art-dupl: unskipped normalize run leaves `go 1.27.1` byte-identical).
+
 ## Install
 
 ```bash
