@@ -20,6 +20,12 @@ var skippedDirs = map[string]bool{
 	"node_modules": true,
 	".git":         true,
 	"result":       true,
+	// testdata is the go toolchain's own fixture convention: the go command
+	// never builds or tidies inside it, so a fixture go.mod is not part of
+	// the repository's version floor. Walking it made gvac tidy go.mod-only
+	// fixture modules, deleting their require lines and vacuously passing
+	// fixture guard tests (cqrs-htmx 27057e5c, BF1).
+	"testdata": true,
 }
 
 // errNotDirectory is wrapped with the root path by Discover.

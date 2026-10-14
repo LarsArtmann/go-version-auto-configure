@@ -667,3 +667,35 @@ func TestReadLines(t *testing.T) {
 		assert.Nil(t, readLines(t.TempDir()))
 	})
 }
+
+// BF1: testdata trees are never walked. The go toolchain itself excludes
+// testdata from builds (its fixtures are not part of the module's version
+// floor); gvac used to run tidy on go.mod-only fixture modules, deleting
+// every require line and vacuously passing fixture guard tests
+// (cqrs-htmx 27057e5c).
+func TestDiscover_SkipsTestdataTrees(t *testing.T) {
+	root := writeRepo(t, map[string]string{
+		"go.mod":               "module example.com/real\n\ngo 1.27\n",
+		"testdata/go.mod":      "module example.com/fixture\n\ngo 1.16\n",
+		"pkg/internal/go.mod":  "module example.com/real/pkg\n\ngo 1.27\n",
+		"pkg/testdata/go.mod":  "module example.com/pkgfixture\n\ngo 1.15\n",
+	})
+
+	surf, _, err := Discover(root)
+	require.NoError(t, err)
+
+	var sawFixture, sawPkgFixture bool
+
+	for _, mod := range surf.Modules {
+		switch mod.Path {
+		case "testdata/go.mod":
+			sawFixture = true
+		case "pkg/testdata/go.mod":
+			sawPkgFixture = true
+		}
+	}
+
+	assert.False(t, sawFixture, "root testdata/go.mod must not be discovered")
+	assert.False(t, sawPkgFixture, "nested pkg/testdata/go.mod must not be discovered")
+	assert.Len(t, surf.Modules, 2, "only the real modules count")
+}
