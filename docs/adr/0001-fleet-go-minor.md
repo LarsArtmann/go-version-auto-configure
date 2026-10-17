@@ -134,12 +134,12 @@ forbids recording tag claims without published-`.mod` verification.
 Re-derived the 2026-09-22 baseline from the live tree (`~/projects`, excluding
 `archived/`, `vendor/`, `node_modules/`, `.corpus-pins/`, `testdata/`):
 
-| Signal                                                         | Value        |
-| -------------------------------------------------------------- | ------------ |
-| Distinct top-level projects with >=1 patch-form `go` directive | 91           |
-| `go.mod` files at minor-form `go 1.27`                         | 535          |
-| `go.mod` files at patch-form `1.27.1` / `1.27.2`               | 148 / 58     |
-| `go.mod` files at patch-form `1.26.7` / `1.26.5` / `1.26.4`    | 30 / 10 / 18 |
+| Signal                                                             | Value                                                             |
+| ------------------------------------------------------------------ | ----------------------------------------------------------------- |
+| Distinct top-level projects with >=1 patch-form `go` directive     | 91                                                                |
+| `go.mod` files at minor-form `go 1.27`                             | 535                                                               |
+| `go.mod` files at patch-form `1.27.1` / `1.27.2`                   | 148 / 58                                                          |
+| `go.mod` files at patch-form `1.26.7` / `1.26.5` / `1.26.4`        | 30 / 10 / 18                                                      |
 | Consumers still pinning `github.com/larsartmann/go-output v0.38.2` | 3 (index; projects-management-automation/{pkg/domain,pma-daemon}) |
 
 A patch-form directive is an upper bound on drift, not proof: a dependency

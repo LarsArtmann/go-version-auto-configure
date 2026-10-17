@@ -89,12 +89,12 @@ Owner decisions recorded 2026-09-22: go-output v0.38.1 is NOT retracted (documen
 
 The v0.2.3 who-forces hot-path reshape (`accumulateFloor`/`finalizeFloors`) went unmeasured until this pass. Numbers are one machine (AMD Ryzen AI MAX+ 395, 32 threads); compare like-for-like, never across machines:
 
-| Benchmark | Result |
-| --------- | ------ |
-| `BenchmarkAnalyzeFloors` (new; 200-dep synthetic graph, faked runner) | ~70µs/op, 124KB/op, 2398 allocs/op |
-| `BenchmarkApplyAll_CleanFastPath` (new; 32 clean repos) | ~17-29µs/op, 69 allocs/op |
-| `BenchmarkAnalyzeAll` (T11 fixture, 8 repos) | ~130µs/op |
-| `BenchmarkDiscover` / `BenchmarkAnalyze` / `BenchmarkParseDirective` (`pkg/surface`) | ~80µs / ~5µs / ~1.6µs per op |
+| Benchmark                                                                            | Result                             |
+| ------------------------------------------------------------------------------------ | ---------------------------------- |
+| `BenchmarkAnalyzeFloors` (new; 200-dep synthetic graph, faked runner)                | ~70µs/op, 124KB/op, 2398 allocs/op |
+| `BenchmarkApplyAll_CleanFastPath` (new; 32 clean repos)                              | ~17-29µs/op, 69 allocs/op          |
+| `BenchmarkAnalyzeAll` (T11 fixture, 8 repos)                                         | ~130µs/op                          |
+| `BenchmarkDiscover` / `BenchmarkAnalyze` / `BenchmarkParseDirective` (`pkg/surface`) | ~80µs / ~5µs / ~1.6µs per op       |
 
 Per-package coverage (all above the 80% bar): pkg/fix 92.3%, cmd 87.7%, surface 87.6%, provider 85.5%, version 96.2%. Remaining sub-80% entries are error-branch functions in otherwise well-covered packages (accepted since T11).
 
