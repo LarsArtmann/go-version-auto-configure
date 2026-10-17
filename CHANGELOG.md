@@ -6,6 +6,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+### Added
+
+- **`depForced.cause` is now golden-locked** (`fix --json`): the cause-PRESENT shape (a replace target, a vendored module, or the standard library's floor) is frozen by a golden test beside the existing cause-absent real-gate golden, so the additive field cannot drift under schema 2 unnoticed.
+- **Test-depth batch** (cmd/): the full `exitFromOutcomes` outcome-combination table, `runSorted` zero-items + pool-width equivalence (`--parallel 1` == `--parallel 100`), a byte-exact `version` output golden for the subcommand and both aliases, a flag-help property test (every declared flag carries help text, no duplicate names), and `BenchmarkApplyAll_CleanFastPath` for the fleet skip-clean path.
+- **`BenchmarkAnalyzeFloors`** (pkg/fix): a hermetic benchmark for the who-forces per-module hot path (`accumulateFloor`/`finalizeFloors`), which the v0.2.3 reshape had left unmeasured. Baselines (benchmarks + per-package coverage) recorded in AGENTS.md.
+- **`checks.go-fod-floor` flake guard**: an eval-time assertion that the go-modules FOD's Go package (`goPkgAttr`) covers go.mod's floor. The FOD runs `GOTOOLCHAIN=local`, so a stale `goPkgAttr` used to die inside the sandbox with a raw toolchain error; the guard turns it into an actionable eval-time message.
+
+### Changed
+
+- **Docs refresh (2026-10-17)**: TODO_LIST rebuilt against the code (the v0.2.4-v0.2.6 releases had already shipped most of the former T15/T16/T17 rows). POISONERS.md records a NEW Active poisoner (`go-taskqueue`, all modules patch-form at source and in published tags) and the cqrs-htmx regression (minor-form at v4.13.3, back to `go 1.27.2` at v4.14.0/v4.14.1); ADR-0001 appendix carries the 2026-10-17 fleet re-measure; AGENTS.md version/dependency lines refreshed.
+
 ## [0.2.6] - 2026-10-14
 
 ### Added
