@@ -24,6 +24,10 @@
     let
       lib = inputs.nixpkgs.lib;
       version = self.shortRev or self.dirtyShortRev or "dev";
+      # The Go package the go-modules FOD builds with. Pinned explicitly (not
+      # the go-nix-helpers default) because the FOD runs GOTOOLCHAIN=local:
+      # see the comment at go-standard below and checks.go-fod-floor.
+      goPkgAttr = "go_1_27";
       src = lib.fileset.toSource {
         root = ./.;
         fileset = lib.fileset.unions [
@@ -41,6 +45,17 @@
 
       perSystem =
         { pkgs, ... }:
+        let
+          # Belt & braces for the goPkgAttr class (2026-09-26): the go-modules
+          # FOD builds with GOTOOLCHAIN=local, so a goPkgAttr whose Go version
+          # trails go.mod's floor dies inside the sandbox with a raw toolchain
+          # error. This eval-time guard turns it into an actionable message.
+          goVersion = pkgs.${goPkgAttr}.version;
+          floor = lib.removePrefix "go " (
+            lib.findFirst (lib.hasPrefix "go ") "go 0" (lib.splitString "\n" (builtins.readFile ./go.mod))
+          );
+          floorSafe = lib.versionAtLeast goVersion floor;
+        in
         {
           # Standing docs gate (T16-14): link check + TODO_LIST hygiene +
           # stale-report probe. Run: nix run .#docs-gate
@@ -54,6 +69,12 @@
               })
               + "/bin/docs-gate";
           };
+
+          # The FOD's Go version must cover go.mod's floor (TODO_LIST T16).
+          checks.go-fod-floor =
+            assert lib.assertMsg floorSafe
+              "goPkgAttr '${goPkgAttr}' is Go ${goVersion}, below go.mod's floor (${floor}); the go-modules FOD runs GOTOOLCHAIN=local and would fail. Bump goPkgAttr.";
+            pkgs.runCommand "go-fod-floor-ok" { } "touch $out";
         };
 
       go-standard = {
@@ -67,8 +88,11 @@
         # (the null auto-newest default landed after the pin), and the FOD
         # runs GOTOOLCHAIN=local — so the go-modules derivation died with
         # "go.mod requires go >= 1.27 (running go 1.26.7)" (2026-09-26).
-        # Pin the branch explicitly; the locked nixpkgs ships go_1_27 = 1.27.1.
-        goPkgAttr = "go_1_27";
+        # Pin the branch explicitly; the locked nixpkgs ships go_1_27 (1.27.x;
+        # 1.27.2 at the 2026-10-16 lock).
+        # The value lives in the top-level let so checks.go-fod-floor can assert
+        # it against go.mod's floor.
+        inherit goPkgAttr;
 
         enableTempl = false;
         enableGoimports = false;
@@ -112,7 +136,7 @@
         shellExtraEnv = {
           GOEXPERIMENT = "jsonv2";
           # Pin the exact toolchain so no shell needs GOTOOLCHAIN prefixes:
-          # go_1_27 ships 1.27.1, and modules with a go 1.27 floor build as-is.
+          # go_1_27 ships 1.27.x, and modules with a go 1.27 floor build as-is.
           GOTOOLCHAIN = "go1.27.1";
           # BuildFlow's shared devShell exports GOWORK=off globally, which
           # breaks `go work edit` (policy: workspace commands need workspace

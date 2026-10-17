@@ -20,7 +20,7 @@ import (
 // The sibling golden in contract_test.go covers the cause-ABSENT shape (a
 // listed dependency carries the floor); this one covers cause-PRESENT, the
 // state only a replace target, a vendored module, or the standard library
-// can produce — deterministically unreachable offline through the real go
+// can produce, deterministically unreachable offline through the real go
 // command, so the emission is exercised directly. Without this lock the field
 // could be renamed or dropped and schema 2 would drift silently.
 func TestJSONDepForcedCauseGolden(t *testing.T) {

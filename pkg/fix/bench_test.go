@@ -11,7 +11,7 @@ import (
 
 // BenchmarkAnalyzeFloors measures the who-forces per-module path: discovery,
 // directive parsing, the dependency-floor fold (accumulateFloor), and the row
-// finalize (finalizeFloors) — the hot path reshaped after the T11 baseline
+// finalize (finalizeFloors), the hot path reshaped after the T11 baseline
 // (2026-09-22) and, per TODO_LIST T16, never re-measured. The graph is
 // synthetic (200 dependencies, a quarter of them at the directive's floor, so
 // the parity branch of finalizeFloors is exercised) and the runner is faked,
