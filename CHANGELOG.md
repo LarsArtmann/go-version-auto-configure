@@ -15,7 +15,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 
-- **Docs refresh (2026-10-17)**: TODO_LIST rebuilt against the code (the v0.2.4-v0.2.6 releases had already shipped most of the former T15/T16/T17 rows). POISONERS.md records a NEW Active poisoner (`go-taskqueue`, all modules patch-form at source and in published tags) and the cqrs-htmx regression (minor-form at v4.13.3, back to `go 1.27.2` at v4.14.0/v4.14.1); ADR-0001 appendix carries the 2026-10-17 fleet re-measure; AGENTS.md version/dependency lines refreshed.
+- **Docs refresh (2026-10-17)**: TODO_LIST rebuilt against the code (the v0.2.4-v0.2.6 releases had already shipped most of the former T15/T16/T17 rows). POISONERS.md records a NEW Active poisoner (`go-taskqueue`, all modules patch-form at source and in published tags) and the cqrs-htmx regression (minor-form at v4.13.3, back to `go 1.27.2` at v4.14.0/v4.14.1); ADR-0001 appendix carries the 2026-10-17 fleet re-measure; AGENTS.md version/dependency lines and baselines refreshed; docs/DEDUPLICATION.md baseline re-scanned (228 groups, 7 above the noise floor, all intentional).
 
 ## [0.2.6] - 2026-10-14
 

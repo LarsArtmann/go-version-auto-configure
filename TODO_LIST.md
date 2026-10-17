@@ -19,8 +19,7 @@ Short- and mid-term actionable work, **open items only** — completed items liv
 - [ ] Bump the go-nix-helpers pin (c42fd77, 65+ commits behind; auto-newest `goPkgAttr` plus the eval-time floor check makes the FOD-class nix failure impossible instead of merely guarded). The local `checks.go-fod-floor` guard (added 2026-10-17) covers the same class until then.
 - [ ] license-check flake isolation: run it N times in isolation, capture what differs (cache vs network vs package set), then root-cause or add a reasoned skip. Lower urgency since BuildFlow auto-defers the failure class (2026-10-07).
 - [ ] gomod-check ↔ go-mod-normalize disposition alignment (BuildFlow warning: this repo's go line flipped 20x in 20 commits — two steps fighting over the same directive).
-- [ ] Review the 9 "tools unavailable (health check failed)" BuildFlow doctor warnings; triage the vulnix gcc-10.4.0 CVE-2023-4039 advisory (warning-severity).
-- [ ] art-dupl findings: diff against the [docs/DEDUPLICATION.md](docs/DEDUPLICATION.md) baseline (gate passed; is the delta all intentional?).
+- [ ] BuildFlow binary is stale (doctor, 2026-10-17: built at `7baef1c` but HEAD is `7108ef9` in `~/projects/BuildFlow`) — run `buildflow upgrade` before trusting doctor/build results. The former "9 tools unavailable" warnings are environment-scoped: a 2026-10-17 doctor outside the devShell failed 32 checks, all for absent `cargo-*`/`eslint`/`pytest`/`ruff`/`shellcheck`/`vulnix`/... binaries (none Go). Re-check `vulnix`'s gcc-10.4.0 CVE-2023-4039 advisory inside `nix develop -c buildflow doctor`.
 
 ## T5 — Upstream gomod-checker rule: "tidy revert" detection — WORTH CONSIDERING
 
