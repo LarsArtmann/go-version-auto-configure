@@ -128,3 +128,35 @@ v0.38.3 re-tag ships minor-form floors AND v0.38.3 sibling pins inside the
 tagged tree (pin-in-tag; without it every submodule graph kept the floor
 alive). Structural fix: the POISONERS.md evidence convention (2026-10-03)
 forbids recording tag claims without published-`.mod` verification.
+
+### Consumer-side re-measure + poisoner regression (2026-10-17)
+
+Re-derived the 2026-09-22 baseline from the live tree (`~/projects`, excluding
+`archived/`, `vendor/`, `node_modules/`, `.corpus-pins/`, `testdata/`):
+
+| Signal                                                         | Value        |
+| -------------------------------------------------------------- | ------------ |
+| Distinct top-level projects with >=1 patch-form `go` directive | 91           |
+| `go.mod` files at minor-form `go 1.27`                         | 535          |
+| `go.mod` files at patch-form `1.27.1` / `1.27.2`               | 148 / 58     |
+| `go.mod` files at patch-form `1.26.7` / `1.26.5` / `1.26.4`    | 30 / 10 / 18 |
+| Consumers still pinning `github.com/larsartmann/go-output v0.38.2` | 3 (index; projects-management-automation/{pkg/domain,pma-daemon}) |
+
+A patch-form directive is an upper bound on drift, not proof: a dependency
+floor holds some modules at a patch legitimately. The repos named as the
+largest 2026-09-22 backlogs have converged (go-finding, go-output, and
+go-cqrs-lite modules all read `go 1.27` at head).
+
+Two live poisoners were confirmed and registered in [POISONERS.md](../POISONERS.md):
+
+- **go-taskqueue** (`github.com/larsartmann/go-taskqueue/*`): master and
+  published tags both patch-form at `go 1.27.1`; its own published siblings
+  hold the multi-module root at parity (self-poisoning). It never ran the
+  2026-09-22 campaign.
+- **cqrs-htmx regression**: the 2026-10-03 wave landed minor-form
+  (`cqrs-htmx/v4@v4.13.3` -> `go 1.27`), then v4.14.0 and v4.14.1 (2026-10-12)
+  regressed to `go 1.27.2`. Same shape as the go-output v0.38.2 inversion,
+  one minor later.
+
+Both verified from the GOMODCACHE download cache (published-`.mod` evidence
+per the registry convention).
