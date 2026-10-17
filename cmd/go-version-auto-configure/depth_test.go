@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -146,7 +147,7 @@ func TestRunSortedContract(t *testing.T) {
 		got := runSorted([]int{}, 0, func(string) string { return "" }, func(i int) string {
 			calls++
 
-			return fmt.Sprintf("%d", i)
+			return strconv.Itoa(i)
 		})
 
 		assert.Empty(t, got)

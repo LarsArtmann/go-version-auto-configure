@@ -674,6 +674,8 @@ func TestReadLines(t *testing.T) {
 // every require line and vacuously passing fixture guard tests
 // (cqrs-htmx 27057e5c).
 func TestDiscover_SkipsTestdataTrees(t *testing.T) {
+	t.Parallel()
+
 	root := writeRepo(t, map[string]string{
 		"go.mod":              "module example.com/real\n\ngo 1.27\n",
 		"testdata/go.mod":     "module example.com/fixture\n\ngo 1.16\n",
