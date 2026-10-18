@@ -80,7 +80,7 @@
       go-standard = {
         pname = "go-version-auto-configure";
         inherit version src;
-        vendorHash = "sha256-G6Hg2nYr/janyJHcPPvLhAaLZLDcqqt7q3M4jlBSQXs=";
+        vendorHash = "sha256-1qjvusb3WEUqBkRy5TCwr7hD1dU5wNhLgLwFjLz/Ixg=";
         description = "Detects and auto-fixes Go toolchain version-surface drift across the fleet";
 
         # ADR-0001: the fleet minor is 1.27 and go.mod declares `go 1.27`.
