@@ -59,8 +59,8 @@ github.com/knadh/koanf/parsers/toml v0.1.0 h1:S2hLqS4TgWZYj4/7mI5m1CQQcWurxUz6OD
 github.com/knadh/koanf/parsers/toml v0.1.0/go.mod h1:yUprhq6eo3GbyVXFFMdbfZSo928ksS+uo0FFqNMnO18=
 github.com/knadh/koanf/parsers/yaml v1.1.1 h1:u70vV5IyaM0HvONh8HoqBC97oTgO33KcpZbTLiKVinU=
 github.com/knadh/koanf/parsers/yaml v1.1.1/go.mod h1:HHmcHXUrp9cOPcuC+2wrr44GTUB0EC+PyfN3HZD9tFg=
-github.com/knadh/koanf/v2 v2.3.8 h1:NftEOf0Y456FqpLJj31RYYZQnfBQ+DDhsNQPqJ6nuk4=
-github.com/knadh/koanf/v2 v2.3.8/go.mod h1:gRb40VRAbd4iJMYYD5IxZ6hfuopFcXBpc9bbQpZwo28=
+github.com/knadh/koanf/v2 v2.4.0 h1:wmp0NlAUIasxphpHIU6Su5sKQn3Up/AvI2ZA2GeJTUk=
+github.com/knadh/koanf/v2 v2.4.0/go.mod h1:gRb40VRAbd4iJMYYD5IxZ6hfuopFcXBpc9bbQpZwo28=
 github.com/larsartmann/cmdguard/v4 v4.1.0 h1:AnLKO/aoeOB93eZOLiWFwAAT7niQhGUgHndKoukMmjM=
 github.com/larsartmann/cmdguard/v4 v4.1.0/go.mod h1:4F0NelGoLvZAUBolVNTO1ylmTdF6oVHUpOZ/dOPfyo0=
 github.com/larsartmann/go-atomic-write v0.6.0 h1:+f7NE8pEe4Fqb6u+2sCtB9dOWWfgwjdTn24o3hMjY5o=
