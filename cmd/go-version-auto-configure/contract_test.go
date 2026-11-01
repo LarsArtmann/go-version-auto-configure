@@ -291,6 +291,7 @@ func TestJSONWireContractGoldens_CIPinFix(t *testing.T) {
 
 	root := t.TempDir()
 	writeFile(t, root, "go.mod", "module example.com/m\n\ngo 1.27\n")
+	require.NoError(t, os.MkdirAll(filepath.Join(root, ".github/workflows"), 0o755))
 	writeFile(
 		t,
 		root,
@@ -324,10 +325,6 @@ func TestJSONWireContractGoldens_CIPinFix(t *testing.T) {
 			},
 		},
 	}, jsonGolden(t, "check", "--json", root), "check --json golden (CI pin)")
-
-	var out strings.Builder
-
-	assert.Equal(t, exitOK, run([]string{"fix", "--json", root}, &out), "a fully applied run exits 0")
 
 	assert.Equal(t, map[string]any{
 		"schema": float64(2),

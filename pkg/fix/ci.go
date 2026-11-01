@@ -98,22 +98,20 @@ func rewriteCIPinValue(content string, fx surface.Fix) (string, error) {
 
 	line := lines[fx.Line-1]
 
-	span := string(fx.From)
-	start := strings.Index(line, span)
-
+	start := strings.Index(line, string(fx.From))
 	if start < 0 {
 		return "", fmt.Errorf(
 			"%w: %s:%d no longer carries %s",
 			errDirectiveDrifted,
 			fx.File,
 			fx.Line,
-			span,
+			string(fx.From),
 		)
 	}
 
-	end := start + len(span)
+	end := start + len(string(fx.From))
 
-	lines[fx.Line-1] = line[:start] + ciQuoted(span, string(fx.To)) + line[end:]
+	lines[fx.Line-1] = line[:start] + ciQuoted(string(fx.From), string(fx.To)) + line[end:]
 
 	return strings.Join(lines, "\n"), nil
 }
