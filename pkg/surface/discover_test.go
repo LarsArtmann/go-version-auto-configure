@@ -205,7 +205,11 @@ func TestDiscoverAndAnalyze_CIPinBelowFloor(t *testing.T) {
 	assert.Equal(t, RuleCIPinBelowFloor, issues[0].Rule)
 	assert.Equal(t, ".github/workflows/ci.yml", issues[0].File)
 	assert.Equal(t, 4, issues[0].Line, "go-version is on line 4")
-	assert.NotEmpty(t, issues[0].Suggestion)
+	require.NotNil(t, issues[0].Fix, "the below-floor raise is mechanical and carries a fix")
+	assert.Equal(t, KindCIPin, issues[0].Fix.Kind)
+	assert.Equal(t, GoVersion("1.23"), issues[0].Fix.From, "From records the pin as written")
+	assert.Equal(t, GoVersion("1.26"), issues[0].Fix.To, "To is the bare module floor")
+	assert.Equal(t, 4, issues[0].Fix.Line)
 }
 
 func TestDiscoverAndAnalyze_CleanSurface(t *testing.T) {

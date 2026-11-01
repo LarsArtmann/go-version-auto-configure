@@ -282,6 +282,78 @@ func TestJSONWireContractGoldens(t *testing.T) {
 	}, jsonGolden(t, "who-forces", "--json", clean), "who-forces --json golden")
 }
 
+// TestJSONWireContractGoldens_CIPinFix locks the CI-pin raise on the wire:
+// the below-floor finding carries a mechanical fix (kind ci, from as
+// written, to the bare floor), fix applies it, and the suggestion field
+// stays absent — the repair is mechanical, not advisory.
+func TestJSONWireContractGoldens_CIPinFix(t *testing.T) {
+	t.Parallel()
+
+	root := t.TempDir()
+	writeFile(t, root, "go.mod", "module example.com/m\n\ngo 1.27\n")
+	writeFile(
+		t,
+		root,
+		".github/workflows/ci.yml",
+		"steps:\n  - uses: actions/setup-go@v5\n    with:\n      go-version: \"1.22\"\n",
+	)
+
+	assert.Equal(t, map[string]any{
+		"schema": float64(2),
+		"repos": []any{
+			map[string]any{
+				"root":  "<ROOT>",
+				"clean": false,
+				"counts": map[string]any{
+					"total": float64(1), "mechanical": float64(1),
+					"suggested": float64(0), "discovery": float64(0),
+				},
+				"findings": []any{
+					map[string]any{
+						"rule": "ci-pin-below-floor",
+						"message": ".github/workflows/ci.yml pins go-version 1.22 but the module floor is 1.27: " +
+							"CI builds with a toolchain older than the repo requires",
+						"file": ".github/workflows/ci.yml",
+						"line": float64(4),
+						"fix": map[string]any{
+							"file": ".github/workflows/ci.yml", "kind": "ci",
+							"from": `"1.22"`, "to": "1.27", "line": float64(4),
+						},
+					},
+				},
+			},
+		},
+	}, jsonGolden(t, "check", "--json", root), "check --json golden (CI pin)")
+
+	var out strings.Builder
+
+	assert.Equal(t, exitOK, run([]string{"fix", "--json", root}, &out), "a fully applied run exits 0")
+
+	assert.Equal(t, map[string]any{
+		"schema": float64(2),
+		"repos": []any{
+			map[string]any{
+				"root": "<ROOT>",
+				"applied": []any{
+					map[string]any{
+						"file": ".github/workflows/ci.yml", "kind": "ci",
+						"from": `"1.22"`, "to": "1.27", "line": float64(4),
+					},
+				},
+				"heldBack":  []any{},
+				"depForced": []any{},
+				"failures":  []any{},
+				"suggested": []any{},
+				"discovery": []any{},
+			},
+		},
+	}, jsonGolden(t, "fix", "--json", root), "fix --json golden (CI pin applied)")
+
+	data, err := os.ReadFile(filepath.Join(root, ".github/workflows/ci.yml"))
+	require.NoError(t, err)
+	assert.Contains(t, string(data), `go-version: "1.27"`, "the applied fix raised the pin in place")
+}
+
 // TestRootsFromNormalizesPositionalArgs locks the root normalization:
 // empty → working directory, relative → absolute, existing behavior.
 func TestRootsFromNormalizesPositionalArgs(t *testing.T) {
