@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+## [0.2.7] - 2026-11-01
+
 ### Added
 
 - **`ci-pin-below-floor` graduated from suggestion to mechanical auto-fix** — the tool's own class of drift (fleet repos whose workflows pin `go-version` below the module floor, e.g. desire-secrets at five `1.22` pins against a `go 1.27` floor) is now repaired by `fix` and by the BuildFlow provider's Repair phase. The rule only fires below the floor, so every rewrite is a raise, never a downgrade (F16-safe), and a below-floor pin already lies: under `GOTOOLCHAIN=auto` (the default) the go command switches above the pin anyway. Rewrites are byte-preserving single-line surgery with the original quoting style kept (double/single/backtick, bare, YAML flow-sequence brackets), guarded by an exact-text drift check and verified by re-parsing the rewritten content with `ParseCIPins` — the same parser discovery used to detect the pin. `ParseCIPins` (pkg/surface) is now the single CI-pin parsing entry point shared by discovery AND fix verification, mirroring `ParseDirective`'s contract. Flake pin moves and CI patch-form pins stay suggest-only (maintainer decisions). Wire shape unchanged (schema 2; additive `fix` objects on `ci-pin-below-floor` findings, new fix `kind: "ci"`), locked by a new wire golden and a detect→fix→verify e2e suite.
