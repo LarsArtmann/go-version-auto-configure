@@ -432,12 +432,16 @@ func scanNixPins(path string, rel FilePath) []Pin {
 // ciGoVersionRe captures the value of a `go-version:` key on one line.
 var ciGoVersionRe = regexp.MustCompile(`^\s*go-version:\s*(.+?)\s*$`)
 
-// scanCIPins extracts every comparable CI go-version pin. Expression pins
-// (${{ matrix.go }}) and ranges are skipped: they carry no fixed floor.
-func scanCIPins(path string, rel FilePath) []Pin {
+// ParseCIPins extracts every comparable CI go-version pin from workflow
+// content. It is the single CI-pin parsing entry point, shared by discovery
+// (scanCIPins) AND fix verification, so a fix is checked with exactly the
+// code that detected it — the same contract ParseDirective carries for
+// go.mod/go.work directives. Expression pins (${{ matrix.go }}) and ranges
+// are skipped: they carry no fixed floor.
+func ParseCIPins(data []byte, rel FilePath) []Pin {
 	var pins []Pin
 
-	for lineNo, line := range readLines(path) {
+	for lineNo, line := range strings.Split(string(data), "\n") {
 		match := ciGoVersionRe.FindStringSubmatch(line)
 		if match == nil {
 			continue
@@ -463,6 +467,17 @@ func scanCIPins(path string, rel FilePath) []Pin {
 	}
 
 	return pins
+}
+
+// scanCIPins extracts every comparable CI go-version pin. Expression pins
+// (${{ matrix.go }}) and ranges are skipped: they carry no fixed floor.
+func scanCIPins(path string, rel FilePath) []Pin {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return nil
+	}
+
+	return ParseCIPins(data, rel)
 }
 
 // isCIWorkflow reports whether rel points into .github/workflows.

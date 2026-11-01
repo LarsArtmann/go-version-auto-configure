@@ -118,6 +118,8 @@ const (
 	KindGoMod DirectiveKind = "go.mod"
 	// KindGoWork is a go.work `go` directive.
 	KindGoWork DirectiveKind = "go.work"
+	// KindCIPin is a CI workflow go-version pin.
+	KindCIPin DirectiveKind = "ci"
 )
 
 // ModuleDirective is a parsed `go` directive from one module file.
@@ -328,5 +330,9 @@ type Fix struct {
 
 // Describe renders a human-readable summary of the fix.
 func (f Fix) Describe() string {
+	if f.Kind == KindCIPin {
+		return fmt.Sprintf("set go-version in %s:%d: %s → %s", f.File, f.Line, f.From, f.To)
+	}
+
 	return fmt.Sprintf("rewrite %s directive in %s: go %s → go %s", f.Kind, f.File, f.From, f.To)
 }

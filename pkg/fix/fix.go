@@ -343,6 +343,8 @@ func applyOne(ctx context.Context, root string, fx surface.Fix, run GoCommandRun
 		if _, err := run(ctx, dir, "work", "edit", "-go="+string(fx.To)); err != nil {
 			return err
 		}
+	case surface.KindCIPin:
+		return applyCIPinFix(abs, fx)
 	default:
 		return fmt.Errorf("%w: %q", errUnknownDirectiveKind, fx.Kind)
 	}

@@ -539,10 +539,13 @@ func ciPinIssues(s *Surface, floor majorMinor, toolDriver *ToolchainDirective) [
 				Message: ciPinMessage(pin, floor, toolDriver),
 				File:    pin.Path,
 				Line:    pin.Line,
-				Suggestion: fmt.Sprintf(
-					"set go-version to %s to match the effective floor",
-					floor.String(),
-				),
+				Fix: &Fix{
+					File: pin.Path,
+					Kind: KindCIPin,
+					From: pin.Raw,
+					To:   GoVersion(floor.String()),
+					Line: pin.Line,
+				},
 			})
 
 			continue
