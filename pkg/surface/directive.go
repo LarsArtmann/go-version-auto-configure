@@ -16,6 +16,17 @@ var ErrNoDirective = errors.New("surface: no go directive")
 // entry points.
 var errUnknownDirectiveKind = errors.New("unknown directive kind")
 
+// errCIPinNotDirective builds the rejection the directive parsers return
+// for KindCIPin: workflow pins are not directives — their entry point is
+// ParseCIPins, which discovery and fix verification share.
+func errCIPinNotDirective(kind DirectiveKind) error {
+	return fmt.Errorf(
+		"%w: %q (CI pins parse via ParseCIPins, not the directive parsers)",
+		errUnknownDirectiveKind,
+		kind,
+	)
+}
+
 // ParseDirective extracts the `go` directive (version and 1-based line)
 // from go.mod or go.work file content. It is the single parsing entry point
 // shared by discovery and by fix verification, so the fixer checks edits
@@ -45,8 +56,7 @@ func ParseDirective(kind DirectiveKind, data []byte) (GoVersion, int, error) {
 
 		return GoVersion(file.Go.Version), syntaxLine(file.Go.Syntax), nil
 	case KindCIPin:
-		// CI pins are not directives; their entry point is ParseCIPins.
-		return "", 0, fmt.Errorf("%w: %q", errUnknownDirectiveKind, kind)
+		return "", 0, errCIPinNotDirective(kind)
 	default:
 		return "", 0, fmt.Errorf("%w: %q", errUnknownDirectiveKind, kind)
 	}
@@ -81,8 +91,7 @@ func ParseToolchain(kind DirectiveKind, data []byte) (GoVersion, int, error) {
 
 		return GoVersion(file.Toolchain.Name), syntaxLine(file.Toolchain.Syntax), nil
 	case KindCIPin:
-		// CI pins are not directives; they carry no toolchain line.
-		return "", 0, fmt.Errorf("%w: %q", errUnknownDirectiveKind, kind)
+		return "", 0, errCIPinNotDirective(kind)
 	default:
 		return "", 0, fmt.Errorf("%w: %q", errUnknownDirectiveKind, kind)
 	}
@@ -106,8 +115,7 @@ func ParseModulePath(kind DirectiveKind, data []byte) (ModulePath, error) {
 	case KindGoWork:
 		return "", nil
 	case KindCIPin:
-		// CI pins are not directives; workflows declare no module path.
-		return "", fmt.Errorf("%w: %q", errUnknownDirectiveKind, kind)
+		return "", errCIPinNotDirective(kind)
 	default:
 		return "", fmt.Errorf("%w: %q", errUnknownDirectiveKind, kind)
 	}

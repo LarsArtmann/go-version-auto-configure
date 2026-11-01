@@ -32,7 +32,8 @@ const (
 
 	// description appears in BuildFlow --list output.
 	description = "Detects Go toolchain version-surface drift (patch versions in go directives, " +
-		"Nix/CI pins below the module floor) and auto-fixes directive form via go mod edit / go work edit"
+		"Nix/CI pins below the module floor) and auto-fixes directive form and below-floor CI " +
+		"go-version pins"
 )
 
 //nolint:gochecknoglobals // BuildFlow plugin SDK requires package-level Provider registration
