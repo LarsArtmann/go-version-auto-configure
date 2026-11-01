@@ -44,6 +44,9 @@ func ParseDirective(kind DirectiveKind, data []byte) (GoVersion, int, error) {
 		}
 
 		return GoVersion(file.Go.Version), syntaxLine(file.Go.Syntax), nil
+	case KindCIPin:
+		// CI pins are not directives; their entry point is ParseCIPins.
+		return "", 0, fmt.Errorf("%w: %q", errUnknownDirectiveKind, kind)
 	default:
 		return "", 0, fmt.Errorf("%w: %q", errUnknownDirectiveKind, kind)
 	}
@@ -77,6 +80,9 @@ func ParseToolchain(kind DirectiveKind, data []byte) (GoVersion, int, error) {
 		}
 
 		return GoVersion(file.Toolchain.Name), syntaxLine(file.Toolchain.Syntax), nil
+	case KindCIPin:
+		// CI pins are not directives; they carry no toolchain line.
+		return "", 0, fmt.Errorf("%w: %q", errUnknownDirectiveKind, kind)
 	default:
 		return "", 0, fmt.Errorf("%w: %q", errUnknownDirectiveKind, kind)
 	}
@@ -99,6 +105,9 @@ func ParseModulePath(kind DirectiveKind, data []byte) (ModulePath, error) {
 		return ModulePath(file.Module.Mod.Path), nil
 	case KindGoWork:
 		return "", nil
+	case KindCIPin:
+		// CI pins are not directives; workflows declare no module path.
+		return "", fmt.Errorf("%w: %q", errUnknownDirectiveKind, kind)
 	default:
 		return "", fmt.Errorf("%w: %q", errUnknownDirectiveKind, kind)
 	}

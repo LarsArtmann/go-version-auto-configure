@@ -76,7 +76,15 @@ func TestApplyCIPinFix_QuoteStyles(t *testing.T) {
 			res, err := Apply(
 				context.Background(),
 				root,
-				[]surface.Fix{{File: rel, Kind: surface.KindCIPin, From: surface.GoVersion(tt.from), To: surface.GoVersion(tt.to), Line: 3}},
+				[]surface.Fix{
+					{
+						File: rel,
+						Kind: surface.KindCIPin,
+						From: surface.GoVersion(tt.from),
+						To:   surface.GoVersion(tt.to),
+						Line: 3,
+					},
+				},
 				Options{},
 				nil,
 			)
@@ -177,6 +185,7 @@ func TestApplyCIPinFix_DriftGuardRefusesStaleDetection(t *testing.T) {
 	rel := ".github/workflows/ci.yml"
 	path := filepath.Join(root, rel)
 	stale := "steps:\n  with:\n    go-version: 1.22\n"
+
 	require.NoError(t, os.MkdirAll(filepath.Dir(path), 0o755))
 	require.NoError(t, os.WriteFile(path, []byte(stale), 0o644))
 
@@ -187,7 +196,12 @@ func TestApplyCIPinFix_DriftGuardRefusesStaleDetection(t *testing.T) {
 	require.NoError(t, err)
 	require.Len(t, res.Failures, 1)
 	assert.Empty(t, res.Applied)
-	assert.Contains(t, string(res.Failures[0].Cause), "changed since detection", "the failure names the drift, not a generic error")
+	assert.Contains(
+		t,
+		string(res.Failures[0].Cause),
+		"changed since detection",
+		"the failure names the drift, not a generic error",
+	)
 
 	data, err := os.ReadFile(path)
 	require.NoError(t, err)
