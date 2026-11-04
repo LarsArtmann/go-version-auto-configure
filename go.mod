@@ -4,11 +4,11 @@ go 1.27
 
 require (
 	charm.land/fang/v2 v2.0.1
-	github.com/larsartmann/cmdguard/v4 v4.1.0
+	github.com/larsartmann/cmdguard/v4 v4.2.0
 	github.com/larsartmann/go-atomic-write v0.6.1
 	github.com/larsartmann/go-finding v1.15.0
 	github.com/larsartmann/go-finding/toolsdk v1.16.0
-	github.com/larsartmann/linter-autoconfigure-sdk v0.8.0
+	github.com/larsartmann/linter-autoconfigure-sdk v0.8.1
 	github.com/stretchr/testify v1.12.1
 	golang.org/x/mod v0.42.0
 )
@@ -20,7 +20,7 @@ require (
 	github.com/charmbracelet/colorprofile v0.4.3 // indirect
 	github.com/charmbracelet/ultraviolet v0.0.0-20261023060817-a45b7c86333f // indirect
 	github.com/charmbracelet/x/ansi v0.11.9 // indirect
-	github.com/charmbracelet/x/exp/charmtone v0.1.0 // indirect
+	github.com/charmbracelet/x/exp/charmtone v0.1.1 // indirect
 	github.com/charmbracelet/x/term v0.2.2 // indirect
 	github.com/charmbracelet/x/termios v0.1.1 // indirect
 	github.com/charmbracelet/x/windows v0.2.2 // indirect
@@ -70,9 +70,9 @@ require (
 	github.com/segmentio/asm v1.2.1 // indirect
 	github.com/spf13/cobra v1.10.2 // indirect
 	github.com/spf13/pflag v1.0.10 // indirect
-	github.com/xo/terminfo v1.2.0 // indirect
+	github.com/xo/terminfo v1.3.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
-	go.yaml.in/yaml/v3 v3.0.5 // indirect
+	go.yaml.in/yaml/v3 v3.0.6 // indirect
 	golang.org/x/sync v0.24.0 // indirect
 	golang.org/x/sys v0.49.0 // indirect
 	golang.org/x/term v0.47.0 // indirect
