@@ -20,7 +20,7 @@ import (
 	"sync"
 
 	"charm.land/fang/v2"
-	v4 "github.com/larsartmann/cmdguard/v4/pkg/cmdguard/v4"
+	v5 "github.com/larsartmann/cmdguard/v5/pkg/cmdguard/v5"
 	"github.com/larsartmann/go-version-auto-configure/pkg/fix"
 	"github.com/larsartmann/go-version-auto-configure/pkg/surface"
 	"github.com/larsartmann/go-version-auto-configure/pkg/version"
@@ -159,19 +159,19 @@ func newCommand[F any](
 	use string,
 	flags F,
 	runE func(context.Context, *appConfig, F) error,
-	opts ...v4.CommandOption,
-) (v4.Command[appConfig, F], error) {
-	cmd, err := v4.NewCommand(use, flags, runE, opts...)
+	opts ...v5.CommandOption,
+) (v5.Command[appConfig, F], error) {
+	cmd, err := v5.NewCommand(use, flags, runE, opts...)
 	if err != nil {
-		return v4.Command[appConfig, F]{}, fmt.Errorf("build %s command: %w", use, err)
+		return v5.Command[appConfig, F]{}, fmt.Errorf("build %s command: %w", use, err)
 	}
 
 	return cmd, nil
 }
 
 // addCommand attaches cmd to cli, naming it in any registration error.
-func addCommand[F any](cli *v4.CLI[appConfig], name string, cmd v4.Command[appConfig, F]) error {
-	if err := v4.AddCommand(cli, cmd); err != nil {
+func addCommand[F any](cli *v5.CLI[appConfig], name string, cmd v5.Command[appConfig, F]) error {
+	if err := v5.AddCommand(cli, cmd); err != nil {
 		return fmt.Errorf("register %s command: %w", name, err)
 	}
 
@@ -181,7 +181,7 @@ func addCommand[F any](cli *v4.CLI[appConfig], name string, cmd v4.Command[appCo
 // runCheck executes the check command body: analyze every root, emit the
 // report, and map findings to the exit contract.
 func runCheck(out io.Writer, ctx context.Context, f *checkFlags) error {
-	roots := rootsFrom(v4.ArgsFromContext(ctx))
+	roots := rootsFrom(v5.ArgsFromContext(ctx))
 
 	opts, code := analysisOptions(ctx, out, f.ExpectMinor, f.RespectPatchFloor)
 	if code != exitOK {
@@ -204,7 +204,7 @@ func runCheck(out io.Writer, ctx context.Context, f *checkFlags) error {
 // runFix executes the fix command body: analyze, apply the mechanical
 // fixes, and report what changed (or what dependencies force back).
 func runFix(out io.Writer, ctx context.Context, f *fixFlags) error {
-	roots := rootsFrom(v4.ArgsFromContext(ctx))
+	roots := rootsFrom(v5.ArgsFromContext(ctx))
 
 	opts, code := analysisOptions(ctx, out, f.ExpectMinor, f.RespectPatchFloor)
 	if code != exitOK {
@@ -228,7 +228,7 @@ func runFix(out io.Writer, ctx context.Context, f *fixFlags) error {
 // runWhoForces executes the who-forces command body: name the dependency
 // floors behind each root's go directives.
 func runWhoForces(out io.Writer, ctx context.Context, f *whoForcesFlags) error {
-	roots := rootsFrom(v4.ArgsFromContext(ctx))
+	roots := rootsFrom(v5.ArgsFromContext(ctx))
 	results := analyzeFloorsAll(roots, f.Parallel)
 
 	if f.JSON {
@@ -246,15 +246,15 @@ func runWhoForces(out io.Writer, ctx context.Context, f *whoForcesFlags) error {
 // sentinels, and a fang error handler that stays silent for findings and
 // already-reported failures (their output is the report itself) while
 // printing genuine usage errors plainly.
-func buildCLI(out io.Writer, ver string) (*v4.CLI[appConfig], error) {
+func buildCLI(out io.Writer, ver string) (*v5.CLI[appConfig], error) {
 	checkCmd, err := newCommand(
 		"check",
 		&checkFlags{},
 		func(ctx context.Context, _ *appConfig, f *checkFlags) error {
 			return runCheck(out, ctx, f)
 		},
-		v4.WithShort("detect version-surface drift, exit 1 when found"),
-		v4.WithMinimumArgs(0),
+		v5.WithShort("detect version-surface drift, exit 1 when found"),
+		v5.WithMinimumArgs(0),
 	)
 	if err != nil {
 		return nil, err
@@ -266,8 +266,8 @@ func buildCLI(out io.Writer, ver string) (*v4.CLI[appConfig], error) {
 		func(ctx context.Context, _ *appConfig, f *fixFlags) error {
 			return runFix(out, ctx, f)
 		},
-		v4.WithShort("auto-fix directive form, suggest the rest"),
-		v4.WithMinimumArgs(0),
+		v5.WithShort("auto-fix directive form, suggest the rest"),
+		v5.WithMinimumArgs(0),
 	)
 	if err != nil {
 		return nil, err
@@ -279,24 +279,24 @@ func buildCLI(out io.Writer, ver string) (*v4.CLI[appConfig], error) {
 		func(ctx context.Context, _ *appConfig, f *whoForcesFlags) error {
 			return runWhoForces(out, ctx, f)
 		},
-		v4.WithShort("name the dependencies forcing each go directive"),
-		v4.WithLong("name the dependencies forcing each go directive\n\n"+
+		v5.WithShort("name the dependencies forcing each go directive"),
+		v5.WithLong("name the dependencies forcing each go directive\n\n"+
 			"Floors resolve from `go list -m`; when a skewed vendor tree refuses both listings,\n"+
 			"vendor/modules.txt annotations resolve the row instead (JSON source \"vendor\").\n"+
 			"Limitation: modules.txt annotates only explicit requirements — indirect-only\n"+
 			"carriers in a skewed vendor tree stay unnamed."),
-		v4.WithMinimumArgs(0),
+		v5.WithMinimumArgs(0),
 	)
 	if err != nil {
 		return nil, err
 	}
 
-	cli, err := v4.NewCLI[appConfig](
+	cli, err := v5.NewCLI[appConfig](
 		"go-version-auto-configure",
 		"unify the Go toolchain version surface",
 		appConfig{},
-		v4.WithCLIVersion(ver),
-		v4.WithCLILong(`Detects and repairs Go toolchain version-surface drift across one or more
+		v5.WithCLIVersion(ver),
+		v5.WithCLILong(`Detects and repairs Go toolchain version-surface drift across one or more
 repositories: patch components in go.mod/go.work go directives (auto-fixed
 via go mod edit / go work edit), Nix/CI pins that trail the effective floor
 (reported with suggestions), and the dependencies that force a module's floor
@@ -304,14 +304,14 @@ via go mod edit / go work edit), Nix/CI pins that trail the effective floor
 
 Roots default to the working directory; multiple roots are analyzed in
 parallel and reported sorted by path.`),
-		v4.WithFangErrorHandler(func(w io.Writer, _ fang.Styles, e error) {
+		v5.WithFangErrorHandler(func(w io.Writer, _ fang.Styles, e error) {
 			if errors.Is(e, errFindings) || errors.Is(e, errSilent) {
 				return
 			}
 
 			fmt.Fprintf(w, "Error: %v\n", e)
 		}),
-		v4.WithSilenceUsage(),
+		v5.WithSilenceUsage(),
 	)
 	if err != nil {
 		return nil, err

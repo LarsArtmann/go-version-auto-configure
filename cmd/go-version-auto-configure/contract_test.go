@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	v4 "github.com/larsartmann/cmdguard/v4/pkg/cmdguard/v4"
+	v5 "github.com/larsartmann/cmdguard/v5/pkg/cmdguard/v5"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -105,10 +105,10 @@ func TestSharedFlagContract(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 
-			tags, err := v4.ParseFlagTags(flags)
+			tags, err := v5.ParseFlagTags(flags)
 			require.NoError(t, err)
 
-			got := make(map[string]v4.FlagTag, len(tags))
+			got := make(map[string]v5.FlagTag, len(tags))
 
 			for _, tag := range tags {
 				got[tag.Name] = tag
