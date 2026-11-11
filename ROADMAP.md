@@ -19,7 +19,7 @@ The supply-side re-tags unblock the consumer half of convergence. The raw, not-y
 
 ### 2. cmdguard adoption across the auto-configurer family
 
-`go-version-auto-configure` migrated its CLI to `github.com/larsartmann/cmdguard/v4` (2026-09-22, TODO_LIST T13). The raw idea, not yet bounded:
+`go-version-auto-configure` migrated its CLI to `github.com/larsartmann/cmdguard/v5` (2026-09-22, TODO_LIST T13). The raw idea, not yet bounded:
 
 - Migrate the sibling auto-configurers (golangci-lint-autoconfigure, oxlint-auto-configure, dependabot-auto-configure, …) onto cmdguard with the same embedded-shared-flags shape, so `--json`/`--parallel`/`--quiet` behave identically fleet-wide; check their help/exit contracts for the same `-h` breaking change first
 - Extract a small shared kit (flag structs, exit-contract sentinels, the silent-findings fang error handler) so each migration is mostly deletion; write the migration recipe (spike → flag structs → exit sentinels → goldens → guard test) from the 2026-09-22 session notes

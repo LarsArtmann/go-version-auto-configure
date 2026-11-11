@@ -17,7 +17,7 @@ art-dupl --sort total-tokens -t 1 --type-aware
   `pkg/surface/discover.go`, and the check/fix/who-forces flag skeleton was
   first deduplicated locally (`runFlags`/`newRunFlagSet`/`parseRoots`).
 - 2026-09-22 (cmdguard migration): the whole skeleton class was deleted by
-  migrating `cmd/` to `github.com/larsartmann/cmdguard/v4`. Post-migration
+  migrating `cmd/` to `github.com/larsartmann/cmdguard/v5`. Post-migration
   `-t 1` scan: zero harmful clones in `cmd/`; the only remaining `cmd/`
   similarity is the two-line `case` tail shared by the three
   `exitFrom*` functions (intentional — each maps a different result type onto
