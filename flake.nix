@@ -10,7 +10,7 @@
     go-nix-helpers = {
       # Pinned 2026-09-22 to c42fd77 — same pin as file-and-image-renamer
       # (base-form pseudo-version normalization; revs below a97742e fail eval).
-      url = "github:LarsArtmann/go-nix-helpers/c42fd7786ce1d188017c189151bbcb56aad12951";
+      url = "github:LarsArtmann/go-nix-helpers/1a553ce7ad5a9e84b7e04a60e68ab81ff5dd6ab8";
       inputs.nixpkgs.follows = "nixpkgs";
     };
   };
