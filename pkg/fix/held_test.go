@@ -13,6 +13,10 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+// errUnreachable is the sentinel a fixture runner returns only where the
+// annotation path must never list the module graph.
+var errUnreachable = errors.New("unreachable")
+
 func TestHeldStrip_ReasonAtParity(t *testing.T) {
 	t.Parallel()
 
@@ -151,7 +155,7 @@ func TestExplainHeldStrips_NoFilesSkipsListing(t *testing.T) {
 	run := fakeRunner(func(_ string, _ []string) (string, error) {
 		listed = true
 
-		return "", errors.New("unreachable")
+		return "", errUnreachable
 	})
 
 	assert.Nil(t, ExplainHeldStrips(context.Background(), root, run, nil))

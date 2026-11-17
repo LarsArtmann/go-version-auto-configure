@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+### Added
+
+- **Dep-forced findings now explain themselves in the BuildFlow provider view** (the "N finding(s) remain (could not auto-fix)" case): a `go-directive-patch-form` finding whose mechanical strip `go mod tidy` would revert now carries the why and the what-next in the finding itself. The message names the dependencies holding the floor (`not auto-fixed: go mod tidy reverts the strip, go 1.27.1 is forced by go-daemon@v0.4.0, go-sse/sseparse@v0.2.0`), and the suggestion swaps the withheld rewrite for the supply-side remediation (re-tag the carriers with a major.minor-only directive, then bump the repo; who-forces reports the full matrix); a poisoned row (floor above the directive) suggests raising the directive instead. Resolved read-only from the who-forces matrix via `fix.ExplainHeldStrips` (pkg/fix/held.go): the module graph is listed only when a patch-form finding exists (clean repos pay nothing), and a listing failure degrades to the plain finding rather than red detection. The std-floor/replace class (`depForced.cause` in Apply) stays unannotated at detect time by design: `go list -m` cannot see those floors, only the tidy-diff gate can. Found via nextd (2026-11-17), whose bare finding named neither the poisoners (go-daemon v0.4.0, newly registered in POISONERS.md) nor the remediation. CLI output and the `--json` wire contract are unchanged (schema 2).
+
 ## [0.2.7] - 2026-11-01
 
 ### Added
