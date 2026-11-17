@@ -67,7 +67,7 @@ Nothing destroyed, no tests broken, no data lost, tree clean and committed. Hone
 **Stupid things worth fixing:**
 
 1. **Carrier-wording split brain (small)**: `fix.Result.Report()` (fix.go:85-108) and `HeldStrip.Reason()/Remediation()` (held.go) both render "forced by <carriers> + re-tag supply-side" for the same concept, in two places, for two audiences. They can drift. Consider `Report()` delegating to `HeldStrip` renderers.
-2. **Dual floor authorities, documented but sharp-edged**: the tidy-diff gate (authoritative, Apply-time) vs AnalyzeFloors parity/poison (approximation, Detect-time). Detect-time annotation can disagree with Apply-time classification in the std-floor/replace class (annotated "auto-fixable" while Apply says dep-forced-with-cause). Currently silent-by-design; deserves a one-line pointer in the annotation when a strip is *not* held ("if repair still withholds this, the forcer is invisible to go list — see fix output") — or leave as documented boundary.
+2. **Dual floor authorities, documented but sharp-edged**: the tidy-diff gate (authoritative, Apply-time) vs AnalyzeFloors parity/poison (approximation, Detect-time). Detect-time annotation can disagree with Apply-time classification in the std-floor/replace class (annotated "auto-fixable" while Apply says dep-forced-with-cause). Currently silent-by-design; deserves a one-line pointer in the annotation when a strip is _not_ held ("if repair still withholds this, the forcer is invisible to go list — see fix output") — or leave as documented boundary.
 3. **No ghost systems found**: `ExplainHeldStrips` is wired into the provider (the only consumer it was built for). `analyzeWith`'s runner parameter is used by tests only — that's a seam, not a ghost.
 4. **Test gaps**: vendor-fallback annotation path (skewed vendor tree) untested; `respect_patch_floor` × above-toolchain patch form × held-floor combination untested; multi-module parity annotation only unit-level; message-length/wrapping UX in compact renderers never looked at; no benchmark.
 5. **Process**: run quality gates once, after final state. Verify deployment-path claims before printing them. When inheriting registry claims (sseparse v0.2.1), name the inheritance instead of implying fresh verification.
@@ -115,4 +115,4 @@ Ordered by impact; 1–6 are this session's direct fallout, 7+ are adjacent work
 
 ---
 
-*Report written per status-report skill; awaiting instructions. No manual commit (auto-commit daemon owns commits here).*
+_Report written per status-report skill; awaiting instructions. No manual commit (auto-commit daemon owns commits here)._
