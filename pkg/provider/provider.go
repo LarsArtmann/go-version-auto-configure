@@ -68,8 +68,15 @@ func mustProvider() toolsdk.Spec {
 }
 
 // analyze discovers the version surface under the working directory and
-// converts policy issues into SDK config issues.
+// converts policy issues into SDK config issues, annotating tidy-held
+// patch-form findings with the dependencies holding the floor.
 func analyze(ctx context.Context) ([]autoconfigure.ConfigIssue, error) {
+	return analyzeWith(ctx, fix.EditRunner())
+}
+
+// analyzeWith is analyze with the dependency-floor listing runner injected:
+// production shells out through EditRunner, tests fake `go list -m` output.
+func analyzeWith(ctx context.Context, run fix.GoCommandRunner) ([]autoconfigure.ConfigIssue, error) {
 	root := workingDir(ctx)
 
 	analyzeOpts, err := respectPatchFloorOptions(ctx, root)
@@ -93,25 +100,65 @@ func analyze(ctx context.Context) ([]autoconfigure.ConfigIssue, error) {
 		})
 	}
 
-	for _, issue := range surface.Analyze(surf, analyzeOpts...) {
-		issues = append(issues, toConfigIssue(issue))
+	policyIssues := surface.Analyze(surf, analyzeOpts...)
+	held := heldStrips(ctx, root, run, policyIssues)
+
+	for _, issue := range policyIssues {
+		issues = append(issues, toConfigIssue(issue, held))
 	}
 
 	return issues, nil
 }
 
+// heldStrips resolves the dep-forced annotations for the policy issues:
+// which patch-form go.mod strips `go mod tidy` would revert, and which
+// dependencies hold the floor. The module graph is listed only when a
+// patch-form finding exists (clean repos pay nothing); a listing failure
+// degrades to no annotation, because the finding is already true and a
+// failed enrichment must not red detection. Only go.mod patch-form
+// findings annotate: a go.work strip is offered solely when its minor form
+// still covers the full module floor, so a dep-forced module floor
+// suppresses that fix instead of holding it.
+func heldStrips(
+	ctx context.Context,
+	root string,
+	run fix.GoCommandRunner,
+	issues []surface.Issue,
+) map[string]fix.HeldStrip {
+	var files []string
+
+	for _, issue := range issues {
+		if issue.Rule == surface.RuleGoDirectivePatchForm && issue.Fix != nil {
+			files = append(files, issue.File)
+		}
+	}
+
+	return fix.ExplainHeldStrips(ctx, root, run, files)
+}
+
 // toConfigIssue maps one surface issue to the SDK shape. Mechanical fixes
 // carry their exact rewrite as the suggestion; alignment issues carry
-// their suggested action.
-func toConfigIssue(issue surface.Issue) autoconfigure.ConfigIssue {
+// their suggested action. A tidy-held strip swaps both for the dep-forced
+// explanation: the rewrite would be silently reverted, so naming the
+// carriers and the supply-side remediation is the honest suggestion.
+func toConfigIssue(issue surface.Issue, held map[string]fix.HeldStrip) autoconfigure.ConfigIssue {
 	suggestion := issue.Suggestion
 	if issue.Fix != nil {
 		suggestion = issue.Fix.Describe()
 	}
 
+	message := issue.Message
+
+	if issue.Rule == surface.RuleGoDirectivePatchForm {
+		if strip, ok := held[issue.File]; ok {
+			message = message + "; " + strip.Reason()
+			suggestion = strip.Remediation()
+		}
+	}
+
 	return autoconfigure.ConfigIssue{
 		Rule:       finding.RuleName(issue.Rule),
-		Message:    issue.Message,
+		Message:    message,
 		Severity:   finding.SeverityWarning,
 		File:       finding.FilePath(issue.File),
 		Line:       issue.Line,
