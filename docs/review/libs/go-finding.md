@@ -37,12 +37,12 @@ The moderate score with a mild verdict is explained by structure: five of the si
 | --- | --- | --- | --- |
 | Branded string types (`RuleName`/`ToolName`/`FilePath`/`ID`/`GroupID`) | Fully Leveraged | pkg/provider/provider.go:95, :98, :160, :163 (boundary conversion); pkg/provider/provider_test.go:57 | go-finding/branded_types.go:10, :13, :16, :19 |
 | `Finding` data model (+ `Validate`/`Equal`) | Fully Leveraged (via bridge — deliberate delegation) | pkg/provider/provider.go:46-52; tests assert `f.ToolName`/`f.Rule` at pkg/provider/provider_test.go:56-59 | go-finding/finding.go:8; bridge builds via linter-autoconfigure-sdk autoconfigure.go:450 |
-| Builder API (validated construction) | Fully Leveraged (via bridge) | pkg/provider/provider.go:8-10 documents the delegation | go-finding/finding_builder.go (`NewBuilder`, used by the bridge at linter-autoconfigure-sdk autoconfigure.go:296) |
+| Builder API (validated construction) | Fully Leveraged (via bridge) | pkg/provider/provider.go:8-10 documents the delegation | go-finding/finding_builder.go:24 (`NewBuilder`, used by the bridge at linter-autoconfigure-sdk autoconfigure.go:296) |
 | Stable ID generation (`GenerateID`) | Fully Leveraged (via bridge — every emitted finding carries a minted ID) | pkg/provider/provider.go:46-52 (all findings go through the bridge) | go-finding/id.go:34 |
 | `FixStrategy` classification (none/suggest/direct) | Fully Leveraged (via bridge: suggestion⇒suggest, else none) | pkg/provider/provider.go:146-147, :165 (suggestion populated per issue kind) | go-finding/finding.go:23; bridge rule at linter-autoconfigure-sdk autoconfigure.go:324-330 |
-| Category / Confidence / Tags | Partially Used | Bridge stamps `CategoryConfiguration` + default `ConfidenceFull`; consumer sets neither, and its own taxonomy (form/alignment/toolchain/discovery, pkg/surface/rules.go) is richer than one category | go-finding/category.go, go-finding/confidence.go; bridge at linter-autoconfigure-sdk autoconfigure.go:297-302 |
+| Category / Confidence / Tags | Partially Used | Bridge stamps `CategoryConfiguration` + default `ConfidenceFull`; consumer sets neither, and its own taxonomy (form/alignment/toolchain/discovery, pkg/surface/rules.go) is richer than one category | go-finding/category.go:10, go-finding/confidence.go:19; bridge at linter-autoconfigure-sdk autoconfigure.go:297-302 |
 | Severity scale (4 levels, `Compare`, aliases) | Partially Used | Every finding is `finding.SeverityWarning` — pkg/provider/provider.go:97, :162; policy keeps advisories at warning (pkg/provider/analyze_held_test.go:88) | go-finding/severity.go:16-19 |
-| Position model (`Pos`/`FilePos`, offsets, `Range`) | Partially Used | File+line only (pkg/provider/provider.go:98-99, :163-164); column/offset/`Range` unused — directive findings are line-oriented, so the unused half is domain-justified | go-finding/position.go; bridge `Pos(file,line,1)` at linter-autoconfigure-sdk autoconfigure.go:291-295 |
+| Position model (`Pos`/`FilePos`, offsets, `Range`) | Partially Used | File+line only (pkg/provider/provider.go:98-99, :163-164); column/offset/`Range` unused — directive findings are line-oriented, so the unused half is domain-justified | go-finding/position.go:33 (type), go-finding/range.go:208 (`Pos`); bridge `Pos(file,line,1)` at linter-autoconfigure-sdk autoconfigure.go:291-295 |
 | Working-dir context propagation | Fully Leveraged | pkg/provider/provider.go:242 (`finding.WorkingDirFromContext`); tests set it at pkg/provider/provider_test.go:49 | go-finding/context.go:21, :31 |
 | `Detector` contract (`DetectorFunc`/`NamedDetectorFunc`) | Fully Leveraged (bridge wires the Analyze closure as a `finding.Detector` into `Spec.Detect`) | pkg/provider/provider.go:46-52, :73-75 | go-finding/detector.go:10, :18, :35; go-finding/toolsdk/spec.go:84 |
 | DetectorV2 coverage evidence (`DetectResult.FilesScanned`/`SkippedModules`, `RunDetect`) | Missed Opportunity | Provider answers "clean" with zero findings (pkg/provider/provider.go:87-111) — not yet provable coverage; v1.16.0 ships a runnable example | go-finding/detect_result.go:14, :34, :49; go-finding/examples/detectorv2/main.go |
@@ -52,11 +52,11 @@ The moderate score with a mild verdict is explained by structure: five of the si
 | Run-level SARIF propertyBag (v1.16.0) | Missed Opportunity | Unreachable at pin v1.15.1; becomes relevant the day SARIF export lands (schema version, expect-minor, scan root per run) | go-finding/report.go:140, :155; go-finding/sarif_import.go:29 |
 | Suppression model (`Suppression`, expiry, `NotSuppressed`) | Not Applicable | Accepted drift is a supply-side registry (docs/POISONERS.md), not per-finding suppression; advisory findings are deliberately always visible (docs/DOMAIN_LANGUAGE.md "Advisory") | go-finding/suppression.go:6, :16 |
 | Report aggregation / summary (`Report`, `ComputeSummary`) | Not Applicable | cmd/ owns a locked schema-2 wire contract (cmd/go-version-auto-configure/json.go:14-22); provider path is in-process and BuildFlow aggregates | go-finding/report.go:84, :241 |
-| Filters / sort / group / merge / diff / correlate | Not Applicable | Single detector; ordering is the CLI's (multi-root sorted output) and cross-tool merging is BuildFlow's; findings never materialize as `[]finding.Finding` inside this repo outside the bridge | go-finding/filter.go, go-finding/merge.go, go-finding/diff.go, go-finding/correlate.go |
-| LSP diagnostics | Not Applicable | Not an LSP server or editor tool | go-finding/lsp.go |
+| Filters / sort / group / merge / diff / correlate | Not Applicable | Single detector; ordering is the CLI's (multi-root sorted output) and cross-tool merging is BuildFlow's; findings never materialize as `[]finding.Finding` inside this repo outside the bridge | go-finding/filter.go:12, go-finding/merge.go:23, go-finding/diff.go:35, go-finding/correlate.go:58 |
+| LSP diagnostics | Not Applicable | Not an LSP server or editor tool | go-finding/lsp.go:96, :189 |
 | Exec helpers (`CheckBinary`/`RunCmd`) | Missed Opportunity | `fix.SelfCheck` re-implements the PATH-lookup half: pkg/fix/fix.go:132-135 (`RunCmd` itself cannot apply — it supports neither `cmd.Dir` nor env sculpting, which pkg/fix/fix.go:194-201 requires) | go-finding/detector.go:56, :68 |
-| `FindingError` typed error family | Missed Opportunity | Provider and fix wrap with `fmt.Errorf` (pkg/provider/provider.go:89, :199) | go-finding/errors.go (`NewIOError` etc.) |
-| Finding JSON / ndjson wire (`WriteJSON`, `FindingsFromReader`) | Not Applicable | The `--json` machine contract is the repo's own locked DTO set (cmd/go-version-auto-configure/json.go:17-22) | go-finding/json.go |
+| `FindingError` typed error family | Missed Opportunity | Provider and fix wrap with `fmt.Errorf` (pkg/provider/provider.go:89, :199) | go-finding/errors.go:141 (`NewIOError`; `NewParseError` etc. in the same file) |
+| Finding JSON / ndjson wire (`WriteJSON`, `FindingsFromReader`) | Not Applicable | The `--json` machine contract is the repo's own locked DTO set (cmd/go-version-auto-configure/json.go:17-22) | go-finding/json.go:198 (`WriteJSON`) |
 | `analysis/` sub-module (go/analysis bridge) | Not Applicable | Tool parses go.mod/go.work/Nix/YAML text, not Go ASTs | go-finding/analysis/ (module `analysis/v1.15.1`) |
 | `pipeline/` sub-module (FixEngine, triage, retry, flight recorder) | Not Applicable | The fix path is external-tool edits (`go mod edit`/`go work edit`) plus a non-mutating `go mod tidy -diff` gate and re-parse verification (pkg/fix/fix.go) — inexpressible in an in-memory edit engine; one detector needs no `pipeline.Detect` fan-out | go-finding/pipeline/ (module `pipeline/v1.15.1`) |
 
@@ -95,11 +95,14 @@ What the consumer does instead: only the schema-2 JSON DTO contract (cmd/go-vers
 Recommended usage:
 
 ```go
-// cmd/go-version-auto-configure — a --sarif flag beside --json:
+// cmd/go-version-auto-configure — a --sarif flag beside --json.
+// (Issues→findings conversion already exists as pkg/provider's unexported
+// toConfigIssue; export it or lower it into pkg/surface-adjacent code.)
 fs := make([]finding.Finding, 0)
 for _, a := range analyses {
     for _, iss := range a.report.all() {
-        f, _ := autoconfigure.FindingFromIssue(finding.ToolName(toolName), provider.ToConfigIssue(iss, nil))
+        f, err := autoconfigure.FindingFromIssue(finding.ToolName(toolName), toConfigIssue(iss, nil))
+        if err != nil { return err }
         fs = append(fs, f)
     }
 }
@@ -189,7 +192,7 @@ cd pipeline  && GOTOOLCHAIN=go1.27.1 GOEXPERIMENT=jsonv2 go doc -all . | rg '^(t
 # citation spot-checks (file:line)
 rg -n 'type (ID|RuleName|ToolName|FilePath)' branded_types.go; grep -n 'func WithWorkingDir\|func WorkingDirFromContext' context.go
 grep -n 'func CheckBinary\|func RunCmd' detector.go
-grep -n 'SeverityInfo|SeverityWarning' severity.go   # → severity.go:16-19
+rg -n 'SeverityInfo|SeverityWarning|SeverityError|SeverityCritical' severity.go   # → severity.go:16-19
 grep -n 'func (r \*Report) ToSARIF\|SetRunProperty\|RunProperties' report.go sarif_export.go sarif_import.go
 grep -n 'type Suppression' suppression.go; grep -n 'func GenerateID' id.go
 grep -n 'func OnGoFiles\|func OnFiles' toolsdk/triggers.go; grep -n 'func WithDryRun\|func DryRunFromContext' toolsdk/dryrun.go
