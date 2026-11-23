@@ -37,6 +37,72 @@ func TestProviderRegistersItself(t *testing.T) {
 	assert.True(t, found, "Provider must be in the process-global registry for BuildFlow discovery")
 }
 
+// TestProviderDeclaresFullVersionSurface pins the read/write surface every
+// file class Discover dispatches on must be declared: Inputs (bridge-derived
+// from ConfigFiles) so BuildFlow re-runs this tool on flake.nix, CI-pin,
+// VERSION and CHANGELOG.md drift — the under-trigger regression the
+// library-utilization run named its top finding — and Outputs so hosts
+// order producers/consumers around the repair write contract.
+func TestProviderDeclaresFullVersionSurface(t *testing.T) {
+	t.Parallel()
+
+	expectedInputs := []string{
+		"go.mod",
+		"go.work",
+		"flake.nix",
+		".github/workflows/*.yml",
+		".github/workflows/*.yaml",
+		"VERSION",
+		"CHANGELOG.md",
+	}
+	assert.ElementsMatch(t, expectedInputs, Provider.Inputs,
+		"Inputs must cover every file class surface.Discover reads")
+
+	expectedOutputs := []string{
+		"go.mod",
+		"go.work",
+		".github/workflows/*.yml",
+		".github/workflows/*.yaml",
+	}
+	assert.ElementsMatch(t, expectedOutputs, Provider.Outputs,
+		"Outputs must cover exactly the files fix.Apply rewrites")
+
+	for _, readOnly := range []string{"flake.nix", "VERSION", "CHANGELOG.md"} {
+		assert.NotContains(t, Provider.Outputs, readOnly,
+			"%s is a read-only surface; the tool never moves that pin", readOnly)
+	}
+}
+
+// TestDetect_FlakeOnlyDrift exercises the under-trigger scenario end to end
+// at the provider boundary: a repo whose ONLY drift is a flake.nix pin
+// trailing the module floor still reports through Detect, the path BuildFlow
+// calls once Inputs gates it in.
+func TestDetect_FlakeOnlyDrift(t *testing.T) {
+	t.Parallel()
+
+	root := t.TempDir()
+	require.NoError(
+		t, os.WriteFile(filepath.Join(root, "go.mod"), []byte("module example.com/m\n\ngo 1.26\n"), 0o644),
+	)
+	require.NoError(t, os.WriteFile(
+		filepath.Join(root, "flake.nix"),
+		[]byte("{ pkgs }: pkgs.mkShell { buildInputs = [ (pkgs.go_1_25) ]; }\n"),
+		0o644,
+	))
+
+	ctx := finding.WithWorkingDir(context.Background(), root)
+	findings, err := Provider.Detect.Detect(ctx)
+	require.NoError(t, err)
+	require.NotEmpty(t, findings, "flake-only drift must not be silent")
+
+	rules := map[string]bool{}
+	for _, f := range findings {
+		rules[string(f.Rule)] = true
+	}
+
+	assert.Contains(t, rules, "nix-pin-below-floor")
+}
+
 func TestDetect_ReportsPatchForm(t *testing.T) {
 	t.Parallel()
 

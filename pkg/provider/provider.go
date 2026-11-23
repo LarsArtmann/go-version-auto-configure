@@ -47,14 +47,38 @@ func mustProvider() toolsdk.Spec {
 		Name:        toolName,
 		Description: description,
 		ConfigFile:  finding.FilePath("go.mod"),
-		Analyze:     analyze,
-		Repair:      repair,
+		// ConfigFiles is the full read surface Discover dispatches on, not
+		// just the write target: the bridge derives Spec.Inputs from it, so
+		// BuildFlow gates re-runs and derives data-flow edges for every
+		// file class the tool actually reads (flake.nix and CI-pin drift
+		// included). Keep in sync with Surface.absorbFile's dispatch.
+		ConfigFiles: []finding.FilePath{
+			"go.mod",
+			"go.work",
+			"flake.nix",
+			".github/workflows/*.yml",
+			".github/workflows/*.yaml",
+			"VERSION",
+			"CHANGELOG.md",
+		},
+		Analyze: analyze,
+		Repair:  repair,
 	})
 	if err != nil {
 		panic("provider: invalid spec: " + err.Error())
 	}
 
 	spec.Trigger = toolsdk.OnFiles("go", "go.mod", "go.work")
+	// Outputs is the repair write contract: the only files fix.Apply
+	// rewrites (go.mod directive surgery, go work edit, CI go-version pin
+	// raises). flake.nix, VERSION and CHANGELOG.md are read-only surfaces —
+	// moving those pins is a maintainer decision the tool never performs.
+	spec.Outputs = []string{
+		"go.mod",
+		"go.work",
+		".github/workflows/*.yml",
+		".github/workflows/*.yaml",
+	}
 	spec.HealthCheck = fix.SelfCheck
 	spec.Options = []toolsdk.Option{{
 		Name:    providerOptionRespectPatchFloor,
