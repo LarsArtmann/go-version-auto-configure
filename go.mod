@@ -6,7 +6,7 @@ require (
 	charm.land/fang/v2 v2.0.1
 	github.com/larsartmann/cmdguard/v5 v5.1.0
 	github.com/larsartmann/go-atomic-write v0.6.2
-	github.com/larsartmann/go-finding v1.15.1
+	github.com/larsartmann/go-finding v1.16.0
 	github.com/larsartmann/go-finding/toolsdk v1.16.0
 	github.com/larsartmann/linter-autoconfigure-sdk v0.8.1
 	github.com/stretchr/testify v1.12.1

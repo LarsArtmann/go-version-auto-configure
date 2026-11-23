@@ -101,7 +101,7 @@ func analyze(ctx context.Context) ([]autoconfigure.ConfigIssue, error) {
 // analyzeWith is analyze with the dependency-floor listing runner injected:
 // production shells out through EditRunner, tests fake `go list -m` output.
 func analyzeWith(ctx context.Context, run fix.GoCommandRunner) ([]autoconfigure.ConfigIssue, error) {
-	root := workingDir(ctx)
+	root := autoconfigure.WorkingDir(ctx)
 
 	analyzeOpts, err := respectPatchFloorOptions(ctx, root)
 	if err != nil {
@@ -194,7 +194,7 @@ func toConfigIssue(issue surface.Issue, held map[string]fix.HeldStrip) autoconfi
 // context. Suggest-only issues are intentionally untouched: which side of
 // an alignment moves (pin or floor) is a maintainer decision.
 func repair(ctx context.Context) (string, error) {
-	root := workingDir(ctx)
+	root := autoconfigure.WorkingDir(ctx)
 
 	analyzeOpts, err := respectPatchFloorOptions(ctx, root)
 	if err != nil {
@@ -234,13 +234,14 @@ func repair(ctx context.Context) (string, error) {
 // fallback: flipping the policy mid-fleet would rewrite exactly the pins
 // the option exists to protect.
 func respectPatchFloorOptions(ctx context.Context, root string) ([]surface.AnalyzeOption, error) {
-	values, ok := toolsdk.OptionsFromContext(ctx)
-	if !ok {
-		return nil, nil
+	respect, err := toolsdk.BoolFromContext(ctx, providerOptionRespectPatchFloor, false)
+	if err != nil {
+		return nil, fmt.Errorf(
+			"%s: read %s option: %w", toolName, providerOptionRespectPatchFloor, err,
+		)
 	}
 
-	respect, ok := values[providerOptionRespectPatchFloor].(bool)
-	if !ok || !respect {
+	if !respect {
 		return nil, nil
 	}
 
@@ -257,15 +258,4 @@ func respectPatchFloorOptions(ctx context.Context, root string) ([]surface.Analy
 	}
 
 	return []surface.AnalyzeOption{opt}, nil
-}
-
-// workingDir resolves the project directory from the context, falling back
-// to the process working directory, mirroring the other BuildFlow providers
-// so the WithWorkingDir fan-out works identically.
-func workingDir(ctx context.Context) string {
-	if dir := finding.WorkingDirFromContext(ctx); dir != "" {
-		return dir
-	}
-
-	return "."
 }

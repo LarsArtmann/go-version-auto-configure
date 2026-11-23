@@ -304,6 +304,24 @@ func TestProviderDeclaresRespectPatchFloorOption(t *testing.T) {
 	t.Fatalf("spec does not declare option %q", providerOptionRespectPatchFloor)
 }
 
+// TestRespectPatchFloorOption_WrongTypeErrors pins the loud-misconfig
+// contract: a wrong-typed option value (e.g. the string "true" from a
+// config typo) is an error, never a silent fall-through to the default
+// policy — the raw map assertion this replaces treated it as unset.
+func TestRespectPatchFloorOption_WrongTypeErrors(t *testing.T) {
+	t.Parallel()
+
+	ctx := toolsdk.WithOptions(context.Background(), toolsdk.OptionValues{
+		providerOptionRespectPatchFloor: "true",
+	})
+
+	_, err := respectPatchFloorOptions(ctx, ".")
+	require.Error(t, err)
+	assert.ErrorIs(t, err, toolsdk.ErrOptionKindMismatch)
+	assert.Contains(t, err.Error(), providerOptionRespectPatchFloor,
+		"the error must name the misconfigured option")
+}
+
 // TestDetect_RespectPatchFloorOption pins the DAG-side plumbing end to end:
 // with the tool option set through the options context, a patch pin at or
 // below the INSTALLED toolchain stops being a finding. The fixture pins the

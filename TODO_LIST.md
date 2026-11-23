@@ -50,9 +50,6 @@ Short- and mid-term actionable work, **open items only** — completed items liv
 
 Reports: docs/review/libs/*.md + index.html (write-once snapshot; re-run the library-deep-dive fleet runbook to re-review). Citation gate: `python3 scripts/citation-sweep.py`.
 
-- [x] Declare the true read surface to BuildFlow (the run's top finding): `ConfigFiles`/`Spec.Inputs` now covers go.mod, go.work, flake.nix, .github/workflows/*.yml+.yaml, VERSION, CHANGELOG.md — done 2026-11-23 (plan M1), CHANGELOG [Unreleased]
-- [x] Declare `Spec.Outputs` (go.mod, go.work, .github/workflows/*) — done 2026-11-23 (plan M1), CHANGELOG [Unreleased]
-- [ ] Swap the raw bool map assertion for `toolsdk.BoolFromContext` in the respect-patch-floor option read — wrong-typed config values currently behave as silently unset (go-finding-toolsdk.md gap 3)
 - [ ] Push upstream (linter-autoconfigure-sdk, unblocks every auto-configurer): `ConfigIssue.Metadata map[string]string` + structured Repair passthrough (`ModifiedFiles`/`Facts`); downstream channels already exist (go-finding Finding.Metadata, toolsdk RepairResult) and wait for the bridge (linter-autoconfigure-sdk.md gaps 2-3, go-finding.md gap 1)
 - [ ] Bump go-finding v1.15.1 → v1.16.0 opportunistically (delta is SARIF-layer only; fold into the first SARIF/Metadata-adjacent change) and adopt `Finding.Metadata` for dep-forced carriers/floors once the bridge passes it through (go-finding.md version currency + gap 1)
 
