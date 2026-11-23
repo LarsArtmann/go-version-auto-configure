@@ -16,7 +16,7 @@ Fully = 2, Partial = 1, Missed = 2, Misused = 0.
 
 ## Version currency
 
-- **Pin vs latest local tag:** consumer pins `github.com/larsartmann/linter-autoconfigure-sdk v0.8.1` (go.mod:12) — already at the latest local tag `v0.8.1`. (Consumer AGENTS.md:9 still says "v0.8.0" — stale prose, go.mod wins.)
+- **Pin vs latest local tag:** consumer pins `github.com/larsartmann/linter-autoconfigure-sdk v0.8.1` (go.mod:11) — already at the latest local tag `v0.8.1`. (Consumer AGENTS.md:9 still says "v0.8.0" — stale prose, go.mod wins.)
 - **What v0.8.1 is:** a dependency-bump-only release (go-atomic-write v0.6.1, "temp-file leak fix"); the tag diff touches only go.mod/go.sum/determinism testdata, and CHANGELOG.md has no `[0.8.1]` section — the entry was never written for this tag.
 - **In-flight HEAD delta** (bfe96d7, 7 commits past the tag on `feat/audit-subpackage`, summarized in CHANGELOG.md `[Unreleased]` at linter-autoconfigure-sdk/CHANGELOG.md:7-31):
   - New `audit` subpackage + `cmd/audit` (linter-autoconfigure-sdk/CHANGELOG.md:11-20): golangci-lint config-drift audit — dead exclusion rules, dead settings blocks, dead `nolint` directives; `Checker.Audit` emits `ConfigIssue`s (linter-autoconfigure-sdk/audit/audit.go:60,101).
@@ -138,7 +138,7 @@ if issue.Fix != nil {
 
 ## Fleet argument
 
-This repo is the third auto-configurer in the family (AGENTS.md:5), and pkg/provider is the one place the family's BuildFlow wiring is supposed to be shared. The owner's framing cuts both ways here:
+This repo is the newest member of the auto-configure family (AGENTS.md:5 lists golangci-lint, oxlint, dependabot, and the Go version surface), and pkg/provider is the one place the family's BuildFlow wiring is shared. The owner's framing cuts both ways here:
 
 - **Consumer-side rows (1, 4, 5) are minutes of work now** and remove exactly the kind of per-repo re-implementation the SDK exists to kill — the hand-rolled `workingDir` is already a byte-twin of the SDK helper, which is the "fixing the same bug N times" pattern in miniature (the SDK fixed a nil-ctx panic in exactly this helper at v0.4.1; the consumer's twin has that fix only by luck of copying).
 - **The two bridge gaps (2, 3) are where collective improvement actually flows.** Every auto-configurer that carries structured facts — golangci's per-linter metadata (already documented as pushed app-side, linter-autoconfigure-sdk/README.md:272-274), this repo's dep-forced floors and carriers, any future tool's modified-file lists — currently flattens them into `Message`/`Description` prose, because `ConfigIssue` has no metadata field and `Repair` returns a string. Fixing that once in the SDK fixes it for all N tools; leaving it means each tool re-invents a side-channel. The channel downstream is already built and tested (`finding.Finding.Metadata`, `Builder.WithMetadata`, `toolsdk.RepairResult.ModifiedFiles/Facts`) — the SDK bridge is the only missing segment. The SDK is pre-1.0 by its own README ("breaking changes remain acceptable until v1"), so the window is now; the in-flight `audit` subpackage proves the SDK team actively generalizes per-repo drift checks into the library, and its `Checker.Audit` returns `[]ConfigIssue` — it will hit the same metadata wall on landing.
