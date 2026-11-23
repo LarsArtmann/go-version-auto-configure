@@ -11,7 +11,7 @@
 
 **NOT-APPLICABLE.** go-dag-app is a DI-container bootstrap (env-gated debug tree print + `samber/do` injector lifecycle) for DAG applications that build an injector. This consumer has no DI container anywhere: `rg 'samber|do\.Injector'` over cmd/ returns nothing, and its wiring is plain constructor calls (`pkg/provider` package-level `var Provider`, blank-import contract per AGENTS.md). There is nothing for it to replace, and adopting it would add a `samber/do/v2` dependency solely to have a container nobody injects through.
 
-It is also **not** a worker-pool library: the fleet argument below traces that suspicion to ground truth — go-dag-app owns ~100 lines of injector bootstrap (go-dag-app/container.go:69-103), zero concurrency code. The overlap the orchestrator hypothesized (go-dag-app vs cmd/'s worker pools) does not exist.
+It is also **not** a worker-pool library: the fleet argument below traces that suspicion to ground truth — go-dag-app owns ~100 lines of injector bootstrap (go-dag-app/container.go:75-103), zero concurrency code. The overlap the orchestrator hypothesized (go-dag-app vs cmd/'s worker pools) does not exist.
 
 ## Adoption score
 
@@ -28,18 +28,18 @@ Rows below: 5, N/A: 4 → A = 1. Σ = 0 (the one applicable capability is missed
 ## Version currency
 
 - Latest tag **v0.1.1**; only 2 tags total; initial release 2026-07-18 (go-dag-app/CHANGELOG.md, `[0.1.0] - 2026-07-18`).
-- HEAD c2b6c99 is 1 commit past the tag: it adds `NewContainerWithOpts` (go-dag-app/container.go:81) for custom `do.InjectorOpts` — a small API extension, no behavioral change to existing functions.
+- HEAD c2b6c99 is 1 commit past the tag: it adds `NewContainerWithOpts` (go-dag-app/container.go:91) for custom `do.InjectorOpts` — a small API extension, no behavioral change to existing functions.
 - CHANGELOG still shows `[Unreleased]` with only docs/config/lint convergence entries — the lib is in steady, slow maintenance. TODO_LIST.md item 3 (go-dag-app/TODO_LIST.md:18-21) asks for a tag "so library-policy can pin a tag"; v0.1.1 has since been cut, so that item looks stale.
-- Maturity read: young, tiny (103-line implementation file), 2 known consumers (BuildFlow, library-policy per go-dag-app/container.go:2-4). Pre-1.0.
+- Maturity read: young, tiny (103-line implementation file), 2 known consumers (BuildFlow, library-policy per go-dag-app/container.go:1-4). Pre-1.0.
 
 ## Capability inventory
 
 | Capability | Status | Consumer evidence | Library evidence |
 |---|---|---|---|
-| `<APP>_DEBUG_DI` env-var debug gate | N/A — no DI debug surface exists here | — | go-dag-app/container.go:29-34 (`IsDebugDIEnabled`) |
-| Dependency-tree printing (`do.ExplainInjector`) | N/A — no injector to explain | — | go-dag-app/container.go:43-61 (`PrintDependencyTree`) |
-| Injector bootstrap with shutdown cleanup | N/A — lifecycle is Go default; exit codes in cmd/main.go | — | go-dag-app/container.go:69-103 (`NewContainer`, `NewContainerWithOpts`) |
-| Custom injector options (auditlog plugin hooks) | N/A — no plugin system | — | go-dag-app/container.go:81-103 (HEAD addition) |
+| `<APP>_DEBUG_DI` env-var debug gate | N/A — no DI debug surface exists here | — | go-dag-app/container.go:34-38 (`IsDebugDIEnabled`) |
+| Dependency-tree printing (`do.ExplainInjector`) | N/A — no injector to explain | — | go-dag-app/container.go:49-64 (`PrintDependencyTree`) |
+| Injector bootstrap with shutdown cleanup | N/A — lifecycle is Go default; exit codes in cmd/main.go | — | go-dag-app/container.go:75-103 (`NewContainer`, `NewContainerWithOpts`) |
+| Custom injector options (auditlog plugin hooks) | N/A — no plugin system | — | go-dag-app/container.go:91-103 (HEAD addition) |
 | Bounded worker pool, sorted output | Missed (but hand-rolled equivalently) | cmd/go-version-auto-configure/main.go:377-402 (`runSorted` — semaphore + `wg.Go`, `slices.SortFunc` for determinism), main.go:439-441 (`workersFor`) | — (go-dag-app has no concurrency API at all) |
 
 ## Gap analysis / ranked opportunities
