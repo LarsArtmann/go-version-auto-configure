@@ -45,3 +45,13 @@ Short- and mid-term actionable work, **open items only** — completed items liv
 ## T3 — Publish (remainder)
 
 - [ ] Website launch — **decision 2026-10-03: demand-gated non-commitment.** Revisit only on a real demand signal (external user question, adoption spike, owner request). If triggered: sibling-project Astro+Starlight pattern per the website-launch skill, demo video as landing centerpiece. Do not spend a session on this otherwise.
+
+## T17 — Library-utilization review outcomes (fleet run 2026-11-23) — OPEN
+
+Reports: docs/review/libs/*.md + index.html (write-once snapshot; re-run the library-deep-dive fleet runbook to re-review). Citation gate: `python3 scripts/citation-sweep.py`.
+
+- [ ] Declare the true read surface to BuildFlow (the run's top finding): `ConfigFiles` on the ProviderSpec / `Spec.Inputs` covering go.mod, go.work, flake.nix, .github/workflows/*.yml+.yaml, VERSION, CHANGELOG.md — until then BuildFlow under-triggers on flake.nix and CI-pin drift (docs/review/libs/go-finding-toolsdk.md gap 1, linter-autoconfigure-sdk.md gap 1)
+- [ ] Declare `Spec.Outputs` (go.mod, go.work, .github/workflows/*) — the repair write contract hosts currently treat as empty (go-finding-toolsdk.md gap 2)
+- [ ] Swap the raw bool map assertion for `toolsdk.BoolFromContext` in the respect-patch-floor option read — wrong-typed config values currently behave as silently unset (go-finding-toolsdk.md gap 3)
+- [ ] Push upstream (linter-autoconfigure-sdk, unblocks every auto-configurer): `ConfigIssue.Metadata map[string]string` + structured Repair passthrough (`ModifiedFiles`/`Facts`); downstream channels already exist (go-finding Finding.Metadata, toolsdk RepairResult) and wait for the bridge (linter-autoconfigure-sdk.md gaps 2-3, go-finding.md gap 1)
+- [ ] Bump go-finding v1.15.1 → v1.16.0 opportunistically (delta is SARIF-layer only; fold into the first SARIF/Metadata-adjacent change) and adopt `Finding.Metadata` for dep-forced carriers/floors once the bridge passes it through (go-finding.md version currency + gap 1)

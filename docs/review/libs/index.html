@@ -1,0 +1,204 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Library utilization review &mdash; go-version-auto-configure</title>
+    <style>
+      :root {
+        --color-paper: #f4f4f0;
+        --color-paper-2: #ffffff;
+        --color-paper-3: #e8e8e2;
+        --color-ink: #111111;
+        --color-red: #e63946;
+        --color-blue: #1d3557;
+        --color-yellow: #f4d35e;
+        --color-hairline: rgba(17, 17, 17, 0.14);
+        --color-hairline-strong: rgba(17, 17, 17, 0.3);
+        --surface: var(--color-paper);
+        --surface-raised: var(--color-paper-2);
+        --surface-sunken: var(--color-paper-3);
+        --text: var(--color-ink);
+        --text-muted: rgba(17, 17, 17, 0.72);
+        --text-faint: rgba(17, 17, 17, 0.5);
+        --border: var(--color-hairline);
+        --border-strong: var(--color-hairline-strong);
+        --accent: var(--color-red);
+        --problem: var(--color-red);
+        --solution: var(--color-blue);
+        --warning: var(--color-yellow);
+        --font-heading: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        --font-body: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        --font-mono: ui-monospace, "Cascadia Code", "Source Code Pro", "JetBrains Mono", Menlo, Consolas, monospace;
+      }
+      * { box-sizing: border-box; margin: 0; padding: 0; }
+      body {
+        background: var(--surface);
+        color: var(--text);
+        font-family: var(--font-body);
+        font-size: 16px;
+        line-height: 1.55;
+        padding: 48px 24px 80px;
+      }
+      .wrap { max-width: 1060px; margin: 0 auto; }
+      header { border-bottom: 3px solid var(--text); padding-bottom: 20px; margin-bottom: 28px; }
+      .kicker { font-family: var(--font-mono); font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--accent); margin-bottom: 10px; }
+      h1 { font-family: var(--font-heading); font-size: 34px; line-height: 1.15; letter-spacing: -0.01em; max-width: 820px; }
+      .meta { margin-top: 12px; font-size: 13.5px; color: var(--text-muted); }
+      .meta code { font-family: var(--font-mono); font-size: 12.5px; background: var(--surface-sunken); padding: 1px 5px; }
+      h2 { font-size: 20px; margin: 40px 0 14px; border-bottom: 1px solid var(--border-strong); padding-bottom: 6px; }
+      h3 { font-size: 15px; margin: 22px 0 8px; }
+      p { margin-bottom: 10px; color: var(--text-muted); }
+      p strong, li strong { color: var(--text); }
+      .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin: 18px 0 6px; }
+      .card { background: var(--surface-raised); border: 1px solid var(--border); border-top: 3px solid var(--text); padding: 14px 16px; }
+      .card .num { font-size: 30px; font-weight: 700; letter-spacing: -0.02em; }
+      .card .lbl { font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-faint); margin-top: 2px; }
+      .card.good { border-top-color: var(--solution); }
+      .card.warn { border-top-color: var(--warning); }
+      .card.bad { border-top-color: var(--problem); }
+      table { width: 100%; border-collapse: collapse; background: var(--surface-raised); border: 1px solid var(--border); font-size: 14px; }
+      th { font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; text-align: left; background: var(--surface-sunken); padding: 9px 10px; border-bottom: 2px solid var(--text); }
+      td { padding: 10px; border-bottom: 1px solid var(--border); vertical-align: top; }
+      tr:last-child td { border-bottom: none; }
+      td a { color: var(--solution); text-decoration: none; border-bottom: 1px solid var(--solution); }
+      .chip { display: inline-block; font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.04em; padding: 2px 8px; border: 1px solid var(--border-strong); white-space: nowrap; }
+      .chip.adopted { background: color-mix(in srgb, var(--solution) 14%, transparent); border-color: var(--solution); color: var(--solution); }
+      .chip.underused { background: color-mix(in srgb, var(--warning) 30%, transparent); border-color: rgba(17,17,17,0.45); }
+      .chip.notadopted { background: var(--surface-sunken); color: var(--text-muted); }
+      .chip.notapplicable { background: var(--surface-sunken); color: var(--text-faint); border-style: dashed; }
+      .score { font-weight: 700; white-space: nowrap; }
+      .score small { font-weight: 400; color: var(--text-faint); }
+      .mono { font-family: var(--font-mono); font-size: 12.5px; }
+      .callout { border-left: 4px solid var(--accent); background: var(--surface-raised); padding: 14px 18px; margin: 16px 0; font-size: 14.5px; color: var(--text-muted); }
+      .callout strong { color: var(--text); }
+      pre { background: var(--surface-sunken); border: 1px solid var(--border); padding: 14px 16px; font-family: var(--font-mono); font-size: 12.5px; overflow-x: auto; margin: 10px 0 16px; line-height: 1.5; }
+      ul.tight { margin: 8px 0 12px 20px; color: var(--text-muted); }
+      ul.tight li { margin-bottom: 6px; }
+      .legend-note { font-size: 13px; color: var(--text-faint); margin-top: 8px; }
+      footer { margin-top: 56px; border-top: 1px solid var(--border-strong); padding-top: 14px; font-size: 12.5px; color: var(--text-faint); font-family: var(--font-mono); }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <header>
+        <div class="kicker">Fleet library-utilization review &middot; docs/review/libs</div>
+        <h1>go-version-auto-configure against the LarsArtmann library fleet</h1>
+        <div class="meta">
+          Reviewed <strong>2026-11-23</strong> &middot; consumer <code>github.com/larsartmann/go-version-auto-configure</code> @ <code>07d4d51</code> (single module, <code>go 1.27</code>) &middot;
+          7 libraries &middot; 360 verified citations, 0 sweep defects &middot; reports under <code>docs/review/libs/*.md</code>
+        </div>
+      </header>
+
+      <div class="cards">
+        <div class="card"><div class="num">7</div><div class="lbl">libraries audited</div></div>
+        <div class="card good"><div class="num">3</div><div class="lbl">in the adopted stack</div></div>
+        <div class="card"><div class="num">4</div><div class="lbl">correctly outside the graph</div></div>
+        <div class="card warn"><div class="num">1</div><div class="lbl">consequential quick fix (Inputs)</div></div>
+        <div class="card"><div class="num">360 / 0</div><div class="lbl">citations / defects</div></div>
+      </div>
+
+      <h2>Verdict board</h2>
+      <table>
+        <thead>
+          <tr>
+            <th style="width: 20%">Library</th>
+            <th style="width: 11%">Verdict</th>
+            <th style="width: 10%">Score</th>
+            <th style="width: 17%">Version currency</th>
+            <th>Headline</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><a href="go-finding.md">go-finding</a><br /><small class="mono">root module</small></td>
+            <td><span class="chip underused">UNDERUSED-mild</span></td>
+            <td class="score">53 <small>moderate &middot; leverage</small></td>
+            <td>v1.15.1 &rarr; v1.16.0<br /><small>one minor behind; delta is SARIF-layer only</small></td>
+            <td>Right architecture, additive headroom: <strong>Finding.Metadata</strong> for dep-forced facts (blocked on a bridge passthrough), SARIF export, DetectorV2 coverage evidence.</td>
+          </tr>
+          <tr>
+            <td><a href="go-finding-toolsdk.md">go-finding/toolsdk</a></td>
+            <td><span class="chip adopted">ADOPTED</span></td>
+            <td class="score">73 <small>high &middot; leverage</small></td>
+            <td>v1.16.0 = <span class="mono">toolsdk/v1.16.0</span><br /><small>at parity</small></td>
+            <td><strong>The run's most consequential finding:</strong> <span class="mono">Spec.Inputs</span> declares only <span class="mono">go.mod</span> while Discover reads 6 file classes &mdash; BuildFlow under-triggers on exactly the drift this tool exists to catch.</td>
+          </tr>
+          <tr>
+            <td><a href="linter-autoconfigure-sdk.md">linter-autoconfigure-sdk</a></td>
+            <td><span class="chip underused">UNDERUSED-moderate</span></td>
+            <td class="score">50 <small>moderate &middot; leverage</small></td>
+            <td>v0.8.1 = latest tag<br /><small>in-flight: audit/ subpackage at HEAD</small></td>
+            <td><strong>ConfigFiles = full version surface</strong> is a consumer-only fix live today; Metadata and structured Repair passthroughs are the upstream asks that unblock every auto-configurer.</td>
+          </tr>
+          <tr>
+            <td><a href="go-policy-dsl.md">go-policy-dsl</a></td>
+            <td><span class="chip notadopted">NOT-ADOPTED</span></td>
+            <td class="score">0 <small>low &middot; leverage</small></td>
+            <td>not a dependency<br /><small>v0.4.0 latest local tag</small></td>
+            <td>Justified no: its semver-lite cannot express <span class="mono">go 1.26 &lt; go 1.26.0</span>; the honest candidate (poisoner ranges as bans) belongs in library-policy.</td>
+          </tr>
+          <tr>
+            <td><a href="go-dag-app.md">go-dag-app</a></td>
+            <td><span class="chip notapplicable">NOT-APPLICABLE</span></td>
+            <td class="score">0 <small>low &middot; leverage</small></td>
+            <td>not a dependency<br /><small>v0.1.1 latest local tag</small></td>
+            <td>A <span class="mono">samber/do</span> DI bootstrap, not a worker-pool library; the hypothesized overlap with cmd's <span class="mono">runSorted</span> does not exist.</td>
+          </tr>
+          <tr>
+            <td><a href="go-linter-sdk.md">go-linter-sdk</a></td>
+            <td><span class="chip notadopted">NOT-ADOPTED</span></td>
+            <td class="score">75 <small>high &middot; coverage&dagger;</small></td>
+            <td>not a dependency<br /><small>v0.6.1 latest local tag</small></td>
+            <td>Split-brain check clears: it sits on the same go-finding pin and routes to the same <span class="mono">toolsdk.Register</span>; its Rule/Registry tier has no analogue for one pure Analyze.</td>
+          </tr>
+          <tr>
+            <td><a href="go-compliance.md">go-compliance</a><br /><small class="mono">+ hub/ submodule</small></td>
+            <td><span class="chip notapplicable">NOT-APPLICABLE</span></td>
+            <td class="score">100 <small>very high &middot; coverage&dagger;</small></td>
+            <td>not a dependency<br /><small>v0.2.0 latest local tag, pre-release</small></td>
+            <td>Already "compliant by default" via the toolsdk provider; <span class="mono">compliance.Record</span> matters only if this tool ever runs outside BuildFlow coverage.</td>
+          </tr>
+        </tbody>
+      </table>
+      <p class="legend-note">
+        <strong>Score semantics.</strong> <em>Leverage</em> scores (adopted and underused libraries, plus justified-no rows) measure the share of applicable capabilities leveraged through the library; inputs ship in each report.
+        <em>Coverage&dagger;</em> scores grade what the consumer does instead: higher means less reason to adopt. A 0 and a 100 can both be a correct "do not adopt" &mdash; the verdict, not the number, is the deliverable.
+      </p>
+
+      <h2>What the run actually says</h2>
+      <div class="callout">
+        <strong>The composition is right; the underuse is declarative, not architectural.</strong>
+        pkg/surface stays dependency-light with its own branded types, the provider is the sole import site, and every finding reaching BuildFlow is a real go-finding finding through the linter-autoconfigure-sdk bridge. No split brain anywhere in the adopted stack (verified: zero go-finding imports outside pkg/provider in production code).
+      </div>
+      <h3>Ranked outcomes</h3>
+      <ul class="tight">
+        <li><strong>Fix today (consumer, ~3 lines total):</strong> declare the true read set &mdash; <span class="mono">ConfigFiles</span> on the ProviderSpec / <span class="mono">Spec.Inputs</span> covering go.mod, go.work, flake.nix, .github/workflows/*, VERSION, CHANGELOG.md. Until then BuildFlow skips runs on flake.nix and CI-pin drift: the tool's core scenarios.</li>
+        <li><strong>Push upstream (unblocks the whole fleet):</strong> <span class="mono">ConfigIssue.Metadata</span> and a structured Repair passthrough in linter-autoconfigure-sdk; the downstream channels (go-finding Finding.Metadata, toolsdk RepairResult.Facts/ModifiedFiles) already exist and wait for the bridge.</li>
+        <li><strong>Opportunistic:</strong> bump go-finding v1.15.1 &rarr; v1.16.0 alongside the first SARIF-adjacent change; adopt <span class="mono">toolsdk.BoolFromContext</span> when a second option lands.</li>
+        <li><strong>Correctly declined:</strong> go-policy-dsl (semver cannot rank the go directive), go-dag-app (no overlap), go-linter-sdk (additive layer, no gap it fills), go-compliance (covered by default). Each report names its RECONSIDER-WHEN trigger.</li>
+      </ul>
+
+      <h2>Provenance</h2>
+      <table>
+        <thead><tr><th>Group</th><th>Libraries</th><th>Reviewer model</th></tr></thead>
+        <tbody>
+          <tr><td>Group A</td><td>go-finding, go-finding/toolsdk</td><td class="mono">zai/glm-5.3 (high)</td></tr>
+          <tr><td>Group B</td><td>linter-autoconfigure-sdk, go-policy-dsl</td><td class="mono">zai/glm-5.3 (high)</td></tr>
+          <tr><td>Group C</td><td>go-dag-app, go-linter-sdk, go-compliance</td><td class="mono">zai/glm-5.3-flash</td></tr>
+        </tbody>
+      </table>
+      <p class="legend-note">Orchestrator re-derived every stamped version (git describe / sort -V tag lists), re-counted every score from the inventory tables, and re-ran the citation sweep after each edit. Consumer HEAD moved during the run (auto-commit daemon); all cited consumer files were verified sha-identical between the stamped and final HEAD.</p>
+
+      <h2>How to verify</h2>
+      <pre>cd /home/lars/projects/go-version-auto-configure
+python3 scripts/citation-sweep.py          # 360 citations, 0 defects (ship gate)
+rg -n 'larsartmann/(go-finding|linter-autoconfigure-sdk)' --type go pkg/   # sole import site: pkg/provider
+git -C /home/lars/projects/go-finding describe --tags                      # v1.16.0 (root) ; toolsdk: git tag --list 'toolsdk/*' | sort -V | tail -1
+git -C /home/lars/projects/linter-autoconfigure-sdk describe --tags        # v0.8.1-7-gbfe96d7
+rg 'go-policy-dsl|go-dag-app|go-linter-sdk|go-compliance' go.mod go.sum    # exit 1: none are dependencies</pre>
+
+      <footer>go-version-auto-configure &middot; library utilization fleet run &middot; 2026-11-23 &middot; write-once snapshot; re-review by re-running the fleet runbook</footer>
+    </div>
+  </body>
+</html>

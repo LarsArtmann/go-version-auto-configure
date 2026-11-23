@@ -40,7 +40,7 @@ Rows below: 5, N/A: 4 → A = 1. Σ = 0 (the one applicable capability is missed
 | Dependency-tree printing (`do.ExplainInjector`) | N/A — no injector to explain | — | go-dag-app/container.go:49-64 (`PrintDependencyTree`) |
 | Injector bootstrap with shutdown cleanup | N/A — lifecycle is Go default; exit codes in cmd/main.go | — | go-dag-app/container.go:75-103 (`NewContainer`, `NewContainerWithOpts`) |
 | Custom injector options (auditlog plugin hooks) | N/A — no plugin system | — | go-dag-app/container.go:91-103 (HEAD addition) |
-| Bounded worker pool, sorted output | Missed (but hand-rolled equivalently) | cmd/go-version-auto-configure/main.go:377-402 (`runSorted` — semaphore + `wg.Go`, `slices.SortFunc` for determinism), main.go:439-441 (`workersFor`) | — (go-dag-app has no concurrency API at all) |
+| Bounded worker pool, sorted output | Missed (but hand-rolled equivalently) | cmd/go-version-auto-configure/main.go:377-402 (`runSorted` — semaphore + `wg.Go`, `slices.SortFunc` for determinism), cmd/go-version-auto-configure/main.go:439-441 (`workersFor`) | — (go-dag-app has no concurrency API at all) |
 
 ## Gap analysis / ranked opportunities
 

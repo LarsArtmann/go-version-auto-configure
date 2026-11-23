@@ -51,7 +51,7 @@ Sorted by impact × ease, descending — all negative or moot for this consumer:
 2. **Expose this tool's results as a `compliance.Source`** (so the hub could read schema-2 JSON directly). Impact: marginal — BuildFlow's v1 evidence already carries these findings to the hub; a native source would only add severity fidelity. Ease: medium, and it would need upstreaming into go-compliance (a change to a pre-release lib). **Skip.**
 3. **Adopt the hub dashboard as an embeddable service** (`dashboard.RegisterRoutes`) for a "fleet version-surface board". Impact: interesting someday, ease: low — the hub submodule floor is `go 1.27.2` (hub/go.mod) which would poison this module's `go 1.27` minor-form floor, an active violation of this fleet's floor policy (AGENTS.md, POISONERS.md). **Skip.**
 
-Cost side (any adoption): (a) pre-release dependency — README.md:5 "built, pre-release", proxy publish of v0.2.0 unverified per TODO_LIST blocked row; (b) hub floor `go 1.27.2` patch-form — the exact poisoner class this tool exists to eliminate; adopting it into this repo would make the version-surface tool itself a surface violation; (c) zero removed hand-rolled code (see fleet argument).
+Cost side (any adoption): (a) pre-release dependency — go-compliance/README.md:5 "built, pre-release", proxy publish of v0.2.0 unverified per TODO_LIST blocked row; (b) hub floor `go 1.27.2` patch-form — the exact poisoner class this tool exists to eliminate; adopting it into this repo would make the version-surface tool itself a surface violation; (c) zero removed hand-rolled code (see fleet argument).
 
 ## Fleet argument
 
