@@ -27,13 +27,13 @@ Enumerated from the library's real public surface (README API tables verified ag
 
 | Capability | Status | Consumer evidence (instead) | Library evidence |
 | --- | --- | --- | --- |
-| Ban policies (fluent `Ban` builder → `PolicySpec`) | N/A — the consumer audits its own version surface, never governs which libraries may be imported | — (no library-ban function exists in any pkg/) | go-policy-dsl/builder.go:26; policy.go:168-198 |
-| Companion enforcement (`RequiresCompanion`, `AsCompanionOnly`, `CompanionSpec`) | N/A — no companion-library concept in the version-surface domain | — | go-policy-dsl/builder.go:200, :208; policy.go:130-137, :190-197 |
-| Version bounds on policies (`Version`, `VersionRange`, `Validate`) | Missed — justified reimplementation: the consumer has its own directive-ranking model, `CompareDirective`/`directivePartAt` (pkg/surface/parse.go:97-118, :139-154), where the bare minor ranks BELOW patch-zero of the same minor; the DSL's semver-lite cannot express that (see gap 1) | pkg/surface/parse.go:11, :36 (own `majorMinor`), :97, :144 | go-policy-dsl/policy.go:181-188 ("NOT the Go toolchain version"); version.go:32-38, :44-48; policy.go:239-245 |
-| Detection declaration (`ImportPatterns`/`GoModPatterns`/`ExcludeIf*`/`RequireIfContains`/`WhenAnyPresent`) | Missed — justified: the consumer's detection is a full file walk + directive parsing (pkg/surface/discover.go:40-108), and the DSL explicitly owns no matching semantics ("patterns are opaque strings… the DSL owns no matching semantics", README) | pkg/surface/discover.go:59-80 (walk), :90-108 (dispatch) | go-policy-dsl/policy.go:84-119; README.md:176 |
-| Severity / Category vocabulary | Missed — justified: the consumer stamps `finding.SeverityWarning` directly from go-finding (pkg/provider/provider.go:97, :162); the DSL's enums are deliberately NOT finding's types and would require the boundary bridge the DSL's own README prescribes | pkg/provider/provider.go:97, :162 | go-policy-dsl/policy.go:29-82; README.md:162-174 |
-| Environment gate (`WhenAnyPresent`, v0.4.0) | Missed — justified: the consumer's run-time gates are numeric thresholds, already typed compile-time options — `WithExpectedMinor` (fleet minor), `WithRespectPatchFloor` (installed toolchain) — not module-presence signals | pkg/surface/rules.go:78-85, :96-102 | go-policy-dsl/policy.go:110-118; builder.go:114 |
-| CVE tagging (`NewCVE`, `WithCVEs`) | N/A — no CVE concept anywhere in the version-surface domain | — | go-policy-dsl/cve.go:26; builder.go:180 |
+| Ban policies (fluent `Ban` builder → `PolicySpec`) | N/A — the consumer audits its own version surface, never governs which libraries may be imported | — (no library-ban function exists in any pkg/) | go-policy-dsl/builder.go:26; go-policy-dsl/policy.go:168-198 |
+| Companion enforcement (`RequiresCompanion`, `AsCompanionOnly`, `CompanionSpec`) | N/A — no companion-library concept in the version-surface domain | — | go-policy-dsl/builder.go:200, :208; go-policy-dsl/policy.go:130-137, :190-197 |
+| Version bounds on policies (`Version`, `VersionRange`, `Validate`) | Missed — justified reimplementation: the consumer has its own directive-ranking model, `CompareDirective`/`directivePartAt` (pkg/surface/parse.go:97-118, :139-154), where the bare minor ranks BELOW patch-zero of the same minor; the DSL's semver-lite cannot express that (see gap 1) | pkg/surface/parse.go:11, :36 (own `majorMinor`), :97, :144 | go-policy-dsl/policy.go:181-188 ("NOT the Go toolchain version"); go-policy-dsl/version.go:32-38, :44-48; policy.go:239-245 |
+| Detection declaration (`ImportPatterns`/`GoModPatterns`/`ExcludeIf*`/`RequireIfContains`/`WhenAnyPresent`) | Missed — justified: the consumer's detection is a full file walk + directive parsing (pkg/surface/discover.go:40-108), and the DSL explicitly owns no matching semantics ("patterns are opaque strings… the DSL owns no matching semantics", README) | pkg/surface/discover.go:59-80 (walk), :90-108 (dispatch) | go-policy-dsl/policy.go:84-119; go-policy-dsl/README.md:176 |
+| Severity / Category vocabulary | Missed — justified: the consumer stamps `finding.SeverityWarning` directly from go-finding (pkg/provider/provider.go:97, :162); the DSL's enums are deliberately NOT finding's types and would require the boundary bridge the DSL's own README prescribes | pkg/provider/provider.go:97, :162 | go-policy-dsl/policy.go:29-82; go-policy-dsl/README.md:162-174 |
+| Environment gate (`WhenAnyPresent`, v0.4.0) | Missed — justified: the consumer's run-time gates are numeric thresholds, already typed compile-time options — `WithExpectedMinor` (fleet minor), `WithRespectPatchFloor` (installed toolchain) — not module-presence signals | pkg/surface/rules.go:78-85, :96-102 | go-policy-dsl/policy.go:110-118; go-policy-dsl/builder.go:114 |
+| CVE tagging (`NewCVE`, `WithCVEs`) | N/A — no CVE concept anywhere in the version-surface domain | — | go-policy-dsl/cve.go:26; go-policy-dsl/builder.go:180 |
 | Structural validation (`PolicySpec.Validate` → `*InvertedVersionRangeError`) | N/A — the DSL's only invariant (library version-range ordering) has no consumer counterpart; the consumer validates its option inputs at construction with named errors (e.g. `WithExpectedMinor` rejects unparseable minors, pkg/surface/rules.go:78-85) | pkg/surface/rules.go:78-85 | go-policy-dsl/policy.go:200-245 |
 
 ## Gap analysis / ranked opportunities
@@ -65,14 +65,14 @@ var PoisonerGoAtomicWrite = policydsl.Ban("go-atomic-write v0.5.x").
 
 ### 3. Severity/Category as a shared policy vocabulary — declined as an indirection with no buyer
 
-- **Library offers:** typed `Severity` (8 levels) and `Category` (9 axes) enums, deliberately decoupled from any consumer's types with a boundary-bridge pattern (go-policy-dsl/policy.go:29-82; README.md:162-174).
+- **Library offers:** typed `Severity` (8 levels) and `Category` (9 axes) enums, deliberately decoupled from any consumer's types with a boundary-bridge pattern (go-policy-dsl/policy.go:29-82; go-policy-dsl/README.md:162-174).
 - **Consumer does instead:** severity is a per-rule constant in go-finding's own vocabulary (`finding.SeverityWarning` at pkg/provider/provider.go:97, :162), and classification ("advisory, never error-severity" for dep-forced states, docs/DOMAIN_LANGUAGE.md:40) is deliberate policy already encoded in tests and wire goldens (AGENTS.md:87).
 - **Impact:** negligible — a second severity enum would add a translation layer between two vocabularies the consumer never needs to reconcile (it emits findings directly via linter-autoconfigure-sdk; see the sibling report).
 - **Example (what adoption would cost, for nothing gained):**
 
 ```go
 // would be needed at every emission site — bridging two enums that say the same thing
-func toFindingSeverity(s policydsl.Severity) finding.Severity { ... } // README.md:165-173 verbatim
+func toFindingSeverity(s policydsl.Severity) finding.Severity { ... } // go-policy-dsl/README.md:165-173 verbatim
 ```
 
 ### 4. `WhenAnyPresent` environment gates — different problem, already solved better in-domain
@@ -101,7 +101,7 @@ The honest yes-that-isn't: the fleet's **poisoner registry** (docs/POISONERS.md)
 Any of these flips the verdict toward adoption:
 
 1. The fleet charters **dependency-governance enforcement** (fail builds on poisoner ranges instead of just reporting carriers): gvac — or more likely library-policy calling gvac's `AnalyzeFloors` — declares those bans via `policydsl.Ban(...).VersionRange(...)`, and the two registries (POISONERS.md prose, PolicySpec values) are unified with the DSL as the source of truth.
-2. go-policy-dsl grows a **Go-directive version kind** that models the go tool's ranking (bare minor strictly below patch-zero of the same minor — today `ParseVersion("1.27")` is `ErrInvalidVersion`, go-policy-dsl/version.go:46-47, and `PolicySpec.VersionMin/Max` are documented as not-Go-toolchain, policy.go:182-183). Without that, the consumer's core ordering can never live in the DSL.
+2. go-policy-dsl grows a **Go-directive version kind** that models the go tool's ranking (bare minor strictly below patch-zero of the same minor — today `ParseVersion("1.27")` is `ErrInvalidVersion`, go-policy-dsl/version.go:46-47, and `PolicySpec.VersionMin/Max` are documented as not-Go-toolchain, go-policy-dsl/policy.go:182-183). Without that, the consumer's core ordering can never live in the DSL.
 3. A cross-fleet mandate for **uniform severity/category reporting** across the auto-configurers arrives and go-finding does not grow its own vocabulary for it — then the DSL's enums (with their README-prescribed boundary bridge) are the ready-made shared table.
 
 ## Verify block
