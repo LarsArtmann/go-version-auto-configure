@@ -55,3 +55,11 @@ Reports: docs/review/libs/*.md + index.html (write-once snapshot; re-run the lib
 - [ ] Swap the raw bool map assertion for `toolsdk.BoolFromContext` in the respect-patch-floor option read — wrong-typed config values currently behave as silently unset (go-finding-toolsdk.md gap 3)
 - [ ] Push upstream (linter-autoconfigure-sdk, unblocks every auto-configurer): `ConfigIssue.Metadata map[string]string` + structured Repair passthrough (`ModifiedFiles`/`Facts`); downstream channels already exist (go-finding Finding.Metadata, toolsdk RepairResult) and wait for the bridge (linter-autoconfigure-sdk.md gaps 2-3, go-finding.md gap 1)
 - [ ] Bump go-finding v1.15.1 → v1.16.0 opportunistically (delta is SARIF-layer only; fold into the first SARIF/Metadata-adjacent change) and adopt `Finding.Metadata` for dep-forced carriers/floors once the bridge passes it through (go-finding.md version currency + gap 1)
+
+## T18 — Fleet-run closeout (routed from the 2026-11-23 Pareto plan) — OPEN
+
+Plan: docs/planning/2026-11-23_01-32_SUPERB-library-utilization-pareto-execution-plan.md (137 micro-tasks; owner-gated M21/M22 and worth-considering M24-M27 stay in the plan until picked).
+
+- [ ] Semantic QC pass: re-read the ~10 highest-stakes Group B/C report citations (ConfigIssue field absence, ParseVersion strictness, README claims), record verdicts; normalize the three Group C reports' inventory format to the four-column contract or declare the compact form canonical (plan M17)
+- [ ] Sweep tooling v2: module-cache cite resolution (`~/go/pkg/mod/...@vX.Y.Z` paths, verifying against the PINNED version), basename-ambiguity report, `--summary` flag, and wiring into docs-gate over docs/review/libs (plan M18)
+- [ ] T12 watch batch: check the four upstream issue states (branching-flow#1, dependabot-auto-configure#3, go-cqrs-lite#42, forbidigo recurrence); un-ignore/un-skip whatever closed; update the AGENTS.md known-tool-bugs section (plan M20)
