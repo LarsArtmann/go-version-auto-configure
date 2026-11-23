@@ -51,7 +51,7 @@ Short- and mid-term actionable work, **open items only** — completed items liv
 Reports: docs/review/libs/*.md + index.html (write-once snapshot; re-run the library-deep-dive fleet runbook to re-review). Citation gate: `python3 scripts/citation-sweep.py`.
 
 - [ ] Push upstream (linter-autoconfigure-sdk, unblocks every auto-configurer): `ConfigIssue.Metadata map[string]string` + structured Repair passthrough (`ModifiedFiles`/`Facts`); downstream channels already exist (go-finding Finding.Metadata, toolsdk RepairResult) and wait for the bridge (linter-autoconfigure-sdk.md gaps 2-3, go-finding.md gap 1)
-- [ ] Bump go-finding v1.15.1 → v1.16.0 opportunistically (delta is SARIF-layer only; fold into the first SARIF/Metadata-adjacent change) and adopt `Finding.Metadata` for dep-forced carriers/floors once the bridge passes it through (go-finding.md version currency + gap 1)
+- [ ] Adopt `Finding.Metadata` for dep-forced carriers/floors once the bridge (T17 upstream row) passes it through — go-finding is already bumped to v1.16.0 (2026-11-23, SARIF-layer-only delta, goldens green; plan M3/M7b)
 
 ## T18 — Fleet-run closeout (routed from the 2026-11-23 Pareto plan) — OPEN
 
