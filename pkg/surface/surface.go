@@ -108,6 +108,16 @@ const (
 	// case: project-dependency-graph carried VERSION=0.7.0 while its
 	// changelog topped out far lower (found 2026-09-22).
 	RuleReleaseAuthorityDrift Rule = "release-authority-drift"
+
+	// RuleReleaseTagDrift fires when the pure-file release authorities AGREE
+	// but the repository's newest `v*` git tag names a different release
+	// (the second release-authority pass). The first pass cannot see this
+	// state — both files corroborate each other against a tag nobody
+	// re-tagged. Suggest-only, same reasoning as the first pass: re-tagging
+	// versus re-stamping is per-repo release policy. Needs git access, so
+	// the discovery lives in pkg/fix (a caller that already shells out);
+	// this pure comparison is exposed for it.
+	RuleReleaseTagDrift Rule = "release-tag-drift"
 )
 
 // DirectiveKind distinguishes which file declares a Go version.

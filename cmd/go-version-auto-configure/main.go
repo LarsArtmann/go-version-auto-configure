@@ -358,6 +358,9 @@ func analyzeAt(root string, opts ...surface.AnalyzeOption) (*report, error) {
 		r.suggested = append(r.suggested, issue)
 	}
 
+	r.suggested = append(r.suggested,
+		fix.ReleaseAuthorityTagIssues(context.Background(), root, surf, fix.GitTagRunner())...)
+
 	return r, nil
 }
 

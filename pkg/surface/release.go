@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"os"
 	"strings"
+
+	"golang.org/x/mod/semver"
 )
 
 // parseReleaseVersion validates and normalizes one release version as
@@ -111,6 +113,14 @@ func changelogHeadingVersion(heading string) (ReleaseVersion, bool) {
 	return parseReleaseVersion(bracket)
 }
 
+// ParseReleaseVersion is the single release-version parsing entry point:
+// the same validator for VERSION stamps, CHANGELOG headings, and (from
+// pkg/fix) git tags, so all three sources compare through identical
+// normalization (v prefix stripped).
+func ParseReleaseVersion(raw string) (ReleaseVersion, bool) {
+	return parseReleaseVersion(raw)
+}
+
 // release lazily initializes the surface's release authority so either
 // release file can be absorbed in walk order.
 func (s *Surface) release() *ReleaseAuthority {
@@ -145,6 +155,46 @@ func releaseAuthorityIssues(surf *Surface) []Issue {
 		File: "VERSION",
 		Line: 1,
 		Suggestion: "decide which source is authoritative and update the other; " +
+			"neither side is a mechanical rewrite (release policy is per-repo)",
+	}}
+}
+
+// ReleaseTagIssues is the pure half of the second release-authority pass:
+// it compares the newest `v*` git tag (parsed by the caller through
+// ParseReleaseVersion) against the pure-file sources. It fires only when
+// both files agree AND the tag disagrees — the state the first pass
+// (releaseAuthorityIssues) cannot see, because two corroborating files
+// hide the tag nobody moved. Any other combination either already has a
+// finding (files disagree) or has nothing to compare (missing sources).
+// Versions semver cannot compare stay silent: an honest "no verdict"
+// beats a fabricated drift.
+func ReleaseTagIssues(versionFile, changelogTop, tag ReleaseVersion) []Issue {
+	if versionFile == "" || changelogTop == "" || tag == "" {
+		return nil
+	}
+
+	if versionFile != changelogTop {
+		return nil
+	}
+
+	if !semver.IsValid("v" + string(versionFile)) || !semver.IsValid("v" + string(tag)) {
+		return nil
+	}
+
+	if semver.Compare("v"+string(versionFile), "v"+string(tag)) == 0 {
+		return nil
+	}
+
+	return []Issue{{
+		Rule: RuleReleaseTagDrift,
+		Message: fmt.Sprintf(
+			"VERSION and CHANGELOG.md's top released section both stamp %s, but the repository's newest v* git tag is %s",
+			versionFile,
+			tag,
+		),
+		File: "VERSION",
+		Line: 1,
+		Suggestion: "decide which source is authoritative: re-tag the release or re-stamp the files; " +
 			"neither side is a mechanical rewrite (release policy is per-repo)",
 	}}
 }
