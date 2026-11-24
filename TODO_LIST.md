@@ -38,10 +38,9 @@ Completed 2026-11-24 (the cluster wave, CHANGELOG [Unreleased] + ADR-0001 append
 
 ## T12 — Lint & environment debt (open watch items)
 
-- [ ] The remaining branching-flow INDEX_OUT_OF_RANGE warnings on the worker-pool `results[i] = ...` pattern are provably safe (index bounded by the range) — root cause filed as branching-flow#1; un-nolint when it closes
-- [ ] dependabot-auto-configure 2 findings remain (documented false positive, AGENTS.md known-tool-bugs; upstream dependabot-auto-configure#3) — un-ignore when it closes
-- [ ] forbidigo vanishing (9 `fmt.Print*` hits gone after `buildflow format`) not reproducible in the 2026-09-22 run — watch for recurrence
-- [ ] When go-cqrs-lite#42 closes (cqrs-lint none-import guard), un-skip `cqrs-lint` in .buildflow.yml
+- [ ] forbidigo vanishing (9 `fmt.Print*` hits gone after `buildflow format`) not reproducible in the 2026-09-22 run — watch for recurrence (no recurrence observed through 2026-11-24 full BuildFlow runs)
+
+*(branching-flow#1, dependabot-auto-configure#3, go-cqrs-lite#42 all closed and resolved 2026-11-24 — see AGENTS.md known-tool-bugs and CHANGELOG; M20, plan T12 watch batch.)*
 
 ## T3 — Publish (remainder)
 
@@ -58,6 +57,6 @@ Reports: docs/review/libs/*.md + index.html (write-once snapshot; re-run the lib
 
 Plan: docs/planning/2026-11-23_01-32_SUPERB-library-utilization-pareto-execution-plan.md (137 micro-tasks; owner-gated M21/M22 and worth-considering M24-M27 stay in the plan until picked).
 
-- [ ] Semantic QC pass: re-read the ~10 highest-stakes Group B/C report citations (ConfigIssue field absence, ParseVersion strictness, README claims), record verdicts; normalize the three Group C reports' inventory format to the four-column contract or declare the compact form canonical (plan M17)
-- [ ] Sweep tooling v2: module-cache cite resolution (`~/go/pkg/mod/...@vX.Y.Z` paths, verifying against the PINNED version), basename-ambiguity report, `--summary` flag, and wiring into docs-gate over docs/review/libs (plan M18)
-- [ ] T12 watch batch: check the four upstream issue states (branching-flow#1, dependabot-auto-configure#3, go-cqrs-lite#42, forbidigo recurrence); un-ignore/un-skip whatever closed; update the AGENTS.md known-tool-bugs section (plan M20)
+- [ ] Semantic QC pass: re-read the ~10 highest-stakes Group B/C report citations (ConfigIssue field absence, ParseVersion strictness, README claims), record verdicts; normalize the three Group C reports' inventory format to the four-column contract or declare the compact form canonical (plan M17) — **done 2026-11-24** (verdicts in the fleet-run report's M17 appendix; compact format declared canonical)
+- [ ] Sweep tooling v2: module-cache cite resolution (`~/go/pkg/mod/...@vX.Y.Z` paths, verifying against the PINNED version), basename-ambiguity report, `--summary` flag, and wiring into docs-gate over docs/review/libs (plan M18) — **done 2026-11-24** (all 22 fragile cites lib-qualified; baseline 360/0/0-fallbacks; `scripts/README.md`)
+- [ ] T12 watch batch: check the four upstream issue states (branching-flow#1, dependabot-auto-configure#3, go-cqrs-lite#42, forbidigo recurrence); un-ignore/un-skip whatever closed; update the AGENTS.md known-tool-bugs section (plan M20) — **done 2026-11-24** (3 issues closed+resolved, cqrs-lint un-skipped with 0 findings, AGENTS updated)

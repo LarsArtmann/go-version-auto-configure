@@ -8,7 +8,3 @@ skip_steps:
   # alignment tracked in TODO_LIST.md T16. Dependency freshness still comes
   # from dependabot's weekly grouped PRs.
   - go-mod-update
-  # cqrs-lint A009/A018 fire even for projects that import no go-cqrs-lite
-  # (verified 2026-09-22: zero matches in go.mod and go.sum). The linter
-  # cannot yet skip non-consumers; revisit if that changes.
-  - cqrs-lint
