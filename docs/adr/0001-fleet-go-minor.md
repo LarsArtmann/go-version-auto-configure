@@ -161,6 +161,29 @@ Two live poisoners were confirmed and registered in [POISONERS.md](../POISONERS.
 Both verified from the GOMODCACHE download cache (published-`.mod` evidence
 per the registry convention).
 
+### Consumer-side re-measure (2026-11-24, post cluster wave)
+
+Same exclusions as the 2026-10-17 sweep:
+
+| Signal                                                             | Value                              |
+| ------------------------------------------------------------------ | ---------------------------------- |
+| Distinct top-level projects with >=1 patch-form `go` directive     | 94 (was 91)                        |
+| `go.mod` files at minor-form `go 1.27`                             | 533 (was 535)                      |
+| `go.mod` files at patch-form `1.27.1` / `1.27.2` / `1.27.4`        | 16 / 190 / 12 (was 148 / 58 / —)   |
+| Consumers still pinning `github.com/larsartmann/go-output v0.38.2` | **0 live** (1 archived repo only)  |
+
+**The headline is the direction, not the absolute:** the go-output v0.38.2
+consumer campaign decayed to zero on its own, and the cluster wave killed every
+live published-tag poisoner but go-daemon — yet the master-side patch-form
+population GREW (1.27.2 mods 58 → 190). Masters re-lift mechanically: any
+`GOTOOLCHAIN=auto` tidy on a patched toolchain (or a session committing
+"lockstep with CI pins", see go-taskqueue 76a05058) re-raises directives. The
+fixable contract is the PUBLISHED TAG (what consumers read), not the master
+tree; a master-side sweep-and-fix campaign (plan M9) fights this treadmill
+repo by repo unless repos pin their tidy toolchain. M9's shape should
+therefore shift: pin `GOTOOLCHAIN` per repo first, then strip; judge drift by
+published tags, not working trees.
+
 ## 2026-11-24 — the cluster wave (go-taskqueue + cqrs-htmx + go-cqrs-lite + go-codec + go-appkit)
 
 The 2026-10-17 backlog named go-taskqueue and the cqrs-htmx regression as the two
