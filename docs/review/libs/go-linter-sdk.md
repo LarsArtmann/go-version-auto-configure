@@ -6,6 +6,7 @@
 | Consumer | go-version-auto-configure @ 07d4d51 |
 | Library | github.com/larsartmann/go-linter-sdk — not a dependency, latest local tag v0.6.1 @ HEAD 1694dcb |
 | Provenance | Group C |
+| Format (M17, 2026-11-24) | Compact grade format declared canonical for NOT-ADOPTED reviews — the four-column inventory below carries the evidence |
 
 ## Verdict
 

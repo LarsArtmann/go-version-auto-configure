@@ -164,7 +164,10 @@
       <p class="legend-note">
         <strong>Score semantics.</strong> <em>Leverage</em> scores (adopted and underused libraries, plus justified-no rows) measure the share of applicable capabilities leveraged through the library; inputs ship in each report.
         <em>Coverage&dagger;</em> scores grade what the consumer does instead: higher means less reason to adopt. A 0 and a 100 can both be a correct "do not adopt" &mdash; the verdict, not the number, is the deliverable.
+        <em>Format (M17 closeout, 2026-11-24):</em> the compact grade format is canonical for NOT-ADOPTED reviews (Group C) &mdash; their summary tables stay three-column because most evidence cells would be empty for never-imported libraries; the four-column inventory inside each report carries the citations.
       </p>
+      <p class="legend-note">
+        <strong>Semantic QC (M17 closeout, 2026-11-24).</strong> The ten highest-stakes Group B/C citations were re-read at source and all verdicts hold: go-policy-dsl ParseVersion strict 3-component parsing (version.go:44-48), the "NOT the Go toolchain version" comment (policy.go:181-186), README's opaque-patterns clause (README.md:176); go-linter-sdk Rule/RuleFunc/RuleMeta/Validate/OptIn at the cited lines (prose row omits Description() from the Rule interface listing &mdash; the interface has it, summary-level omission, not a false claim); go-dag-app IsDebugDIEnabled/PrintDependencyTree; go-compliance State/Rank/DeriveState/FoldEvidence/CompleteWithDiscovery; the ConfigIssue.Metadata absence (autoconfigure.go:247-267, fields end at Confidence) and the consumer's CompareDirective bare-minor-below-patch-zero ranking (pkg/surface/parse.go:97-118). Zero errata.
 
       <h2>What the run actually says</h2>
       <div class="callout">

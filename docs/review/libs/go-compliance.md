@@ -6,6 +6,7 @@
 | Consumer | go-version-auto-configure @ 07d4d51 |
 | Library | github.com/larsartmann/go-compliance (root) + github.com/larsartmann/go-compliance/hub (submodule) — not a dependency, latest local tag v0.2.0 @ HEAD 01028e6 |
 | Provenance | Group C |
+| Format (M17, 2026-11-24) | Compact grade format declared canonical for NOT-ADOPTED reviews — the four-column inventory below carries the evidence |
 
 ## Verdict
 

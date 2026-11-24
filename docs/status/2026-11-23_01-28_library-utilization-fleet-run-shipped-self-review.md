@@ -117,3 +117,28 @@
 ---
 
 *Report written per the user's explicit format request (sections a–g, Markdown, docs/status/). The actionable core of section (f) is already in TODO_LIST (T17); the remainder is Roadmap-class unless you pick from it. WAITING FOR INSTRUCTIONS.*
+
+---
+
+## Appendix: M17 closeout (2026-11-24, pareto execution)
+
+Items 8 (semantic QC) and 11 (format normalization) from section (f), executed per the pareto plan:
+
+**Semantic QC — the ten highest-stakes Group B/C citations re-read at source, verdicts recorded:**
+
+| # | Claim under test | Source re-read | Verdict |
+|---|---|---|---|
+| 1 | ParseVersion accepts only strict major.minor.patch (rejects `1.2`, `1.2.3.4`, `latest`, `""`) | go-policy-dsl version.go:32-48 (`versionComponentCount = 3`, doc comment enumerates the rejects) | Holds |
+| 2 | Policy versions are library versions, "NOT the Go toolchain version" | go-policy-dsl policy.go:181-186 (comment verbatim) | Holds |
+| 3 | DSL owns no matching semantics; patterns are opaque `[]string` | go-policy-dsl README.md:176 | Holds |
+| 4 | ConfigIssue has no metadata field (the bridge gap) | linter-autoconfigure-sdk autoconfigure.go:247-267 (fields: Rule, Message, Severity, File, Line, Suggestion, Confidence) | Holds — gap confirmed |
+| 5 | `Rule` interface ID/Name/Category/Severity/Check | go-linter-sdk rule.go:115+ | Holds, one prose nuance: the interface also has `Description()`, which the report's summary row omits — summary-level omission, not a false claim |
+| 6 | `RuleFunc` struct literal (Meta + Run) | go-linter-sdk rule.go:158-162 | Holds |
+| 7 | `RuleMeta` + `Validate` | go-linter-sdk rule.go:169, :216 | Holds |
+| 8 | `OptIn` wrapper | go-linter-sdk rule.go:275 | Holds |
+| 9 | go-dag-app `IsDebugDIEnabled` / `PrintDependencyTree` (`do.ExplainInjector`) | go-dag-app container.go:34, :49-64 | Holds |
+| 10 | go-compliance `State`/`Rank`/`DeriveState` + `FoldEvidence`/`CompleteWithDiscovery`; consumer `CompareDirective` bare-minor-below-patch-zero ranking | go-compliance state.go:13, :50, :112; fold.go:113, :196; pkg/surface/parse.go:97-118 | Holds |
+
+**Zero errata.** The one nuance (row 5) stays a listed observation, not a report edit: the inventory row is a capability summary, and the cited lines remain accurate.
+
+**Format decision (item 11):** the compact grade format is **declared canonical for NOT-ADOPTED reviews** (the other option — normalizing Group C's summary tables to the four-column inventory — was rejected: most evidence cells would be empty for never-imported libraries, and each report's four-column inventory already carries the citations). Applied: a Format row stamped into all three Group C reports' metadata tables and a format-canonicity sentence in index.html's score-semantics legend. Citation sweep re-run after the edits: 360 → 0 defects.
