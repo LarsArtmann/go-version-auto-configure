@@ -1,12 +1,13 @@
 #!/usr/bin/env bash
 # docs-gate — standing documentation health check for this repo.
 # Wired as flake app `docs-gate` (nix run .#docs-gate); lychee comes from the
-# flake's nixpkgs. Three checks:
+# flake's nixpkgs. Four checks:
 #   1. link check (README, CHANGELOG, docs/) — hard gate
 #   2. TODO_LIST hygiene: no checked boxes ([x]) — completed items move to
 #      CHANGELOG (docs-health policy) — hard gate
 #   3. stale-report probe: status reports older than 21 days that still sit in
 #      docs/status/ root (not archived/) — advisory (harvest then archive)
+#   4. citation sweep over docs/review/libs/*.md — hard gate (M18)
 set -uo pipefail
 cd "$(git rev-parse --show-toplevel)"
 
@@ -46,5 +47,16 @@ while IFS= read -r -d '' f; do
   fi
 done < <(find docs/status -maxdepth 1 -name '*.md' -print0 2>/dev/null)
 [ "$stale" -eq 0 ] && echo "OK: no reports older than ${cutoff_days}d in status root"
+
+echo "== citation sweep (docs/review/libs) =="
+if command -v python3 >/dev/null 2>&1; then
+  if ! python3 scripts/citation-sweep.py; then
+    echo "FAIL: citation sweep found defects"
+    fail=1
+  fi
+else
+  echo "FAIL: python3 not in PATH — citation sweep cannot run (install python3; this is a hard gate)"
+  fail=1
+fi
 
 exit "$fail"

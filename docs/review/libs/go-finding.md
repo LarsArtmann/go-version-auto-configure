@@ -36,13 +36,13 @@ The moderate score with a mild verdict is explained by structure: five of the si
 | Capability | Status | Consumer evidence | Library evidence |
 | --- | --- | --- | --- |
 | Branded string types (`RuleName`/`ToolName`/`FilePath`/`ID`/`GroupID`) | Fully Leveraged | pkg/provider/provider.go:95, :98, :160, :163 (boundary conversion); pkg/provider/provider_test.go:57 | go-finding/branded_types.go:10, :13, :16, :19 |
-| `Finding` data model (+ `Validate`/`Equal`) | Fully Leveraged (via bridge — deliberate delegation) | pkg/provider/provider.go:46-52; tests assert `f.ToolName`/`f.Rule` at pkg/provider/provider_test.go:56-59 | go-finding/finding.go:8; bridge builds via linter-autoconfigure-sdk autoconfigure.go:450 |
-| Builder API (validated construction) | Fully Leveraged (via bridge) | pkg/provider/provider.go:8-10 documents the delegation | go-finding/finding_builder.go:24 (`NewBuilder`, used by the bridge at linter-autoconfigure-sdk autoconfigure.go:296) |
+| `Finding` data model (+ `Validate`/`Equal`) | Fully Leveraged (via bridge — deliberate delegation) | pkg/provider/provider.go:46-52; tests assert `f.ToolName`/`f.Rule` at pkg/provider/provider_test.go:56-59 | go-finding/finding.go:8; bridge builds via linter-autoconfigure-sdk/autoconfigure.go:450 |
+| Builder API (validated construction) | Fully Leveraged (via bridge) | pkg/provider/provider.go:8-10 documents the delegation | go-finding/finding_builder.go:24 (`NewBuilder`, used by the bridge at linter-autoconfigure-sdk/autoconfigure.go:296) |
 | Stable ID generation (`GenerateID`) | Fully Leveraged (via bridge — every emitted finding carries a minted ID) | pkg/provider/provider.go:46-52 (all findings go through the bridge) | go-finding/id.go:34 |
-| `FixStrategy` classification (none/suggest/direct) | Fully Leveraged (via bridge: suggestion⇒suggest, else none) | pkg/provider/provider.go:146-147, :165 (suggestion populated per issue kind) | go-finding/finding.go:23; bridge rule at linter-autoconfigure-sdk autoconfigure.go:312-318 |
-| Category / Confidence / Tags | Partially Used | Bridge stamps `CategoryConfiguration` + default `ConfidenceFull`; consumer sets neither, and its own taxonomy (form/alignment/toolchain/discovery, pkg/surface/rules.go) is richer than one category | go-finding/category.go:10, go-finding/confidence.go:19; bridge at linter-autoconfigure-sdk autoconfigure.go:303-306 |
+| `FixStrategy` classification (none/suggest/direct) | Fully Leveraged (via bridge: suggestion⇒suggest, else none) | pkg/provider/provider.go:146-147, :165 (suggestion populated per issue kind) | go-finding/finding.go:23; bridge rule at linter-autoconfigure-sdk/autoconfigure.go:312-318 |
+| Category / Confidence / Tags | Partially Used | Bridge stamps `CategoryConfiguration` + default `ConfidenceFull`; consumer sets neither, and its own taxonomy (form/alignment/toolchain/discovery, pkg/surface/rules.go) is richer than one category | go-finding/category.go:10, go-finding/confidence.go:19; bridge at linter-autoconfigure-sdk/autoconfigure.go:303-306 |
 | Severity scale (4 levels, `Compare`, aliases) | Partially Used | Every finding is `finding.SeverityWarning` — pkg/provider/provider.go:97, :162; policy keeps advisories at warning (pkg/provider/analyze_held_test.go:88) | go-finding/severity.go:16-19 |
-| Position model (`Pos`/`FilePos`, offsets, `Range`) | Partially Used | File+line only (pkg/provider/provider.go:98-99, :163-164); column/offset/`Range` unused — directive findings are line-oriented, so the unused half is domain-justified | go-finding/position.go:33 (type), go-finding/range.go:208 (`Pos`); bridge `Pos(file,line,1)` at linter-autoconfigure-sdk autoconfigure.go:291-295 |
+| Position model (`Pos`/`FilePos`, offsets, `Range`) | Partially Used | File+line only (pkg/provider/provider.go:98-99, :163-164); column/offset/`Range` unused — directive findings are line-oriented, so the unused half is domain-justified | go-finding/position.go:33 (type), go-finding/range.go:208 (`Pos`); bridge `Pos(file,line,1)` at linter-autoconfigure-sdk/autoconfigure.go:291-295 |
 | Working-dir context propagation | Fully Leveraged | pkg/provider/provider.go:242 (`finding.WorkingDirFromContext`); tests set it at pkg/provider/provider_test.go:49 | go-finding/context.go:21, :31 |
 | `Detector` contract (`DetectorFunc`/`NamedDetectorFunc`) | Fully Leveraged (bridge wires the Analyze closure as a `finding.Detector` into `Spec.Detect`) | pkg/provider/provider.go:46-52, :73-75 | go-finding/detector.go:10, :18, :35; go-finding/toolsdk/spec.go:84 |
 | DetectorV2 coverage evidence (`DetectResult.FilesScanned`/`SkippedModules`, `RunDetect`) | Missed Opportunity | Provider answers "clean" with zero findings (pkg/provider/provider.go:87-111) — not yet provable coverage; v1.16.0 ships a runnable example | go-finding/detect_result.go:14, :34, :49; go-finding/examples/detectorv2/main.go |
@@ -151,7 +151,7 @@ What this consumer already gains from go-finding's shared surface:
 What it should push upstream instead of hand-rolling:
 
 1. **`ConfigIssue.Metadata` passthrough in linter-autoconfigure-sdk** (gap #1) — the prose-concatenation is a workaround for a missing bridge field; growing the bridge fixes every auto-configurer at once, not just this repo.
-2. **Structured `RepairResult` passthrough** — the bridge's `ProviderSpec.Repair` returns only a string (linter-autoconfigure-sdk autoconfigure.go:457-465), stranding `ModifiedFiles`/`Facts`; see the toolsdk companion report.
+2. **Structured `RepairResult` passthrough** — the bridge's `ProviderSpec.Repair` returns only a string (linter-autoconfigure-sdk/autoconfigure.go:457-465), stranding `ModifiedFiles`/`Facts`; see the toolsdk companion report.
 3. **DetectorV2 consumption in BuildFlow** — the coverage-evidence payoff (gap #3) is host-side; requesting it upstream unblocks every provider, this one included.
 
 ## RECONSIDER-WHEN
@@ -192,7 +192,7 @@ cd pipeline  && GOTOOLCHAIN=go1.27.1 GOEXPERIMENT=jsonv2 go doc -all . | rg '^(t
 # citation spot-checks (file:line)
 rg -n 'type (ID|RuleName|ToolName|FilePath)' branded_types.go; grep -n 'func WithWorkingDir\|func WorkingDirFromContext' context.go
 grep -n 'func CheckBinary\|func RunCmd' detector.go
-rg -n 'SeverityInfo|SeverityWarning|SeverityError|SeverityCritical' severity.go   # → severity.go:16-19
+rg -n 'SeverityInfo|SeverityWarning|SeverityError|SeverityCritical' severity.go   # → go-finding/severity.go:16-19
 grep -n 'func (r \*Report) ToSARIF\|SetRunProperty\|RunProperties' report.go sarif_export.go sarif_import.go
 grep -n 'type Suppression' suppression.go; grep -n 'func GenerateID' id.go
 grep -n 'func OnGoFiles\|func OnFiles' toolsdk/triggers.go; grep -n 'func WithDryRun\|func DryRunFromContext' toolsdk/dryrun.go

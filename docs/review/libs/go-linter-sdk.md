@@ -82,5 +82,5 @@ grep -n 'go-finding\|toolsdk' README.md docs/DOMAIN_LANGUAGE.md
 cd /home/lars/projects/go-version-auto-configure && sed -n 1,130p pkg/surface/rules.go
 grep -n 'type Issue' pkg/surface/surface.go                                                  # :301
 grep -n 'ProviderFromSpec\|toolsdk.Register' pkg/provider/provider.go                        # :46, :67
-sed -n 136,171p cmd/go-version-auto-configure/contract_test.go equivalents (exit contract: contract_test.go:17)
+sed -n 136,171p cmd/go-version-auto-configure/contract_test.go equivalents (exit contract: cmd/go-version-auto-configure/contract_test.go:17)
 ```
