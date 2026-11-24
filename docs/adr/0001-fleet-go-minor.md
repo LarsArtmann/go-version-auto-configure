@@ -160,3 +160,34 @@ Two live poisoners were confirmed and registered in [POISONERS.md](../POISONERS.
 
 Both verified from the GOMODCACHE download cache (published-`.mod` evidence
 per the registry convention).
+
+## 2026-11-24 — the cluster wave (go-taskqueue + cqrs-htmx + go-cqrs-lite + go-codec + go-appkit)
+
+The 2026-10-17 backlog named go-taskqueue and the cqrs-htmx regression as the two
+live poisoners. Executing their re-tags surfaced the full shape: a five-repo
+pin-in-tag spiral, deeper than any single-repo ledger row.
+
+**Chain (dependency order):** go-codec v0.3.3 (`go 1.27.2`) → go-cqrs-lite (23
+trains regressed to `go 1.27.2` post-92-wave) → cqrs-htmx (11 trains at
+`go 1.27.3`) → go-taskqueue (all trains `1.27.1`–`1.27.4`); go-appkit v0.13.0
+(`go 1.27.4`) forced cqrs-htmx setup independently. who-forces on
+cqrs-htmx/usermgmt and go-taskqueue/internal/composition named the carriers.
+
+**Wave:** 61 tags across five repos, all +0.1 patch from minor-form masters,
+sibling pins flipped to the wave versions so tag-time tidy cannot re-lift.
+Proxy-verified 2026-11-24 (consumer-visible `.mod`): command/v4.14.2,
+cqrs-htmx/v4.19.1, go-taskqueue/v0.4.3, go-codec/v0.3.4, go-appkit/v0.13.1 —
+all `go 1.27`. The 13-module `1.27.2` tidy re-lift inside go-taskqueue is gone.
+
+**Lessons:** (1) tag-tree layouts diverge from master after restructures
+(go-cqrs-lite moved modules under `/v4` dirs; tags keep the flat layout) —
+inventory tooling must resolve paths per tag, not per master. (2) Hermetic
+gates that ls-remote the remote deadlock coordinated waves (cqrs-htmx
+release-train): push tags first, then master through the gate against the now-
+published tags. (3) Masters can carry std-floor patches (cqrs-htmx setup,
+`go 1.27.4`, direct json/v2 importer) while their published tags stay
+minor-form — the tag directive is the only consumer-facing contract.
+(4) A parallel session's CI-lockstep floor raise (go-taskqueue 76a05058,
+`go 1.27.4` "in lockstep with the CI pins") re-introduced patch-form masters
+mid-campaign; superseded by ab1eeb4b per this ADR — CI go-version pins are
+raised TO the floor by gvac fix, never the directive up to the pin.

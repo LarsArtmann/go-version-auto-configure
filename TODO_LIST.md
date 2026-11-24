@@ -4,9 +4,10 @@ Short- and mid-term actionable work, **open items only** — completed items liv
 
 ## T14 — Supply-side re-tags still pending
 
-- [ ] **`go-taskqueue` (NEW, found 2026-10-17)** — strip master and re-tag every module minor-form, dependency-ordered. Every module (root, `internal/journal`, `internal/executor`, `cmd/tq`, ...) is `go 1.27.1` at source AND in published tags, so it self-poisons: `who-forces` names only its own published tags as carriers. Published-`.mod` evidence in [docs/POISONERS.md](docs/POISONERS.md); never ran the 2026-09-22 campaign.
-- [ ] **`cqrs-htmx` re-tag wave (no longer "in flight")** — the 2026-10-03 wave landed minor-form (`cqrs-htmx/v4@v4.13.3` = `go 1.27`), then **REGRESSED** at v4.14.0/v4.14.1 (2026-10-12) to `go 1.27.2`; the local tree is mixed (7x `1.26.7`, 8x `1.27`, 21x `1.27.2`). Strip master, re-cut minor-form tags dependency-ordered, and find why v4.14.0 re-lifted (a `1.27.2` dependency or a local toolchain patch floor) so the regression does not repeat.
-- [ ] Map the cqrs-htmx poisoner surface (`who-forces` across its importers) before its re-tag — carried over from the original T14 row.
+Completed 2026-11-24 (the cluster wave, CHANGELOG [Unreleased] + ADR-0001 appendix): go-taskqueue 26-tag wave, cqrs-htmx 11-tag wave, go-cqrs-lite 23-tag second wave, go-codec v0.3.4, go-appkit v0.13.1; poisoner surface mapped via who-forces (go-codec deepest carrier). Still open below.
+
+- [ ] **`go-daemon` re-tag (the last Active poisoner)** — strip master (drifted to `go 1.27.2`), re-tag v0.4.1 minor-form with bumped sibling pins (sseparse v0.2.1, go-codec v0.3.4 already minor-form), then bump nextd. Published-`.mod` evidence in [docs/POISONERS.md](docs/POISONERS.md).
+- [ ] go-taskqueue master push — blocked by the repo's push-timing guard while a parallel session folds commits; tags are live and consumer-visible (the poison fix), master carries the policy re-strip.
 
 ## T1 — Fleet consumer campaign (remainder)
 

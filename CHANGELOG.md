@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+### Changed
+
+- **The 2026-11-24 cluster wave killed every live third-party poisoner but go-daemon** (T14 + plan M4/M5/M10): a five-repo pin-in-tag spiral (go-codec v0.3.3 → go-cqrs-lite 23 regressed trains → cqrs-htmx 11 trains → go-taskqueue; go-appkit v0.13.0 forcing setup independently) re-tagged 61 minor-form tags +0.1 patch across the cluster with sibling pins flipped to the wave versions; the 13-module `go 1.27.2` tidy re-lift inside go-taskqueue is gone (all 26 modules tidy-stable at `go 1.27`, cmd/tq post-push). Proxy-verified consumer-visible `.mod` for all five repos (all `go 1.27`). go-taskqueue/cqrs-htmx/go-cqrs-lite + go-codec/go-appkit rows moved to Resolved in [docs/POISONERS.md](docs/POISONERS.md); go-daemon is the last Active poisoner; the Active table also records the wave's std-floor live example (cqrs-htmx setup's master-side `go 1.27.4`). ADR-0001 appendix carries the wave record and four lessons (tag-layout divergence, gate-deadlock tag-first push pattern, master-vs-tag floor honesty, the CI-lockstep floor-raise collision).
+
 ### Added
 
 - **The BuildFlow provider now declares its true read/write surface** (the library-utilization run's top finding): `ProviderSpec.ConfigFiles` covers every file class `Discover` dispatches on — go.mod, go.work, flake.nix, `.github/workflows/*.yml`+`*.yaml`, VERSION, CHANGELOG.md — so the bridge-derived `Spec.Inputs` gates BuildFlow re-runs and data-flow edges on flake.nix and CI-pin drift (previously only `go.mod`, leaving the majority of the tool's core scenarios under-triggered), and `Spec.Outputs` declares the repair write contract (go.mod, go.work, `.github/workflows/*`; flake.nix/VERSION/CHANGELOG.md are read-only surfaces the tool never writes). Pinned by a surface-declaration test and a flake-only-drift detect test.
