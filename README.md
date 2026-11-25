@@ -73,6 +73,12 @@ go-version-auto-configure check --json ~/projects/*/ | jq '.repos[] | select(.cl
 go-version-auto-configure check --quiet --expect-minor 1.27 ~/projects/*/ ; echo $?   # 0 clean, 1 findings, 2 errors
 ```
 
+CI systems that speak SARIF (GitHub code scanning, BuildFlow evidence pipelines) can consume `check --sarif` instead: a SARIF 2.1.0 document with one run per invocation, absolute finding locations, and a run propertyBag stamping the scanned roots and the schema version of the `--json` contract. Exit codes are unchanged (0 clean / 1 findings / 2 errors), so the same gate logic covers both formats:
+
+```bash
+go-version-auto-configure check --sarif ~/projects/my-repo > gvac.sarif.json
+```
+
 Scheduled enforcement as a cron job (nightly sweep, non-zero exit alerts through your usual failure channel):
 
 ```cron
