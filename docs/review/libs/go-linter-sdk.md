@@ -68,6 +68,10 @@ The framing cuts both ways here, and honesty requires stating both:
 
 Any of: (a) the rule set grows enough that users demand rule-ID-level CLI selection (`--enable/--disable` per `surface.Rule` constant) — then `SelectRules`/`Filter` (go-linter-sdk/registry.go:479) plus a `Registry` becomes genuinely cheaper than hand-rolling flag plumbing; (b) a second detector module (flake.lock pin analysis, T9) is built that wants per-rule parallelism via go-finding/pipeline — then `DetectorsFromRegistry` is the right bus; (c) the fleet converges the autoconfigurers themselves onto go-linter-sdk — follow the fleet, do not stay solo.
 
+**Watch status (M27, 2026-11-24):** trigger (c) progressed but has not fired — the fleet importer set is six repos (samber-linter, go-structure-linter, binary-checker, go-humanize-linter, BuildFlow, this report's sibling autoconfigurers remain outside it). The convergence trajectory continues; this consumer stays solo until the autoconfigurers themselves adopt. No split-brain risk change.
+
+**Watch status (M27, 2026-11-24, sdk audit/):** the audited linter-autoconfigure-sdk audit surface is root-module-resident (`audit.go` + tests), not a separate `audit/` submodule; it ships with root tags through v0.8.1 — no separate tag to wait for. No action.
+
 ## Verify block
 
 ```bash
