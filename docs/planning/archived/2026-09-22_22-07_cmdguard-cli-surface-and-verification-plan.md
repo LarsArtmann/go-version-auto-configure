@@ -65,23 +65,23 @@ Sorted by impact/effort/customer-value. "Blocked by" chains are in the graph in 
 
 | #  | WP | Task | Impact                                                                                                                                                                | Effort   | Category | Depends on       |
 | -- | -- | ---- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- | -------- | ---------------- |
-| ~~ | 1  | A    | cmdguard exit-contract spike: silent exit-1-findings via ExitCoder, print-once, JSON untouched, multi-root positional args                                            | Critical | 60 min   | Decision/Feature |
-| ~~ | 2  | B    | Migrate cmd/ (check, fix, who-forces, version) to cmdguard v4; shared `--json`/`--parallel` via embedded flags struct; delete `runFlags`/`newRunFlagSet`/`parseRoots` | Critical | 100 min  | Refactor/Feature |
-| ~~ | 3  | C    | Migration verification: pre/post snapshots of `--help`, human output, `--json` output, exit codes on clean/drifted/error repos, multi-root + `--parallel`             | Critical | 60 min   | Quality          |
-| ~~ | 4  | D    | Guard-rails: golden test asserting the shared flag contract across subcommands; lint/grep rule banning raw `flag` + `cobra` imports in `cmd/`                         | High     | 30 min   | Quality          |
-| ~~ | 5  | E    | JSON wire-contract golden tests (go-snaps) for `emitCheckJSON`, `emitFixJSON`, `emitFloorsJSON`                                                                       | High     | 60 min   | Quality          |
-| ~~ | 6  | F    | Move `GOTOOLCHAIN` pin to `flake.nix` devShell; de-prefix AGENTS.md Build & Run commands                                                                              | High     | 30 min   | Cleanup          |
-| ~~ | 7  | G    | HARVEST this plan + status report into `TODO_LIST.md` / `ROADMAP.md`                                                                                                  | High     | 30 min   | Documentation    |
-| ~~ | 8  | H    | Reconcile AGENTS.md floor-policy + dogfooding caveat with sibling ADR outcome (go 1.27 stay/leave)                                                                    | High     | 30 min   | Documentation    |
-| ~~ | 9  | I    | who-forces: explicit toolchain env for exec'd `go list` (respect parent, normalize for floor analysis); policy note in fix pkg runner                                 | High     | 90 min   | Feature          |
-| ~~ | 10 | J    | Unit tests for retained helpers: `readLines` unreadable path, `rootsFrom` edge cases                                                                                  | Medium   | 30 min   | Quality          |
-| ~~ | 11 | K    | DEDUPLICATION baseline doc: accepted clone groups + rationale, art-dupl invocation record                                                                             | Medium   | 30 min   | Quality          |
-| ~~ | 12 | L    | Worker-pool shape: evaluate generic `runParallel[T]` vs documented accept across analyzeAll/applyAll/cmdWhoForces                                                     | Medium   | 60 min   | Refactor         |
-| ~~ | 13 | M    | `-h` exit-code contract test + version-stamp (`ldflags`/dirty) CI assertion                                                                                           | Medium   | 30 min   | Quality          |
-| ~~ | 14 | N    | art-dupl `-t 5 --html` re-run post-migration: confirm zero clone groups in cmd/; record result in K                                                                   | Medium   | 30 min   | Quality          |
-| ~~ | 15 | O    | Docs pass: CHANGELOG (dedup + migration), DOMAIN_LANGUAGE (command-surface terms), fleet lesson to crush-config `references/lessons.md`, FLEET-STANDARD cross-ref     | Medium   | 60 min   | Documentation    |
-| ~~ | 16 | P    | Re-verify standing upstream notes (cqrs-lint, dependabot "no update groups", branching-flow INDEX_OUT_OF_RANGE) against current head; update AGENTS notes             | Low      | 60 min   | Cleanup          |
-| ~~ | 17 | Q    | go-atomic-write direct-dep tidy warning resolution                                                                                                                    | Low      | 30 min   | Cleanup          |
+|  | ~~1~~ | ~~A~~ | ~~cmdguard exit-contract spike: silent exit-1-findings via ExitCoder, print-once, JSON untouched, multi-root positional args~~ | ~~Critical~~ | ~~60 min~~ | ~~Decision/Feature~~ |
+|  | ~~2~~ | ~~B~~ | ~~Migrate cmd/ (check, fix, who-forces, version) to cmdguard v4; shared `--json`/`--parallel` via embedded flags struct; delete `runFlags`/`newRunFlagSet`/`parseRoots`~~ | ~~Critical~~ | ~~100 min~~ | ~~Refactor/Feature~~ |
+|  | ~~3~~ | ~~C~~ | ~~Migration verification: pre/post snapshots of `--help`, human output, `--json` output, exit codes on clean/drifted/error repos, multi-root + `--parallel`~~ | ~~Critical~~ | ~~60 min~~ | ~~Quality~~ |
+|  | ~~4~~ | ~~D~~ | ~~Guard-rails: golden test asserting the shared flag contract across subcommands; lint/grep rule banning raw `flag` + `cobra` imports in `cmd/`~~ | ~~High~~ | ~~30 min~~ | ~~Quality~~ |
+|  | ~~5~~ | ~~E~~ | ~~JSON wire-contract golden tests (go-snaps) for `emitCheckJSON`, `emitFixJSON`, `emitFloorsJSON`~~ | ~~High~~ | ~~60 min~~ | ~~Quality~~ |
+|  | ~~6~~ | ~~F~~ | ~~Move `GOTOOLCHAIN` pin to `flake.nix` devShell; de-prefix AGENTS.md Build & Run commands~~ | ~~High~~ | ~~30 min~~ | ~~Cleanup~~ |
+|  | ~~7~~ | ~~G~~ | ~~HARVEST this plan + status report into `TODO_LIST.md` / `ROADMAP.md`~~ | ~~High~~ | ~~30 min~~ | ~~Documentation~~ |
+|  | ~~8~~ | ~~H~~ | ~~Reconcile AGENTS.md floor-policy + dogfooding caveat with sibling ADR outcome (go 1.27 stay/leave)~~ | ~~High~~ | ~~30 min~~ | ~~Documentation~~ |
+|  | ~~9~~ | ~~I~~ | ~~who-forces: explicit toolchain env for exec'd `go list` (respect parent, normalize for floor analysis); policy note in fix pkg runner~~ | ~~High~~ | ~~90 min~~ | ~~Feature~~ |
+|  | ~~10~~ | ~~J~~ | ~~Unit tests for retained helpers: `readLines` unreadable path, `rootsFrom` edge cases~~ | ~~Medium~~ | ~~30 min~~ | ~~Quality~~ |
+|  | ~~11~~ | ~~K~~ | ~~DEDUPLICATION baseline doc: accepted clone groups + rationale, art-dupl invocation record~~ | ~~Medium~~ | ~~30 min~~ | ~~Quality~~ |
+|  | ~~12~~ | ~~L~~ | ~~Worker-pool shape: evaluate generic `runParallel[T]` vs documented accept across analyzeAll/applyAll/cmdWhoForces~~ | ~~Medium~~ | ~~60 min~~ | ~~Refactor~~ |
+|  | ~~13~~ | ~~M~~ | ~~`-h` exit-code contract test + version-stamp (`ldflags`/dirty) CI assertion~~ | ~~Medium~~ | ~~30 min~~ | ~~Quality~~ |
+|  | ~~14~~ | ~~N~~ | ~~art-dupl `-t 5 --html` re-run post-migration: confirm zero clone groups in cmd/; record result in K~~ | ~~Medium~~ | ~~30 min~~ | ~~Quality~~ |
+|  | ~~15~~ | ~~O~~ | ~~Docs pass: CHANGELOG (dedup + migration), DOMAIN_LANGUAGE (command-surface terms), fleet lesson to crush-config `references/lessons.md`, FLEET-STANDARD cross-ref~~ | ~~Medium~~ | ~~60 min~~ | ~~Documentation~~ |
+|  | ~~16~~ | ~~P~~ | ~~Re-verify standing upstream notes (cqrs-lint, dependabot "no update groups", branching-flow INDEX_OUT_OF_RANGE) against current head; update AGENTS notes~~ | ~~Low~~ | ~~60 min~~ | ~~Cleanup~~ |
+|  | ~~17~~ | ~~Q~~ | ~~go-atomic-write direct-dep tidy warning resolution~~ | ~~Low~~ | ~~30 min~~ | ~~Cleanup~~ |
 
 Total: 17 work packages, ~15.5 h.
 

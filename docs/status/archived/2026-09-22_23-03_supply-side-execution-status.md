@@ -74,31 +74,31 @@
 
 | #  | Task | Why now                                                                                                                                                                                          |
 | -- | ---- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| ~~ | 1    | Finish the 3 app releases: tags v0.8.2 / v0.6.4 / v0.2.1 + push + proxy `go get` each                                                                                                            |
-| ~~ | 2    | Bump THIS repo: go-finding v1.13.0, toolsdk v1.13.0, sdk v0.3.0; tidy; full gate                                                                                                                 |
-| ~~ | 3    | WP-06 finish line: `fix .` → expect applied-1/dep-forced-0; `check` exit 0; real-graph `who-forces`; rewrite AGENTS.md dogfooding caveat                                                         |
-| ~~ | 4    | Fleet re-check: `check --quiet --json --parallel ~/projects/go-*`; record before/after mechanical-finding counts in ADR appendix                                                                 |
-| ~~ | 5    | CHANGELOG: schema 2 (breaking), `--expect-minor`, `--quiet` symmetry, comparator fix, flake.nix, fleet re-tags                                                                                   |
-| ~~ | 6    | TODO_LIST: T1 items → done-with-evidence; T4 → ADR link; T0 note; new T13 std-floor watch                                                                                                        |
-| ~~ | 7    | WP-07 GitHub Actions CI (go 1.27.x, `-race`, buildflow lint gate, dogfood `check .`, erraudit)                                                                                                   |
-| ~~ | 8    | WP-08 GoReleaser + cut v0.2.0 (CHANGELOG cut → tag → proxy → GitHub Release → pkg.go.dev)                                                                                                        |
-| ~~ | 9    | WP-12 docs polish: DOMAIN_LANGUAGE (poisonerFloors, schema 2, minor-exceeds-expectation, _std floor_, floorCoveredByDirective semantics), README machine-contract table (schema 2!), cron recipe |
-| ~~ | 10   | WP-10 BuildFlow blank-import wiring + provider catalog + `--dry-run` discovery                                                                                                                   |
-| ~~ | 11   | WP-11 testify policy note + go-auto-upgrade suppression + bdd-testing future note (decision: keep)                                                                                               |
-| ~~ | 12   | AGENTS.md toolchain reality rewrite: devShell go_1_27 is the way to run; `GOTOOLCHAIN=local` caveat now means "use the flake"                                                                    |
-| ~~ | 13   | WP-14 benchmarks: `-benchmem`, parallel 1/4/auto table on seeded repos, full-fleet baseline sweep with timing                                                                                    |
-| ~~ | 14   | WP-15 upstream reports (verify-before-filing → github-voice): cqrs-lint A018 with zero imports; branching-flow INDEX_OUT_OF_RANGE; BuildFlow single-step skip_steps WARN                         |
-| ~~ | 15   | ADR-0001 appendix: json/v2 std-floor term + the v0.38.1→v0.38.2 incident as the worked example                                                                                                   |
-| ~~ | 16   | Fleet flake-pin campaign plan: ~205 `go_1_26` pins → `go_1_27`, ordered by consumer count (start: 3 autoconfigure apps' own pins flagged today)                                                  |
-| ~~ | 17   | WP-19 lessons: "probe the real toolchain before encoding tool behavior"; "capture exit codes before pipes"; "compute floors with the real toolchain, never static analysis"                      |
-| ~~ | 18   | T5 design: gomod-checker rule "directive below tidy-computed floor" with the x/text + json/v2 fixtures                                                                                           |
-| ~~ | 19   | BuildFlow/provider idea: flag PUBLISHED tags whose directive is below their graph's tidy floor (the v0.38.1 class) — provider detect-time check or release-time script                           |
-| ~~ | 20   | WP-09 repo meta: topics, CI badge (post-#7), branch-protection note, module-casing `go get` check                                                                                                |
-| ~~ | 21   | WP-21 T6 release-authority drift design (VERSION vs CHANGELOG top vs newest tag)                                                                                                                 |
-| ~~ | 22   | WP-22 T9 design: opt-in impure flake.lock effective-Go-revision command (Discover stays pure)                                                                                                    |
-| ~~ | 23   | WP-23 watch items: forbidigo-vanishing recurrence; dependabot-auto-configure upstream status                                                                                                     |
-| ~~ | 24   | `fix --expect-minor` docs: suggestions only, never downgrade (F16) + std-floor interaction                                                                                                       |
-| ~~ | 25   | Post-WP-05/06 re-sweep + next status report with convergence delta                                                                                                                               |
+|  | ~~1~~ | ~~Finish the 3 app releases: tags v0.8.2 / v0.6.4 / v0.2.1 + push + proxy `go get` each~~ |
+|  | ~~2~~ | ~~Bump THIS repo: go-finding v1.13.0, toolsdk v1.13.0, sdk v0.3.0; tidy; full gate~~ |
+|  | ~~3~~ | ~~WP-06 finish line: `fix .` → expect applied-1/dep-forced-0; `check` exit 0; real-graph `who-forces`; rewrite AGENTS.md dogfooding caveat~~ |
+|  | ~~4~~ | ~~Fleet re-check: `check --quiet --json --parallel ~/projects/go-*`; record before/after mechanical-finding counts in ADR appendix~~ |
+|  | ~~5~~ | ~~CHANGELOG: schema 2 (breaking), `--expect-minor`, `--quiet` symmetry, comparator fix, flake.nix, fleet re-tags~~ |
+|  | ~~6~~ | ~~TODO_LIST: T1 items → done-with-evidence; T4 → ADR link; T0 note; new T13 std-floor watch~~ |
+|  | ~~7~~ | ~~WP-07 GitHub Actions CI (go 1.27.x, `-race`, buildflow lint gate, dogfood `check .`, erraudit)~~ |
+|  | ~~8~~ | ~~WP-08 GoReleaser + cut v0.2.0 (CHANGELOG cut → tag → proxy → GitHub Release → pkg.go.dev)~~ |
+|  | ~~9~~ | ~~WP-12 docs polish: DOMAIN_LANGUAGE (poisonerFloors, schema 2, minor-exceeds-expectation, _std floor_, floorCoveredByDirective semantics), README machine-contract table (schema 2!), cron recipe~~ |
+|  | ~~10~~ | ~~WP-10 BuildFlow blank-import wiring + provider catalog + `--dry-run` discovery~~ |
+|  | ~~11~~ | ~~WP-11 testify policy note + go-auto-upgrade suppression + bdd-testing future note (decision: keep)~~ |
+|  | ~~12~~ | ~~AGENTS.md toolchain reality rewrite: devShell go_1_27 is the way to run; `GOTOOLCHAIN=local` caveat now means "use the flake"~~ |
+|  | ~~13~~ | ~~WP-14 benchmarks: `-benchmem`, parallel 1/4/auto table on seeded repos, full-fleet baseline sweep with timing~~ |
+|  | ~~14~~ | ~~WP-15 upstream reports (verify-before-filing → github-voice): cqrs-lint A018 with zero imports; branching-flow INDEX_OUT_OF_RANGE; BuildFlow single-step skip_steps WARN~~ |
+|  | ~~15~~ | ~~ADR-0001 appendix: json/v2 std-floor term + the v0.38.1→v0.38.2 incident as the worked example~~ |
+|  | ~~16~~ | ~~Fleet flake-pin campaign plan: ~205 `go_1_26` pins → `go_1_27`, ordered by consumer count (start: 3 autoconfigure apps' own pins flagged today)~~ |
+|  | ~~17~~ | ~~WP-19 lessons: "probe the real toolchain before encoding tool behavior"; "capture exit codes before pipes"; "compute floors with the real toolchain, never static analysis"~~ |
+|  | ~~18~~ | ~~T5 design: gomod-checker rule "directive below tidy-computed floor" with the x/text + json/v2 fixtures~~ |
+|  | ~~19~~ | ~~BuildFlow/provider idea: flag PUBLISHED tags whose directive is below their graph's tidy floor (the v0.38.1 class) — provider detect-time check or release-time script~~ |
+|  | ~~20~~ | ~~WP-09 repo meta: topics, CI badge (post-#7), branch-protection note, module-casing `go get` check~~ |
+|  | ~~21~~ | ~~WP-21 T6 release-authority drift design (VERSION vs CHANGELOG top vs newest tag)~~ |
+|  | ~~22~~ | ~~WP-22 T9 design: opt-in impure flake.lock effective-Go-revision command (Discover stays pure)~~ |
+|  | ~~23~~ | ~~WP-23 watch items: forbidigo-vanishing recurrence; dependabot-auto-configure upstream status~~ |
+|  | ~~24~~ | ~~`fix --expect-minor` docs: suggestions only, never downgrade (F16) + std-floor interaction~~ |
+|  | ~~25~~ | ~~Post-WP-05/06 re-sweep + next status report with convergence delta~~ |
 
 ## g) Questions I can NOT answer myself (top 2)
 

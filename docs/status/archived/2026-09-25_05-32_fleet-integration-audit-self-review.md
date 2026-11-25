@@ -53,24 +53,24 @@
 
 | #  | Task | Repo                                                                                                                                                                                 | Impact    | Effort   | Category |
 | -- | ---- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | --------- | -------- | -------- |
-| ~~ | 1    | Cut go-health minor-form floor release (master already `go 1.27`; pick v0.4.1 vs v0.5.0 — see g1)                                                                                    | go-health | Critical | S        |
-| ~~ | 2    | After #1: bump go-health-dashboard to the tag, let tidy settle `go 1.27`, delete `check-go-directive.sh` + CI wiring, close their fleet-filing row with gate-fixed-upstream evidence | dashboard | Critical | S        |
-| ~~ | 3    | Rebuild/reinstall the BuildFlow binary at the v0.2.0 pin (stale-binary warning documented in go-health status #39) — the gate protects no one until the running binary has it        | BuildFlow | High     | S        |
-| ~~ | 4    | Diagnose fix exit code for dep-forced-only runs (observed 0; doc says 1 for "poisoned"); align code or AGENTS.md wording                                                             | this repo | High     | S        |
-| ~~ | 5    | Fix check's "all auto-fixable" claim for gate-dependent fixes (relabel, or dep-aware check via AnalyzeFloors flag)                                                                   | this repo | High     | M        |
-| ~~ | 6    | Cross-check ADR 0001 consumer baseline includes go-health-dashboard (add if missing)                                                                                                 | this repo | High     | S        |
-| ~~ | 7    | Verify BuildFlow S87 defenses (GoWorkFloorFinding + DependsOn ordering) can be retired now that v0.2.0 carries the go-work-aware fixer; update their TODO S87/P1 rows                | BuildFlow | High     | M        |
-| ~~ | 8    | Raise go-health flake pin `go_1_26` → `go_1_27` (our real finding: nix-pin-below-floor)                                                                                              | go-health | Medium   | S        |
-| ~~ | 9    | Run `gvac who-forces` on dashboard; record output in their fleet-filing row as closing evidence                                                                                      | dashboard | Medium   | S        |
-| ~~ | 10   | Decide the `/version` HTTP-endpoint idea: TODO_LIST candidate or reject (boundary: arguably belongs in go-health, which owns health endpoints — see g3)                              | this repo | Medium   | S        |
-| ~~ | 11   | Add dep-forced fixture to fix tests if CanonicalizeGoMod's gate lacks a dashboard-shaped case (dependency forcing a patch floor)                                                     | this repo | Medium   | S        |
-| ~~ | 12   | Surface the supply-side remediation hint ("re-tag those modules…") in check output, not only fix output                                                                              | this repo | Medium   | S        |
-| ~~ | 13   | Name the cross-repo policy split brain in the patch-form finding text (dep-forced floors are correct state, not violation — mirrors policy #2's go.work wording)                     | this repo | Medium   | S        |
-| ~~ | 14   | After go-health re-tag: sweep all fleet consumers of go-health for re-poisoning; confirm each settles minor-form                                                                     | fleet     | Medium   | M        |
-| ~~ | 15   | Consider a single fleet "poisoner registry" doc (x/text, encoding/json/v2, go-health v0.4.0-until-retag) — currently spread across AGENTS.md + ADR appendix                          | this repo | Low      | S        |
-| ~~ | 16   | Document the throwaway-copy gate-verification recipe (safe way to test a poisoner consumer without mutating the repo)                                                                | this repo | Low      | S        |
-| ~~ | 17   | Re-run this repo's full gate suite (`go test ./...` in devShell) at next session start — none run this session (no changes, but cheap confirmation)                                  | this repo | Low      | S        |
-| ~~ | 18   | Severity review: is `go-directive-patch-form` warning-severity right for BuildFlow gates fleet-wide, given poisoned consumers will carry it indefinitely?                            | this repo | Low      | M        |
+|  | ~~1~~ | ~~Cut go-health minor-form floor release (master already `go 1.27`; pick v0.4.1 vs v0.5.0 — see g1)~~ | ~~go-health~~ | ~~Critical~~ | ~~S~~ |
+|  | ~~2~~ | ~~After #1: bump go-health-dashboard to the tag, let tidy settle `go 1.27`, delete `check-go-directive.sh` + CI wiring, close their fleet-filing row with gate-fixed-upstream evidence~~ | ~~dashboard~~ | ~~Critical~~ | ~~S~~ |
+|  | ~~3~~ | ~~Rebuild/reinstall the BuildFlow binary at the v0.2.0 pin (stale-binary warning documented in go-health status #39) — the gate protects no one until the running binary has it~~ | ~~BuildFlow~~ | ~~High~~ | ~~S~~ |
+|  | ~~4~~ | ~~Diagnose fix exit code for dep-forced-only runs (observed 0; doc says 1 for "poisoned"); align code or AGENTS.md wording~~ | ~~this repo~~ | ~~High~~ | ~~S~~ |
+|  | ~~5~~ | ~~Fix check's "all auto-fixable" claim for gate-dependent fixes (relabel, or dep-aware check via AnalyzeFloors flag)~~ | ~~this repo~~ | ~~High~~ | ~~M~~ |
+|  | ~~6~~ | ~~Cross-check ADR 0001 consumer baseline includes go-health-dashboard (add if missing)~~ | ~~this repo~~ | ~~High~~ | ~~S~~ |
+|  | ~~7~~ | ~~Verify BuildFlow S87 defenses (GoWorkFloorFinding + DependsOn ordering) can be retired now that v0.2.0 carries the go-work-aware fixer; update their TODO S87/P1 rows~~ | ~~BuildFlow~~ | ~~High~~ | ~~M~~ |
+|  | ~~8~~ | ~~Raise go-health flake pin `go_1_26` → `go_1_27` (our real finding: nix-pin-below-floor)~~ | ~~go-health~~ | ~~Medium~~ | ~~S~~ |
+|  | ~~9~~ | ~~Run `gvac who-forces` on dashboard; record output in their fleet-filing row as closing evidence~~ | ~~dashboard~~ | ~~Medium~~ | ~~S~~ |
+|  | ~~10~~ | ~~Decide the `/version` HTTP-endpoint idea: TODO_LIST candidate or reject (boundary: arguably belongs in go-health, which owns health endpoints — see g3)~~ | ~~this repo~~ | ~~Medium~~ | ~~S~~ |
+|  | ~~11~~ | ~~Add dep-forced fixture to fix tests if CanonicalizeGoMod's gate lacks a dashboard-shaped case (dependency forcing a patch floor)~~ | ~~this repo~~ | ~~Medium~~ | ~~S~~ |
+|  | ~~12~~ | ~~Surface the supply-side remediation hint ("re-tag those modules…") in check output, not only fix output~~ | ~~this repo~~ | ~~Medium~~ | ~~S~~ |
+|  | ~~13~~ | ~~Name the cross-repo policy split brain in the patch-form finding text (dep-forced floors are correct state, not violation — mirrors policy #2's go.work wording)~~ | ~~this repo~~ | ~~Medium~~ | ~~S~~ |
+|  | ~~14~~ | ~~After go-health re-tag: sweep all fleet consumers of go-health for re-poisoning; confirm each settles minor-form~~ | ~~fleet~~ | ~~Medium~~ | ~~M~~ |
+|  | ~~15~~ | ~~Consider a single fleet "poisoner registry" doc (x/text, encoding/json/v2, go-health v0.4.0-until-retag) — currently spread across AGENTS.md + ADR appendix~~ | ~~this repo~~ | ~~Low~~ | ~~S~~ |
+|  | ~~16~~ | ~~Document the throwaway-copy gate-verification recipe (safe way to test a poisoner consumer without mutating the repo)~~ | ~~this repo~~ | ~~Low~~ | ~~S~~ |
+|  | ~~17~~ | ~~Re-run this repo's full gate suite (`go test ./...` in devShell) at next session start — none run this session (no changes, but cheap confirmation)~~ | ~~this repo~~ | ~~Low~~ | ~~S~~ |
+|  | ~~18~~ | ~~Severity review: is `go-directive-patch-form` warning-severity right for BuildFlow gates fleet-wide, given poisoned consumers will carry it indefinitely?~~ | ~~this repo~~ | ~~Low~~ | ~~M~~ |
 
 _(18 real items; not padded to 50 — the rest of the 50-slot budget stays empty rather than inventing filler. HARVEST: items 4-7, 10-13, 15-18 route to TODO_LIST; 14 is fleet-coordination.)_
 
