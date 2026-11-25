@@ -1,3 +1,5 @@
+> **Live remainder (archived 2026-11-25):** all open §f items resolved — pass-dates/routings annotated inline (see the dated markers in this file); live follow-ups live in TODO_LIST (T-numbers) and docs/POISONERS.md.
+
 # Session Status — 92-Tag Campaign CLOSED, Convergence at the Goal Line, 4 cmd/* Reds Unexplained
 
 **Session:** 2026-10-03 ~05:57–07:15 (continuation of the 05-52 WAITING state). Directive: "READ, UNDERSTAND… Keep going until everything works." Interpreted per the standing pattern: Q1/Q2 organic (no action), Q3 push authorized at the END. **This report ends the session; WAITING FOR INSTRUCTIONS.**

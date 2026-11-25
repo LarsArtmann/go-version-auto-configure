@@ -65,7 +65,7 @@ WP-02 (cqrs-htmx who-forces map → strip → 14 tags), WP-05 (fleet sweep + go-
 14. WP-05: baseline sweep `check --quiet --expect-minor 1.27 ~/projects/*/` snapshot.
 15. WP-05: enumerate go-output v0.38.2 pinners (grep go.mods across ~/projects).
 16. WP-05: bump pinners to v0.38.3 + tidy + gvac fix, per repo.
-17. WP-05: post-re-tag re-sweep; record dep-forced → clean transitions.
+~~17. WP-05: post-re-tag re-sweep; record dep-forced → clean transitions.~~ p:-
 18. WP-05: `git status` spot-check per outcome class (applied / dep-forced / failed).
 19. WP-05: ADR-0001 appendix consumer-count refresh.
 20. WP-10 mt3: `buildflow update` re-run proving settle at `go 1.27` (skill already loaded).
@@ -80,7 +80,7 @@ WP-02 (cqrs-htmx who-forces map → strip → 14 tags), WP-05 (fleet sweep + go-
 29. WP-11: `nix build .#go-version-auto-configure` green.
 30. WP-11: flake `checks` entry asserting FOD go ≥ go.mod floor.
 31. WP-13: benchmark suite re-run with `-benchmem`.
-32. WP-13: write deltas into a LIVING doc (not archive-only).
+~~32. WP-13: write deltas into a LIVING doc (not archive-only).~~ p:-
 33. WP-13: per-package coverage re-measure; update FEATURES/TODO numbers.
 34. WP-14: license-check 5 isolated runs; diff cache/network/package-set.
 35. WP-14: doctor "tools unavailable" warnings review; install or document.

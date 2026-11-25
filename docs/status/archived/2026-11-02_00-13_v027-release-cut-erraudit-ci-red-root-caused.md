@@ -1,3 +1,5 @@
+> **Live remainder (archived 2026-11-25):** all open §f items resolved — pass-dates/routings annotated inline (see the dated markers in this file); live follow-ups live in TODO_LIST (T-numbers) and docs/POISONERS.md.
+
 # Status Report — 2026-11-02 00:13 CET — v0.2.7 release cut; master CI redness root-caused (erraudit supply-side)
 
 **Session scope:** the v0.2.7 release run only (go-release skill end-to-end), from release assessment through post-push verification and doc sync. Prior session's work (CI-pin graduation, BuildFlow #82, desire-secrets edits) is context, not re-reported.

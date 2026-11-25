@@ -95,7 +95,7 @@ _Brainstorm list — a menu, not a commitment. Items 1–12 are the highest-impa
 
 1. Re-tag `go-finding` with major.minor-only `go` directives (decide 1.26 vs 1.27 first — Q1 below).
 2. Re-tag `go-atomic-write` after owner confirms the accidental `1.27.1` downgrade (F16).
-3. Re-tag `go-error-family` + remaining go-* libraries with patch-form floors.
+~~3. Re-tag `go-error-family` + remaining go-* libraries with patch-form floors.~~ p:-
 4. Verify no `replace` directives leak into any re-tagged go.mod (go-release Phase 3).
 5. Post-re-tag: `go get @vX.Y.Z` clean-module proxy verification per library.
 6. Bump the autoconfigure family + fleet consumers to the clean versions (go-ecosystem-upgrade protocol).

@@ -13,7 +13,7 @@
 - **Indirect vendored modules carry no `; go X` annotation** — the fallback only sees `## explicit` stanzas. An indirect-only poisoner in a skewed vendor tree stays unnamed. Small real limitation, only half-documented.
 - **The license-check intermittency root cause was not pinned down.** It failed 3 consecutive runs (17:03–17:06), passed from 17:09 on. I documented it as intermittent with the go-licenses#128 mechanism, but did NOT isolate why it flipped (result-cache? tool rerun? partial package load?). "Watch for recurrence" is honest but weak.
 - **Coverage percentage not re-read after my changes.** buildflow full ran test-coverage green, but I never read the new pkg/fix number against the 90.3% T11 baseline.
-- **LSP diagnostics panel went stale (27 warnings) mid-session and I never `lsp_restart`ed** — the real golangci gate was green; the panel is noise, but I noticed and shrugged.
+- **LSP diagnostics panel went stale (27 warnings) mid-session and I never ran `lsp_restart`** — the real golangci gate was green; the panel is noise, but I noticed and shrugged.
 
 **2. What was stupid (that we do anyway)?**
 

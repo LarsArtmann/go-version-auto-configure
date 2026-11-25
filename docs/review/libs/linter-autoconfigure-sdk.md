@@ -19,7 +19,7 @@ Fully = 2, Partial = 1, Missed = 2, Misused = 0.
 - **Pin vs latest local tag:** consumer pins `github.com/larsartmann/linter-autoconfigure-sdk v0.8.1` (go.mod:11) — already at the latest local tag `v0.8.1`. (Consumer AGENTS.md:9 still says "v0.8.0" — stale prose, go.mod wins.)
 - **What v0.8.1 is:** a dependency-bump-only release (go-atomic-write v0.6.1, "temp-file leak fix"); the tag diff touches only go.mod/go.sum/determinism testdata, and CHANGELOG.md has no `[0.8.1]` section — the entry was never written for this tag.
 - **In-flight HEAD delta** (bfe96d7, 7 commits past the tag on `feat/audit-subpackage`, summarized in CHANGELOG.md `[Unreleased]` at linter-autoconfigure-sdk/CHANGELOG.md:7-31):
-  - New `audit` subpackage + `cmd/audit` (linter-autoconfigure-sdk/CHANGELOG.md:11-20): golangci-lint config-drift audit — dead exclusion rules, dead settings blocks, dead `nolint` directives; `Checker.Audit` emits `ConfigIssue`s (linter-autoconfigure-sdk/audit/audit.go:60,101).
+  - New `audit` subpackage + `cmd/audit` (linter-autoconfigure-sdk/CHANGELOG.md:11-20): golangci-lint config-drift audit — dead exclusion rules, dead settings blocks, dead `nolint` directives; `Checker.Audit` emits `ConfigIssue` entries (linter-autoconfigure-sdk/audit/audit.go:60,101).
   - First non-larsartmann direct dependency: `github.com/go-faster/yaml` v0.4.6 (linter-autoconfigure-sdk/CHANGELOG.md:21-23), carried by the audit subpackage only.
   - go-atomic-write → v0.6.2, go-finding → v1.15.1 (HEAD go.mod).
   - **Root-package API is untouched**: `autoconfigure.go`, `diff.go`, `bootstrap.go` are byte-identical between v0.8.1 and HEAD (`git diff v0.8.1..HEAD --stat -- autoconfigure.go diff.go bootstrap.go` is empty).

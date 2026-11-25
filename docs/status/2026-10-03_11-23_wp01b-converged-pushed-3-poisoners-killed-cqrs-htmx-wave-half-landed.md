@@ -62,8 +62,8 @@ WP-05 (fleet sweep + go-output v0.38.2 pinner bumps + ADR-0001 counts — NOTE: 
 9. Bump sibling requires via `go mod edit -require=.../v4@<newtag>` (multi-module chicken-and-egg; no tidy until tags pushed).
 10. Tag root + identity-model first (no internal deps), annotated, same commit.
 11. Tag usermgmt/oauth2, totp, webauthn next (depend on identity-model/root).
-12. Tag health, loginpage, datastar, systemadapter.
-13. Tag setup, adminui, dashboardui, auditlog.
+~~12. Tag health, loginpage, datastar, systemadapter.~~ p:-
+~~13. Tag setup, adminui, dashboardui, auditlog.~~ p:-
 14. Tag usermgmt LAST (requires root + identity-model + oauth2 family).
 15. Push master + all 14 tags.
 16. Per-tag fresh-fetch .mod verify — count-asserted 14/14 `go 1.27`.
@@ -74,7 +74,7 @@ WP-05 (fleet sweep + go-output v0.38.2 pinner bumps + ADR-0001 counts — NOTE: 
 21. WP-05: enumerate go-output v0.38.2 pinners (grep go.mods across ~/projects).
 22. WP-05: bump each pinner to v0.38.3 + tidy + `/tmp/gvac fix`.
 23. WP-05: enumerate pre-wave cqrs-lite pinners (DiscordSync, dnsblockd, PMA, KeyHolderAI, ...) — coordinate with active sessions before touching.
-24. WP-05: post-bump re-sweep; record dep-forced → clean transitions.
+~~24. WP-05: post-bump re-sweep; record dep-forced → clean transitions.~~ p:-
 25. WP-05: `git status` spot-check per outcome class.
 26. WP-05: ADR-0001 appendix consumer-count refresh.
 27. WP-21: flag-help property/snapshot test.

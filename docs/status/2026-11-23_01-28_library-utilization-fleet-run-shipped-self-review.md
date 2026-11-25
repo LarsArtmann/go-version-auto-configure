@@ -92,9 +92,9 @@
 
 **Fleet-run infrastructure (for the NEXT multi-lib audit, anywhere):**
 16. Fix the scoring-dialect spec in the library-deep-dive runbook (one semantics for NOT-ADOPTED; coverage talk goes in prose).
-17. Add the literal inventory-table template row to the audit brief template.
+~~17. Add the literal inventory-table template row to the audit brief template.~~ r:M19 owns this (SKILLS-repo runbook; TODO_LIST T19 row)
 18. Add "ask the user on first provider/permission failure" to the runbook's rate-limit section.
-19. Add the orchestrator semantic spot-check quota (5 random cited regions per report).
+~~19. Add the orchestrator semantic spot-check quota (5 random cited regions per report).~~ r:M19 owns this (TODO_LIST T19 row)
 20. Add a screenshot/permission preflight step before any HTML deliverable is written.
 
 **Follow-ons the audits surfaced (worth considering, not routed):**

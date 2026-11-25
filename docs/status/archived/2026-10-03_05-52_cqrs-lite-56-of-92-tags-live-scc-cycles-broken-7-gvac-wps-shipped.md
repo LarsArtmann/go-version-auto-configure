@@ -1,3 +1,5 @@
+> **Live remainder (archived 2026-11-25):** all open §f items resolved — pass-dates/routings annotated inline (see the dated markers in this file); live follow-ups live in TODO_LIST (T-numbers) and docs/POISONERS.md.
+
 # Status: cqrs-lite re-tag 56/92 live (both SCC cycles broken), 7 gvac WPs shipped, go-output blocker was stale
 
 **Session:** 2026-10-03 ~05:05–05:52. Directive received: "NOW GET SHIT DONE! THE WHOLE TODO LIST! DO NOT STOP" — interpreted as answering the 3 blocking questions with my recorded recommendations (Q1 → no action needed, see §d; Q2 → continue; Q3 → v0.2.5 tag+push per g2 precedent, at the END). **This report ends the session; WAITING FOR INSTRUCTIONS.**

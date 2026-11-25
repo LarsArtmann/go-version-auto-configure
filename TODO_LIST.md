@@ -53,6 +53,12 @@ Reports: docs/review/libs/*.md + index.html (write-once snapshot; re-run the lib
 - [ ] Push upstream (linter-autoconfigure-sdk, unblocks every auto-configurer) — **DONE 2026-11-25** (plan M7): shipped in sdk v0.9.0 — `ConfigIssue.Metadata`/`Category`/`Tags` (all zero-value-safe), `ProviderSpec.RepairStructured` (full `toolsdk.RepairResult`: `ModifiedFiles`/`Facts`), and `ProviderSpec.Coverage` (DetectV2 evidence); tagged + proxy-verified `go 1.27` minor-form
 - [ ] Adopt `Finding.Metadata` for dep-forced carriers/floors once the bridge (T17 upstream row) passes it through — **DONE 2026-11-25** (plan M7b): repinned to sdk v0.9.0; `toConfigIssue` wires the M26 vocabulary (`vocabularyFor`, Category+Tags) and stamps `dep-forced.floor`/`dep-forced.carriers`/`dep-forced.remediation` metadata on held strips; repair migrated to `RepairStructured` (ModifiedFiles + Facts: applied/dep-forced/held-back/failed/dry-run counts); `spec.Coverage` feeds DetectV2 with the same measurement the CLI `coverage` JSON exposes. Schema-2 CLI wire contract unchanged (goldens green)
 
+## T19 — Fleet-run runbook hardening (SKILLS repo, owner-gated on the scoring-dialect answer) — OPEN
+
+Plan M19 (docs/planning/2026-11-23_01-32_SUPERB-library-utilization-pareto-execution-plan.md); routed from the 2026-11-23 fleet-run report's §f items 17+19 (annotated routed 2026-11-25).
+
+- [ ] Runbook: literal inventory-table template row in the audit brief template + orchestrator semantic spot-check quota (5 random cited regions per report); the dialect-spec sentence waits on the owner's Q2 answer
+
 ## T18 — Fleet-run closeout (routed from the 2026-11-23 Pareto plan) — OPEN
 
 Plan: docs/planning/2026-11-23_01-32_SUPERB-library-utilization-pareto-execution-plan.md (137 micro-tasks; owner-gated M21/M22 and worth-considering M24-M27 stay in the plan until picked).

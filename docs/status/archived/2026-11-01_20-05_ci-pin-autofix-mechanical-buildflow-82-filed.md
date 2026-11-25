@@ -1,3 +1,5 @@
+> **Live remainder (archived 2026-11-25):** all open §f items resolved — pass-dates/routings annotated inline (see the dated markers in this file); live follow-ups live in TODO_LIST (T-numbers) and docs/POISONERS.md.
+
 # Status Report — CI-pin raise shipped as mechanical fix; BuildFlow #82 filed
 
 **Date:** 2026-11-01 20:05 CET

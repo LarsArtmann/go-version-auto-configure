@@ -86,7 +86,7 @@ WP-05 (fleet sweep + ADR counts), WP-09 (CI depth), WP-10 (test truth), WP-11 (n
 5. Strip all 98 cqrs-lite tree go.mods to `go 1.27` (`go mod edit -go=1.27`, cd per module — gotcha 4).
 6. Decide + set go.work directive (1.27 if nothing stays dep-forced; else keep 1.27.1) via `go work edit` (no GOWORK=off).
 7. Compute the cqrs-lite sibling-require DAG → dependency levels (leaves: id/metadata/schema/…).
-8. Check for cycles in that DAG (must be acyclic for ordered batches).
+~~8. Check for cycles in that DAG (must be acyclic for ordered batches).~~ p:-
 9. Build the per-level new-version table (latest tag patch+1 per module, ~89 rows).
 10. Run their full test gate on the stripped tree (`nix run .#test` / workspace `go test ./...`) — baseline before any tag.
 11. Update cqrs-lite AGENTS.md note 96 ("Modules are on go 1.27.1") + any doc that hardcodes the patch floor.

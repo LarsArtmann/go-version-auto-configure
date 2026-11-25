@@ -1,3 +1,5 @@
+> **Live remainder (archived 2026-11-25):** all open §f items resolved — pass-dates/routings annotated inline (see the dated markers in this file); live follow-ups live in TODO_LIST (T-numbers) and docs/POISONERS.md.
+
 # Status Report — Plan Execution: P0 + Phase PA complete, v0.2.4 shipped, BuildFlow repin mid-flight
 
 **Session:** 2026-10-03 01:43 – 02:13 CEST · **Repo:** go-version-auto-configure (master @ `57f9cfe` = tag `v0.2.4`, clean) · **Plan:** [docs/planning/2026-10-03_00-56_SUPERB-fleet-convergence-execution-plan.md](../planning/2026-10-03_00-56_SUPERB-fleet-convergence-execution-plan.md)

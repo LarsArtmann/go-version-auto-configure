@@ -178,7 +178,7 @@ Strong: 5 packages, race-clean, every package ≥80%, wire goldens for the stabl
 28. Add a fuzz target for `ParseDirective`/`ParseModulePath`.
 29. Add a `--benchmem` comparison table + a nix app to run the benchmark suite.
 30. Add a CI dogfood on a seeded drifted fixture (CI only dogfoods this clean repo today).
-31. Add a `buildflow timings --regressions` check for this repo.
+~~31. Add a `buildflow timings --regressions` check for this repo.~~ p:-
 32. license-check isolation runs → root-cause or reasoned skip.
 33. gomod-check ↔ go-mod-normalize disposition alignment (BuildFlow).
 34. vulnix CVE-2023-4039 triage inside the devShell.
