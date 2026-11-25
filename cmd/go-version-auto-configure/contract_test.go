@@ -180,6 +180,7 @@ func TestJSONWireContractGoldens(t *testing.T) {
 						},
 					},
 				},
+				"coverage": map[string]any{"filesScanned": float64(2)},
 			},
 		},
 	}, jsonGolden(t, "check", "--json", drifted), "check --json golden")
@@ -246,6 +247,7 @@ func TestJSONWireContractGoldens(t *testing.T) {
 					"suggested": float64(0), "discovery": float64(0),
 				},
 				"findings": []any{},
+				"coverage": map[string]any{"filesScanned": float64(1)},
 			},
 		},
 	}, jsonGolden(t, "check", "--json", clean), "check --json clean-state snapshot")
@@ -322,6 +324,7 @@ func TestJSONWireContractGoldens_CIPinFix(t *testing.T) {
 						},
 					},
 				},
+				"coverage": map[string]any{"filesScanned": float64(2)},
 			},
 		},
 	}, jsonGolden(t, "check", "--json", root), "check --json golden (CI pin)")
