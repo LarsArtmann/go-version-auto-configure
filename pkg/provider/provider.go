@@ -91,6 +91,10 @@ func mustProvider() toolsdk.Spec {
 	return toolsdk.Register(spec)
 }
 
+// ToolName is the provider's tool identity, shared by the CLI's SARIF
+// export so CLI and BuildFlow findings carry the same tool descriptor.
+const ToolName = toolName
+
 // analyze discovers the version surface under the working directory and
 // converts policy issues into SDK config issues, annotating tidy-held
 // patch-form findings with the dependencies holding the floor.
@@ -188,6 +192,26 @@ func toConfigIssue(issue surface.Issue, held map[string]fix.HeldStrip) autoconfi
 		Line:       issue.Line,
 		Suggestion: suggestion,
 	}
+}
+
+// FindingsFromIssues converts CLI-side surface issues into go-finding
+// findings — the SARIF export path's single conversion point, so CLI and
+// BuildFlow findings share the bridge. It is the plain conversion: the
+// dep-forced held-strip annotation is detect-time-only (toConfigIssue's
+// held map) and intentionally absent here, matching what the CLI's human
+// and schema-2 JSON reports show.
+func FindingsFromIssues(tool string, issues []surface.Issue) []finding.Finding {
+	findings := make([]finding.Finding, 0, len(issues))
+	for _, issue := range issues {
+		f, err := autoconfigure.FindingFromIssue(finding.ToolName(tool), toConfigIssue(issue, nil))
+		if err != nil {
+			continue
+		}
+
+		findings = append(findings, f)
+	}
+
+	return findings
 }
 
 // repair applies every mechanical fix, honoring BuildFlow's dry-run

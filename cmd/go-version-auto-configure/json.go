@@ -1,14 +1,19 @@
 package main
 
 import (
+	"context"
 	"encoding/json/jsontext"
 	jsonv2 "encoding/json/v2"
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
 
+	"github.com/larsartmann/go-finding"
 	"github.com/larsartmann/go-version-auto-configure/pkg/fix"
+	"github.com/larsartmann/go-version-auto-configure/pkg/provider"
 	"github.com/larsartmann/go-version-auto-configure/pkg/surface"
+	"github.com/larsartmann/go-version-auto-configure/pkg/version"
 )
 
 // The JSON shapes below are the machine-readable contract of --json: field
@@ -285,4 +290,55 @@ func emitJSON(out io.Writer, doc any) int {
 	}
 
 	return exitOK
+}
+
+// emitSARIF renders every successful root's findings as one SARIF 2.1.0
+// document through go-finding's export, the same bridge the BuildFlow
+// provider uses (provider.FindingsFromIssues). Finding locations are made
+// absolute against their root so a multi-root document stays unambiguous,
+// and the run propertyBag stamps the scan's identity: the roots, the
+// schema-2 marker tying the export to the locked --json contract, the tool
+// version, and any roots whose analysis failed (named, never dropped).
+// Exit codes are unchanged: SARIF is an output format, not a policy.
+func emitSARIF(ctx context.Context, out io.Writer, analyses []repoAnalysis) int {
+	roots := make([]string, 0, len(analyses))
+	failed := make([]string, 0)
+	findings := make([]finding.Finding, 0)
+
+	for _, analysis := range analyses {
+		if analysis.err != nil || analysis.report == nil {
+			failed = append(failed, analysis.root)
+
+			continue
+		}
+
+		roots = append(roots, analysis.root)
+
+		for _, issue := range analysis.report.all() {
+			located := issue
+			located.File = filepath.Join(analysis.root, located.File)
+			findings = append(findings, provider.FindingsFromIssues(provider.ToolName, []surface.Issue{located})...)
+		}
+	}
+
+	report := finding.NewReportFromFindings(finding.ToolInfo{
+		Name:    string(finding.ToolName(provider.ToolName)),
+		Version: version.Version,
+	}, findings)
+	report.SetRunProperty("scanRoots", roots)
+	report.SetRunProperty("schemaVersion", jsonSchemaVersion)
+
+	if len(failed) > 0 {
+		report.SetRunProperty("failedRoots", failed)
+	}
+
+	if err := report.WriteSARIFWithOpts(ctx, out); err != nil {
+		fmt.Fprintf(os.Stderr, "sarif: %v\n", err)
+
+		return exitError
+	}
+
+	fmt.Fprintln(out)
+
+	return exitFromAnalyses(analyses)
 }

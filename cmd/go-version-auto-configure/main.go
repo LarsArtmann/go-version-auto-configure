@@ -127,11 +127,20 @@ type RespectPatchFloorFlags struct {
 	RespectPatchFloor bool `default:"false" flag:"respect-patch-floor" help:"keep patch go pins the toolchain satisfies"`
 }
 
+// SarifFlags is check-only: the SARIF 2.1.0 export format for CI
+// integration (GitHub code scanning, BuildFlow evidence). SARIF is an
+// output FORMAT, not a policy change — exit codes stay the findings
+// contract.
+type SarifFlags struct {
+	SARIF bool `default:"false" flag:"sarif" help:"emit SARIF 2.1.0 (overrides --json; exit codes unchanged)"`
+}
+
 type checkFlags struct {
 	CommonFlags
 	QuietFlags
 	AnalysisFlags
 	RespectPatchFloorFlags
+	SarifFlags
 }
 
 type fixFlags struct {
@@ -189,6 +198,10 @@ func runCheck(out io.Writer, ctx context.Context, f *checkFlags) error {
 	}
 
 	analyses := analyzeAll(roots, f.Parallel, opts...)
+
+	if f.SARIF {
+		return codeFrom(emitSARIF(ctx, out, analyses))
+	}
 
 	if f.JSON {
 		return codeFrom(emitCheckJSON(out, analyses))
