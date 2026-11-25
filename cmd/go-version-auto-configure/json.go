@@ -56,11 +56,21 @@ type jsonCounts struct {
 
 // jsonRepo is one repository's check report.
 type jsonRepo struct {
-	Root     string      `json:"root"`
-	Error    string      `json:"error,omitempty"`
-	Clean    bool        `json:"clean"`
-	Counts   jsonCounts  `json:"counts"`
-	Findings []jsonIssue `json:"findings"`
+	Root     string        `json:"root"`
+	Error    string        `json:"error,omitempty"`
+	Clean    bool          `json:"clean"`
+	Counts   jsonCounts    `json:"counts"`
+	Findings []jsonIssue   `json:"findings"`
+	Coverage *jsonCoverage `json:"coverage,omitempty"`
+}
+
+// jsonCoverage is the additive coverage evidence (plan M25, schema stays 2):
+// how many surface files Discover actually read and which vendored module
+// trees the walk skipped, so a clean answer is provable against what was
+// examined.
+type jsonCoverage struct {
+	FilesScanned   int                  `json:"filesScanned"`
+	SkippedModules []surface.FilePath   `json:"skippedModules,omitempty"`
 }
 
 // checkDocument is the --json payload of check.
@@ -176,6 +186,10 @@ func toJSONRepo(a repoAnalysis) jsonRepo {
 			Discovery:  len(a.report.discovery),
 		},
 		Findings: findings,
+		Coverage: &jsonCoverage{
+			FilesScanned:   a.report.scanned,
+			SkippedModules: a.report.skipped,
+		},
 	}
 }
 

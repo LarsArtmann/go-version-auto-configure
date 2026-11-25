@@ -350,6 +350,8 @@ type report struct {
 	mechanical []surface.Issue
 	suggested  []surface.Issue
 	discovery  []surface.Issue
+	scanned    int
+	skipped    []surface.FilePath
 }
 
 // analyzeAt discovers and analyzes one repository root.
@@ -370,6 +372,9 @@ func analyzeAt(root string, opts ...surface.AnalyzeOption) (*report, error) {
 
 		r.suggested = append(r.suggested, issue)
 	}
+
+	r.scanned = surf.FilesScanned
+	r.skipped = surf.SkippedModules
 
 	r.suggested = append(r.suggested,
 		fix.ReleaseAuthorityTagIssues(context.Background(), root, surf, fix.GitTagRunner())...)

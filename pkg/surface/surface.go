@@ -207,6 +207,20 @@ type Surface struct {
 	// Release is the repository's release authority (root VERSION stamp
 	// vs top released CHANGELOG.md section); nil when neither file exists.
 	Release *ReleaseAuthority
+	// FilesScanned counts the surface files Discover actually read — the
+	// six recognized classes (go.mod, go.work, flake.nix, CI workflows,
+	// VERSION, CHANGELOG.md). Coverage evidence for the DetectorV2 shape
+	// (plan M25): a clean answer is provable only against what was
+	// examined, and zero is legal evidence (an empty target tree), which
+	// is why the count rides on the surface instead of being inferred
+	// from the findings.
+	FilesScanned int
+	// SkippedModules lists the vendored module trees the walk deliberately
+	// did not descend into (relative paths; see skippedDirs). Vendored
+	// trees don't declare this repo's floor (AGENTS policy), and reporting
+	// the skips makes the coverage arithmetic checkable: absent modules
+	// are not scanned files.
+	SkippedModules []FilePath
 }
 
 // ReleaseAuthority collects the release versions declared by the

@@ -114,7 +114,7 @@ func analyzeWith(ctx context.Context, run fix.GoCommandRunner) ([]autoconfigure.
 
 	surf, discoverIssues, err := surface.Discover(root)
 	if err != nil {
-		return nil, fmt.Errorf("%s analyze: %w", toolName, err)
+		return nil, finding.NewIOError(fmt.Sprintf("%s analyze: read the version surface under %s", toolName, root), err)
 	}
 
 	issues := make([]autoconfigure.ConfigIssue, 0, len(discoverIssues))
@@ -227,7 +227,7 @@ func repair(ctx context.Context) (string, error) {
 
 	s, _, err := surface.Discover(root)
 	if err != nil {
-		return "", fmt.Errorf("%s repair: %w", toolName, err)
+		return "", finding.NewIOError(fmt.Sprintf("%s repair: read the version surface under %s", toolName, root), err)
 	}
 
 	var fixes []surface.Fix
@@ -244,7 +244,7 @@ func repair(ctx context.Context) (string, error) {
 
 	res, err := fix.Apply(ctx, root, fixes, fix.Options{DryRun: toolsdk.DryRunFromContext(ctx)}, nil)
 	if err != nil {
-		return "", fmt.Errorf("%s repair: %w", toolName, err)
+		return "", finding.NewConflictError(fmt.Sprintf("%s repair: apply mechanical fixes in %s", toolName, root), err)
 	}
 
 	return res.Report(), nil
@@ -260,8 +260,9 @@ func repair(ctx context.Context) (string, error) {
 func respectPatchFloorOptions(ctx context.Context, root string) ([]surface.AnalyzeOption, error) {
 	respect, err := toolsdk.BoolFromContext(ctx, providerOptionRespectPatchFloor, false)
 	if err != nil {
-		return nil, fmt.Errorf(
-			"%s: read %s option: %w", toolName, providerOptionRespectPatchFloor, err,
+		return nil, finding.NewValidationError(
+			fmt.Sprintf("%s: read %s option", toolName, providerOptionRespectPatchFloor),
+			err,
 		)
 	}
 
@@ -271,8 +272,9 @@ func respectPatchFloorOptions(ctx context.Context, root string) ([]surface.Analy
 
 	installed, err := fix.InstalledToolchain(ctx, root)
 	if err != nil {
-		return nil, fmt.Errorf(
-			"%s: resolve installed toolchain for %s: %w", toolName, providerOptionRespectPatchFloor, err,
+		return nil, finding.NewIOError(
+			fmt.Sprintf("%s: resolve installed toolchain for %s", toolName, providerOptionRespectPatchFloor),
+			err,
 		)
 	}
 

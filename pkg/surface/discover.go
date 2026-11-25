@@ -63,6 +63,13 @@ func Discover(root string) (*Surface, []Issue, error) {
 
 		if entry.IsDir() {
 			if skippedDirs[entry.Name()] {
+				if entry.Name() == "vendor" {
+					rel, relErr := filepath.Rel(absRoot, path)
+					if relErr == nil {
+						surf.SkippedModules = append(surf.SkippedModules, FilePath(rel))
+					}
+				}
+
 				return filepath.SkipDir
 			}
 
@@ -86,21 +93,34 @@ func Discover(root string) (*Surface, []Issue, error) {
 }
 
 // absorbFile folds one discovered file into the surface and returns any
-// discovery issues it raised. It is Discover's per-file dispatch.
+// discovery issues it raised. It is Discover's per-file dispatch. Files the
+// dispatch actually reads count toward FilesScanned (coverage evidence,
+// plan M25); flake.lock is examined and classified but deliberately
+// unread (T9), so it does not count.
 func (s *Surface) absorbFile(path string, rel FilePath, name string) []Issue {
 	switch {
 	case name == "go.mod", name == "go.work":
+		s.FilesScanned++
+
 		return s.absorbDirectiveFile(path, rel, name)
 	case name == "flake.nix":
+		s.FilesScanned++
+
 		s.NixPins = append(s.NixPins, scanNixPins(path, rel)...)
 	case name == "flake.lock":
 		// deliberately unmodeled: the lock alone does not name a Go version
 		// (resolving it needs an impure nix eval, see TODO_LIST.md T9)
 	case isCIWorkflow(rel):
+		s.FilesScanned++
+
 		s.CIPins = append(s.CIPins, scanCIPins(path, rel)...)
 	case rel == "VERSION":
+		s.FilesScanned++
+
 		s.absorbVersionStamp(path)
 	case rel == "CHANGELOG.md":
+		s.FilesScanned++
+
 		s.absorbChangelogTop(path)
 	}
 
