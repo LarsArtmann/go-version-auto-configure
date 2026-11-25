@@ -13,6 +13,8 @@ package provider
 import (
 	"context"
 	"fmt"
+	"strconv"
+	"strings"
 
 	"github.com/larsartmann/go-finding"
 	toolsdk "github.com/larsartmann/go-finding/toolsdk"
@@ -62,7 +64,16 @@ func mustProvider() toolsdk.Spec {
 			"CHANGELOG.md",
 		},
 		Analyze: analyze,
-		Repair:  repair,
+		// RepairStructured is the v0.9.0 bridge's structured provenance
+		// channel: ModifiedFiles names the rewritten files and Facts carry
+		// the run's counts, so BuildFlow's fix-measurement view reads data
+		// instead of string-matching the prose description.
+		RepairStructured: repairStructured,
+		// Coverage feeds DetectV2's evidence fields (FilesScanned /
+		// SkippedModules) so a clean answer is provable against what the
+		// detector examined — the same measurement the CLI --json coverage
+		// object exposes.
+		Coverage: coverage,
 	})
 	if err != nil {
 		panic("provider: invalid spec: " + err.Error())
@@ -169,6 +180,11 @@ func heldStrips(
 // their suggested action. A tidy-held strip swaps both for the dep-forced
 // explanation: the rewrite would be silently reverted, so naming the
 // carriers and the supply-side remediation is the honest suggestion.
+//
+// Vocabulary (sdk v0.9.0 passthrough): Category/Tags come from
+// vocabularyFor's tested mapping, and a held strip stamps the floor facts
+// as namespaced Metadata keys — machine-readable provenance instead of
+// message-parsing.
 func toConfigIssue(issue surface.Issue, held map[string]fix.HeldStrip) autoconfigure.ConfigIssue {
 	suggestion := issue.Suggestion
 	if issue.Fix != nil {
@@ -184,6 +200,8 @@ func toConfigIssue(issue surface.Issue, held map[string]fix.HeldStrip) autoconfi
 		}
 	}
 
+	category, tags := vocabularyFor(issue.Rule)
+
 	return autoconfigure.ConfigIssue{
 		Rule:       finding.RuleName(issue.Rule),
 		Message:    message,
@@ -191,6 +209,35 @@ func toConfigIssue(issue surface.Issue, held map[string]fix.HeldStrip) autoconfi
 		File:       finding.FilePath(issue.File),
 		Line:       issue.Line,
 		Suggestion: suggestion,
+		Category:   category,
+		Tags:       tags,
+		Metadata:   heldMetadata(issue, held),
+	}
+}
+
+// heldMetadata names the dependency-floor facts a withheld strip carries
+// (sdk v0.9.0 Metadata passthrough): namespaced keys so the finding's
+// metadata map is machine-readable without parsing the message. Only the
+// go.mod patch-form class annotates — the same rule heldStrips enriches.
+func heldMetadata(issue surface.Issue, held map[string]fix.HeldStrip) map[string]string {
+	if issue.Rule != surface.RuleGoDirectivePatchForm {
+		return nil
+	}
+
+	strip, ok := held[issue.File]
+	if !ok {
+		return nil
+	}
+
+	carriers := make([]string, 0, len(strip.Carriers))
+	for _, carrier := range strip.Carriers {
+		carriers = append(carriers, string(carrier.Module)+"@"+string(carrier.Version))
+	}
+
+	return map[string]string{
+		"dep-forced.floor":       string(strip.Floor),
+		"dep-forced.carriers":    strings.Join(carriers, ","),
+		"dep-forced.remediation": strip.Remediation(),
 	}
 }
 
@@ -214,20 +261,24 @@ func FindingsFromIssues(tool string, issues []surface.Issue) []finding.Finding {
 	return findings
 }
 
-// repair applies every mechanical fix, honoring BuildFlow's dry-run
-// context. Suggest-only issues are intentionally untouched: which side of
-// an alignment moves (pin or floor) is a maintainer decision.
-func repair(ctx context.Context) (string, error) {
+// repairStructured is the structured repair contract (sdk v0.9.0): the
+// description prose stays, and the result now also names every rewritten
+// file (deduplicated, first-application order) and stamps the run's counts
+// as Facts — dep-forced, held-back, failed, dry-run — so hosts can measure
+// repairs without parsing the description. The supply-side semantics are
+// unchanged: suggest-only issues are intentionally untouched, and dry-run
+// holds every rewrite back.
+func repairStructured(ctx context.Context) (toolsdk.RepairResult, error) {
 	root := autoconfigure.WorkingDir(ctx)
 
 	analyzeOpts, err := respectPatchFloorOptions(ctx, root)
 	if err != nil {
-		return "", err
+		return toolsdk.RepairResult{}, err
 	}
 
 	s, _, err := surface.Discover(root)
 	if err != nil {
-		return "", finding.NewIOError(fmt.Sprintf("%s repair: read the version surface under %s", toolName, root), err)
+		return toolsdk.RepairResult{}, finding.NewIOError(fmt.Sprintf("%s repair: read the version surface under %s", toolName, root), err)
 	}
 
 	var fixes []surface.Fix
@@ -239,15 +290,56 @@ func repair(ctx context.Context) (string, error) {
 	}
 
 	if len(fixes) == 0 {
-		return "no mechanical version-surface fixes needed", nil
+		return toolsdk.RepairResult{Description: "no mechanical version-surface fixes needed"}, nil
 	}
 
 	res, err := fix.Apply(ctx, root, fixes, fix.Options{DryRun: toolsdk.DryRunFromContext(ctx)}, nil)
 	if err != nil {
-		return "", finding.NewConflictError(fmt.Sprintf("%s repair: apply mechanical fixes in %s", toolName, root), err)
+		return toolsdk.RepairResult{}, finding.NewConflictError(fmt.Sprintf("%s repair: apply mechanical fixes in %s", toolName, root), err)
 	}
 
-	return res.Report(), nil
+	modified := make([]string, 0, len(res.Applied))
+	seen := make(map[string]bool, len(res.Applied))
+
+	for _, fx := range res.Applied {
+		file := string(fx.File)
+		if !seen[file] {
+			seen[file] = true
+			modified = append(modified, file)
+		}
+	}
+
+	facts := []toolsdk.Fact{
+		{Key: "applied-count", Value: strconv.Itoa(len(res.Applied))},
+		{Key: "dep-forced-count", Value: strconv.Itoa(len(res.DepForced))},
+		{Key: "held-back-count", Value: strconv.Itoa(len(res.HeldBack))},
+		{Key: "failed-count", Value: strconv.Itoa(len(res.Failures))},
+		{Key: "dry-run", Value: strconv.FormatBool(toolsdk.DryRunFromContext(ctx))},
+	}
+
+	return toolsdk.RepairResult{
+		Description:   res.Report(),
+		ModifiedFiles: modified,
+		Facts:         facts,
+	}, nil
+}
+
+// coverage measures what the analyze pass examines (sdk v0.9.0 DetectV2
+// evidence): the surface files read and the vendored trees skipped. A
+// discovery failure yields zeroed evidence rather than an error — coverage
+// is enrichment, and the findings themselves carry the truth.
+func coverage(ctx context.Context) (int, []string) {
+	surf, _, err := surface.Discover(autoconfigure.WorkingDir(ctx))
+	if err != nil {
+		return 0, nil
+	}
+
+	skipped := make([]string, 0, len(surf.SkippedModules))
+	for _, module := range surf.SkippedModules {
+		skipped = append(skipped, string(module))
+	}
+
+	return surf.FilesScanned, skipped
 }
 
 // respectPatchFloorOptions reads the respect_patch_floor tool option from
