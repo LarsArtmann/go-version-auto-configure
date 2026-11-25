@@ -50,8 +50,8 @@ Completed 2026-11-24 (the cluster wave, CHANGELOG [Unreleased] + ADR-0001 append
 
 Reports: docs/review/libs/*.md + index.html (write-once snapshot; re-run the library-deep-dive fleet runbook to re-review). Citation gate: `python3 scripts/citation-sweep.py`.
 
-- [ ] Push upstream (linter-autoconfigure-sdk, unblocks every auto-configurer): `ConfigIssue.Metadata map[string]string` + structured Repair passthrough (`ModifiedFiles`/`Facts`); downstream channels already exist (go-finding Finding.Metadata, toolsdk RepairResult) and wait for the bridge (linter-autoconfigure-sdk.md gaps 2-3, go-finding.md gap 1)
-- [ ] Adopt `Finding.Metadata` for dep-forced carriers/floors once the bridge (T17 upstream row) passes it through — go-finding is already bumped to v1.16.0 (2026-11-23, SARIF-layer-only delta, goldens green; plan M3/M7b)
+- [ ] Push upstream (linter-autoconfigure-sdk, unblocks every auto-configurer) — **DONE 2026-11-25** (plan M7): shipped in sdk v0.9.0 — `ConfigIssue.Metadata`/`Category`/`Tags` (all zero-value-safe), `ProviderSpec.RepairStructured` (full `toolsdk.RepairResult`: `ModifiedFiles`/`Facts`), and `ProviderSpec.Coverage` (DetectV2 evidence); tagged + proxy-verified `go 1.27` minor-form
+- [ ] Adopt `Finding.Metadata` for dep-forced carriers/floors once the bridge (T17 upstream row) passes it through — **DONE 2026-11-25** (plan M7b): repinned to sdk v0.9.0; `toConfigIssue` wires the M26 vocabulary (`vocabularyFor`, Category+Tags) and stamps `dep-forced.floor`/`dep-forced.carriers`/`dep-forced.remediation` metadata on held strips; repair migrated to `RepairStructured` (ModifiedFiles + Facts: applied/dep-forced/held-back/failed/dry-run counts); `spec.Coverage` feeds DetectV2 with the same measurement the CLI `coverage` JSON exposes. Schema-2 CLI wire contract unchanged (goldens green)
 
 ## T18 — Fleet-run closeout (routed from the 2026-11-23 Pareto plan) — OPEN
 

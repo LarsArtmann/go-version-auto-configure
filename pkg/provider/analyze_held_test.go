@@ -86,6 +86,15 @@ func TestAnalyze_HeldPatchFormExplainsItself(t *testing.T) {
 	assert.Contains(t, issue.Suggestion, "re-tag github.com/x/dep@v1.0.0")
 	assert.NotContains(t, issue.Suggestion, "rewrite", "the withheld rewrite must not pose as the fix")
 	assert.Equal(t, finding.SeverityWarning, issue.Severity, "advisory findings stay warning-severity")
+
+	// sdk v0.9.0 passthroughs (plan M7b): the vocabulary mapping and the
+	// machine-readable dep-forced metadata ride the same finding.
+	assert.Equal(t, finding.CategoryStyle, issue.Category, "form findings classify as style")
+	assert.Contains(t, issue.Tags, tagForm, "form findings carry the form class tag")
+	require.NotNil(t, issue.Metadata, "held strips carry floor metadata")
+	assert.Equal(t, "1.26.7", issue.Metadata["dep-forced.floor"])
+	assert.Contains(t, issue.Metadata["dep-forced.carriers"], "github.com/x/dep@v1.0.0")
+	assert.Contains(t, issue.Metadata["dep-forced.remediation"], "re-tag")
 }
 
 func TestAnalyze_HeldPoisonedPatchFormNamesForcer(t *testing.T) {

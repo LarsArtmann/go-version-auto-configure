@@ -185,6 +185,30 @@ func TestRepair_RewritesDirective(t *testing.T) {
 	assert.Contains(t, string(data), "go 1.26\n", "repair must normalize the directive to major.minor")
 }
 
+// TestRepairStructured_FactsAndModifiedFiles pins the sdk-v0.9.0 provenance
+// channel (plan M7b): the repair result names the rewritten file and stamps
+// the run's counts as Facts, so hosts measure repairs without parsing the
+// prose description.
+func TestRepairStructured_FactsAndModifiedFiles(t *testing.T) {
+	t.Parallel()
+
+	root := t.TempDir()
+	require.NoError(t, os.WriteFile(filepath.Join(root, "go.mod"), []byte("module example.com/m\n\ngo 1.26.7\n"), 0o644))
+
+	ctx := finding.WithWorkingDir(context.Background(), root)
+	result, err := Provider.Repair.Repair(ctx)
+	require.NoError(t, err)
+	assert.Equal(t, []string{"go.mod"}, result.ModifiedFiles)
+
+	facts := make(map[string]string, len(result.Facts))
+	for _, fact := range result.Facts {
+		facts[fact.Key] = fact.Value
+	}
+
+	assert.Equal(t, "1", facts["applied-count"], "exactly the go.mod rewrite applied")
+	assert.Equal(t, "false", facts["dry-run"])
+}
+
 func TestRepair_DryRunLeavesFileUntouched(t *testing.T) {
 	t.Parallel()
 
@@ -201,6 +225,14 @@ func TestRepair_DryRunLeavesFileUntouched(t *testing.T) {
 	data, err := os.ReadFile(path)
 	require.NoError(t, err)
 	assert.Contains(t, string(data), "go 1.26.7\n", "dry-run must not modify the file")
+
+	structured := make(map[string]string, len(result.Facts))
+	for _, fact := range result.Facts {
+		structured[fact.Key] = fact.Value
+	}
+
+	assert.Equal(t, "true", structured["dry-run"], "the Facts channel reports dry-run too")
+	assert.Empty(t, result.ModifiedFiles, "dry-run rewrites nothing, so no ModifiedFiles")
 }
 
 func TestDetect_ReportsStaleToolchain(t *testing.T) {
@@ -259,6 +291,21 @@ func TestDetect_ToolchainRaisingFloorFlagsTrailingNixPin(t *testing.T) {
 	}
 
 	assert.Contains(t, rules, "nix-pin-below-floor")
+}
+
+// TestProvider_DetectV2CarriesCoverage pins the sdk-v0.9.0 evidence channel
+// (plan M7b): RunDetect prefers DetectV2, and the registered detector now
+// reports what it scanned, so a host can prove a clean answer.
+func TestProvider_DetectV2CarriesCoverage(t *testing.T) {
+	t.Parallel()
+
+	root := t.TempDir()
+	require.NoError(t, os.WriteFile(filepath.Join(root, "go.mod"), []byte("module example.com/m\n\ngo 1.26\n"), 0o644))
+
+	ctx := finding.WithWorkingDir(context.Background(), root)
+	result, err := finding.RunDetect(ctx, Provider.Detect)
+	require.NoError(t, err)
+	assert.Greater(t, result.FilesScanned, 0, "the fixture's go.mod was scanned")
 }
 
 func TestRepair_CleanRepo(t *testing.T) {
