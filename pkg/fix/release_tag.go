@@ -30,7 +30,14 @@ func GitTagRunner() GitCommandRunner {
 
 		out, err := cmd.CombinedOutput()
 		if err != nil {
-			return string(out), fmt.Errorf("git %s: %s: %w", strings.Join(args, " "), strings.TrimSpace(string(out)), err)
+			return string(
+					out,
+				), fmt.Errorf(
+					"git %s: %s: %w",
+					strings.Join(args, " "),
+					strings.TrimSpace(string(out)),
+					err,
+				)
 		}
 
 		return string(out), nil
@@ -54,7 +61,7 @@ func NewestReleaseTag(ctx context.Context, root string, run GitCommandRunner) (s
 		return "", fmt.Errorf("list release tags in %s: %w", root, err)
 	}
 
-	for _, line := range strings.Split(out, "\n") {
+	for line := range strings.SplitSeq(out, "\n") {
 		tag, ok := surface.ParseReleaseVersion(strings.TrimSpace(line))
 		if ok {
 			return tag, nil
@@ -71,7 +78,12 @@ func NewestReleaseTag(ctx context.Context, root string, run GitCommandRunner) (s
 // silently when its input is unavailable — a git failure (no repo, no git
 // binary) yields no findings rather than an error: the first pass already
 // covers the pure-file half, and a missing third source is not drift.
-func ReleaseAuthorityTagIssues(ctx context.Context, root string, surf *surface.Surface, run GitCommandRunner) []surface.Issue {
+func ReleaseAuthorityTagIssues(
+	ctx context.Context,
+	root string,
+	surf *surface.Surface,
+	run GitCommandRunner,
+) []surface.Issue {
 	ra := surf.Release
 	if ra == nil || ra.VersionFile == "" || ra.ChangelogTop == "" {
 		return nil

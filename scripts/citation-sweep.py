@@ -21,6 +21,7 @@ Exit 0 = all citations resolve (ship gate); exit 1 = defects listed on stderr.
 Flags: --summary (per-report counts + basename-fallback list), --json (CI),
 --self-test (fixture tests for the resolvers).
 """
+
 from __future__ import annotations
 
 import argparse
@@ -68,7 +69,9 @@ def resolve_modcache(path: str, modcache: Path) -> Path | None:
     return candidate if candidate.is_file() else None
 
 
-def resolve(path: str, consumer: Path, libs: dict[str, Path], modcache: Path) -> Path | None:
+def resolve(
+    path: str, consumer: Path, libs: dict[str, Path], modcache: Path
+) -> Path | None:
     """Resolve a cited path. Order: modcache (@v), consumer, lib repos, absolute."""
     if "@" in path:
         hit = resolve_modcache(path, modcache)
@@ -87,9 +90,7 @@ def resolve(path: str, consumer: Path, libs: dict[str, Path], modcache: Path) ->
     return None
 
 
-def resolve_basename(
-    path: str, consumer: Path, libs: dict[str, Path]
-) -> Path | None:
+def resolve_basename(path: str, consumer: Path, libs: dict[str, Path]) -> Path | None:
     """Basename fallback: unique match across consumer + libs, else None."""
     name = Path(path).name
     if not name:
@@ -132,10 +133,15 @@ def sweep_report(
             result["defect_lines"].append(
                 f"{report.name}:{line}: '{path}:{start}' — file not found"
             )
-            print(f"DEFECT {report.name}:{line}: '{path}:{start}' — file not found in consumer, lib checkouts, or module cache", file=sys.stderr)
+            print(
+                f"DEFECT {report.name}:{line}: '{path}:{start}' — file not found in consumer, lib checkouts, or module cache",
+                file=sys.stderr,
+            )
             continue
         if via_basename:
-            result["fallbacks"].append(f"{report.name}:{line}: '{path}:{start}' -> {target}")
+            result["fallbacks"].append(
+                f"{report.name}:{line}: '{path}:{start}' -> {target}"
+            )
         line_count = sum(1 for _ in target.open(encoding="utf-8", errors="replace"))
         limit = int(end) if end else start
         if start > line_count or limit > line_count or start < 1:
@@ -155,11 +161,15 @@ def print_summary(results: list[dict]) -> None:
     total_defects = sum(r["defects"] for r in results)
     print(f"{'report':40} {'checked':>8} {'defects':>8} {'basename':>9}")
     for r in results:
-        print(f"{r['name']:40} {r['checked']:>8} {r['defects']:>8} {len(r['fallbacks']):>9}")
+        print(
+            f"{r['name']:40} {r['checked']:>8} {r['defects']:>8} {len(r['fallbacks']):>9}"
+        )
     print(f"{'TOTAL':40} {total_checked:>8} {total_defects:>8}")
     fallbacks = [f for r in results for f in r["fallbacks"]]
     if fallbacks:
-        print("\nbasename-fallback cites (uniqueness-fragile — consider lib-qualifying):")
+        print(
+            "\nbasename-fallback cites (uniqueness-fragile — consider lib-qualifying):"
+        )
         for f in fallbacks:
             print(f"  {f}")
 
@@ -170,10 +180,16 @@ def self_test() -> int:
     consumer = tmp / "consumer"
     libs = {"go-finding": tmp / "go-finding", "go-dag-app": tmp / "go-dag-app"}
     modcache = tmp / "modcache"
-    for d in (consumer / "pkg/provider", *libs.values(), modcache / LIB_DOMAIN / "go-finding@v1.16.0"):
+    for d in (
+        consumer / "pkg/provider",
+        *libs.values(),
+        modcache / LIB_DOMAIN / "go-finding@v1.16.0",
+    ):
         d.mkdir(parents=True)
     (consumer / "pkg/provider/provider.go").write_text("l1\nl2\nl3\n")
-    (libs["go-finding"] / "finding.go").write_text("\n".join(f"l{i}" for i in range(1, 51)) + "\n")
+    (libs["go-finding"] / "finding.go").write_text(
+        "\n".join(f"l{i}" for i in range(1, 51)) + "\n"
+    )
     (libs["go-dag-app"] / "container.go").write_text("other\n")
     (libs["go-dag-app"] / "provider.go").write_text("collides with consumer basename\n")
     (modcache / LIB_DOMAIN / "go-finding@v1.16.0" / "finding.go").write_text(
@@ -182,11 +198,35 @@ def self_test() -> int:
 
     cases = [
         # (path, start, end, expected: resolved-path-substring or None, via_basename)
-        ("pkg/provider/provider.go", 3, None, "consumer/pkg/provider/provider.go", False),
+        (
+            "pkg/provider/provider.go",
+            3,
+            None,
+            "consumer/pkg/provider/provider.go",
+            False,
+        ),
         ("go-finding/finding.go", 10, "12", "go-finding/finding.go", False),
-        ("go-finding@v1.16.0/finding.go", 20, None, "go-finding@v1.16.0/finding.go", False),
-        (f"{LIB_DOMAIN}/go-finding@v1.16.0/finding.go", 20, None, "go-finding@v1.16.0/finding.go", False),
-        (f"~/go/pkg/mod/{LIB_DOMAIN}/go-finding@v1.16.0/finding.go", 20, None, "go-finding@v1.16.0/finding.go", False),
+        (
+            "go-finding@v1.16.0/finding.go",
+            20,
+            None,
+            "go-finding@v1.16.0/finding.go",
+            False,
+        ),
+        (
+            f"{LIB_DOMAIN}/go-finding@v1.16.0/finding.go",
+            20,
+            None,
+            "go-finding@v1.16.0/finding.go",
+            False,
+        ),
+        (
+            f"~/go/pkg/mod/{LIB_DOMAIN}/go-finding@v1.16.0/finding.go",
+            20,
+            None,
+            "go-finding@v1.16.0/finding.go",
+            False,
+        ),
         ("go-finding@v9.9.9/finding.go", 20, None, None, False),
         ("finding.go", 10, None, "go-finding/finding.go", True),
         ("provider.go", 1, None, None, False),
@@ -214,7 +254,9 @@ def self_test() -> int:
             print(f"PASS {path}:{start}{'-' + end if end else ''}")
         else:
             failures += 1
-            print(f"FAIL {path}:{start}{'-' + end if end else ''} -> {target} (basename={via_basename})")
+            print(
+                f"FAIL {path}:{start}{'-' + end if end else ''} -> {target} (basename={via_basename})"
+            )
     shutil.rmtree(tmp)
     print(f"self-test: {len(cases) - failures}/{len(cases)} passed")
     return 1 if failures else 0
@@ -222,16 +264,30 @@ def self_test() -> int:
 
 def main(argv: list[str]) -> int:
     parser = argparse.ArgumentParser(description="Verify docs/review/libs citations")
-    parser.add_argument("reports", nargs="*", help="report files (default: docs/review/libs/*.md)")
-    parser.add_argument("--summary", action="store_true", help="per-report counts + basename-fallback list")
-    parser.add_argument("--json", action="store_true", help="machine-readable output (implies summary fields)")
-    parser.add_argument("--self-test", action="store_true", help="run fixture tests and exit")
+    parser.add_argument(
+        "reports", nargs="*", help="report files (default: docs/review/libs/*.md)"
+    )
+    parser.add_argument(
+        "--summary",
+        action="store_true",
+        help="per-report counts + basename-fallback list",
+    )
+    parser.add_argument(
+        "--json",
+        action="store_true",
+        help="machine-readable output (implies summary fields)",
+    )
+    parser.add_argument(
+        "--self-test", action="store_true", help="run fixture tests and exit"
+    )
     args = parser.parse_args(argv[1:])
 
     if args.self_test:
         return self_test()
 
-    reports = [Path(a) for a in args.reports] or sorted((CONSUMER / "docs/review/libs").glob("*.md"))
+    reports = [Path(a) for a in args.reports] or sorted(
+        (CONSUMER / "docs/review/libs").glob("*.md")
+    )
     if not reports:
         print("no reports found", file=sys.stderr)
         return 1
@@ -240,24 +296,30 @@ def main(argv: list[str]) -> int:
     total_defects = sum(r["defects"] for r in results)
 
     if args.json:
-        print(json.dumps({
-            "reports": [
+        print(
+            json.dumps(
                 {
-                    "name": r["name"],
-                    "checked": r["checked"],
-                    "defects": r["defects"],
-                    "defect_lines": r["defect_lines"],
-                    "basename_fallbacks": r["fallbacks"],
+                    "reports": [
+                        {
+                            "name": r["name"],
+                            "checked": r["checked"],
+                            "defects": r["defects"],
+                            "defect_lines": r["defect_lines"],
+                            "basename_fallbacks": r["fallbacks"],
+                        }
+                        for r in results
+                    ],
+                    "total_checked": total_checked,
+                    "total_defects": total_defects,
                 }
-                for r in results
-            ],
-            "total_checked": total_checked,
-            "total_defects": total_defects,
-        }))
+            )
+        )
     elif args.summary:
         print_summary(results)
     else:
-        print(f"{total_checked} citations checked across {len(reports)} reports — {total_defects} defect(s)")
+        print(
+            f"{total_checked} citations checked across {len(reports)} reports — {total_defects} defect(s)"
+        )
     return 1 if total_defects else 0
 
 

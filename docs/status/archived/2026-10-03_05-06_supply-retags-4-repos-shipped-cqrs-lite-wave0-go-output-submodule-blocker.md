@@ -83,54 +83,54 @@ WP-05 (fleet sweep + ADR counts), WP-09 (CI depth), WP-10 (test truth), WP-11 (n
 
 1. Answer §g Q1 (go-output submodule re-tags: yes/no).
 2. ~~If yes: re-tag go-output submodules (strip + test + v0.38.4 or submodule-patch tags, their convention decides) + proxy-verify every submodule `.mod`.~~ done (docs-health pass 2026-11-25: the cluster wave + consumer sweep closed the go-output front, 0 live v0.38.2 pins)
-~~3. If no: mark the 6 cqrs-lite cmd modules dep-forced-by-go-output-submodules (documented carve-out).~~ p:-
-4. Re-run the external-floor scan on cqrs-lite — expect zero hits ≥1.27.1.
-5. Strip all 98 cqrs-lite tree go.mods to `go 1.27` (`go mod edit -go=1.27`, cd per module — gotcha 4).
-6. Decide + set go.work directive (1.27 if nothing stays dep-forced; else keep 1.27.1) via `go work edit` (no GOWORK=off).
-7. Compute the cqrs-lite sibling-require DAG → dependency levels (leaves: id/metadata/schema/…).
+   ~~3. If no: mark the 6 cqrs-lite cmd modules dep-forced-by-go-output-submodules (documented carve-out).~~ p:-
+3. Re-run the external-floor scan on cqrs-lite — expect zero hits ≥1.27.1.
+4. Strip all 98 cqrs-lite tree go.mods to `go 1.27` (`go mod edit -go=1.27`, cd per module — gotcha 4).
+5. Decide + set go.work directive (1.27 if nothing stays dep-forced; else keep 1.27.1) via `go work edit` (no GOWORK=off).
+6. Compute the cqrs-lite sibling-require DAG → dependency levels (leaves: id/metadata/schema/…).
    ~~8. Check for cycles in that DAG (must be acyclic for ordered batches).~~ done (docs-health pass 2026-11-25)
-8. Build the per-level new-version table (latest tag patch+1 per module, ~89 rows).
-9. Run their full test gate on the stripped tree (`nix run .#test` / workspace `go test ./...`) — baseline before any tag.
-10. Update cqrs-lite AGENTS.md note 96 ("Modules are on go 1.27.1") + any doc that hardcodes the patch floor.
-11. Root CHANGELOG release-train section for the wave (their root-CHANGELOG-only policy).
-12. Level-0 batch: `batch-release.sh --dry-run` manifest first (existence/collision/path-vs-tag guards).
-13. Level-0 batch: real cut → push tags → smoke (`tag-release.sh --smoke` per tag; NOT `--smoke-all` under held lock).
-14. Level-1: bump sibling pins to published level-0 tags (`pin-sweep.sh` or manual `go mod edit -require`) → tidy → build+test-compile (`go test -run ZZNONE -count=1`) → batch cut → push → smoke.
-15. Repeat 15 per level through the whole DAG (expect ~5–8 invocations).
-16. Refresh cqrs-lint taskmanager golden (V006 version-set pin) in-wave.
-17. GOWORK=off build matrix over ALL swept modules post-wave (their mechanic 3).
-18. Per-module `go mod tidy -e` post-push (missing `/go.mod` hash class, gotcha from 2026-09-11).
-19. Scratch-module proxy probe per published symbol surface (their 2026-09-28 lesson 3) — at least root + spot set.
-20. Proxy-`.mod` verification for all 89 tags (loop, record URLs+dates) → POISONERS.md cqrs-lite row Active → Resolved with tag-pair + evidence.
-21. cqrs-htmx: `who-forces` map across its importers (surface map BEFORE its re-tag).
-22. cqrs-htmx: strip 36 go.mods → tidy (needs clean cqrs-lite pins) → build+test → 14 tags → push → proxy-verify → POISONERS row update.
-23. WP-05: fleet sweep baseline `check --quiet --expect-minor 1.27 ~/projects/*/` (expect dep-forced → clean transitions across dnsblockd/DiscordSync/…).
-24. WP-05: bump remaining go-output v0.38.2 pinners fleet-wide (`go get …@v0.38.3` + tidy + gvac fix).
-25. WP-05: ADR-0001 appendix count refresh (baseline 36/48 drifted → new number).
-26. WP-16: POISONERS.md evidence convention (proxy `.mod` URL + date per row) + maintenance rule.
-27. WP-16: ADR-0001 records — 2026-09-26 classification session + the v0.38.2 regression incident + THIS wave's numbers.
-28. WP-09: CI `go mod tidy -diff` gate job (the 2026-09-30 class dies pre-push).
-29. WP-09: pin golangci-lint in ci.yml to devShell version; erraudit step; concurrency group.
-30. WP-09: README floor-line dogfood + `version`-stamp assertion; verify workflow green end-to-end.
-31. WP-10: e2e fixture through the REAL `go mod tidy -diff` gate; ParseDirective invariants post-v0.38.3; deliberate `buildflow update` re-run asserting settle at 1.27.
-32. WP-11: go-nix-helpers bump + FOD floor `checks` entry.
-33. WP-12: depFloor unification (who.go + floor.go) proven behavior-identical via the WP-06 goldens.
-34. WP-13: benchmarks + coverage re-measure into a LIVING doc.
-35. WP-14: license-check ×5 isolated runs; doctor warnings; vulnix CVE triage; art-dupl vs DEDUPLICATION baseline.
-36. WP-15: gomod-check ↔ go-mod-normalize flipflop reproduction + disposition alignment.
-37. WP-17: sibling inverted-claim grep ("v0.38.2 is minor-form") + fixes + date.
-38. WP-19: README who-forces example from the WP-06 fixture; CanonicalizeGoMod nuance; FEATURES evidence re-walk; ADR-0001 verify.
-39. WP-20: standing docs gate script + wiring.
-40. WP-21: test-depth batch (flag-help, exitFrom table, runSorted, version golden, BenchmarkApplyAll).
-41. WP-22: T5 gomod-checker tidy-revert rule (spec + fixtures + BuildFlow implementation).
-42. WP-23: T6 release-authority-drift Discover pass + tests.
-43. WP-24: T9 nix-pin home decision + record.
-44. WP-26: website decision row.
-45. Final: fold CHANGELOG, cut v0.2.5 (needs §g Q3), full gates, tag+push+proxy-verify.
-46. Final: TODO_LIST harvest (delete done rows), FEATURES refresh, plan ANNOTATE (never rewrite), this report's harvest under resolved-or-owned.
-47. Post-campaign: re-run `gvac who-forces` on the former poisoner consumers to confirm at-parity carriers now name the clean generation.
-48. Record the "scan-tooling validated on known case" lesson in the project AGENTS.md testing notes.
-49. Consider a gvac TODO row: "latest-tag floor table" command (from §e2) — the campaign just paid for its absence twice.
+7. Build the per-level new-version table (latest tag patch+1 per module, ~89 rows).
+8. Run their full test gate on the stripped tree (`nix run .#test` / workspace `go test ./...`) — baseline before any tag.
+9. Update cqrs-lite AGENTS.md note 96 ("Modules are on go 1.27.1") + any doc that hardcodes the patch floor.
+10. Root CHANGELOG release-train section for the wave (their root-CHANGELOG-only policy).
+11. Level-0 batch: `batch-release.sh --dry-run` manifest first (existence/collision/path-vs-tag guards).
+12. Level-0 batch: real cut → push tags → smoke (`tag-release.sh --smoke` per tag; NOT `--smoke-all` under held lock).
+13. Level-1: bump sibling pins to published level-0 tags (`pin-sweep.sh` or manual `go mod edit -require`) → tidy → build+test-compile (`go test -run ZZNONE -count=1`) → batch cut → push → smoke.
+14. Repeat 15 per level through the whole DAG (expect ~5–8 invocations).
+15. Refresh cqrs-lint taskmanager golden (V006 version-set pin) in-wave.
+16. GOWORK=off build matrix over ALL swept modules post-wave (their mechanic 3).
+17. Per-module `go mod tidy -e` post-push (missing `/go.mod` hash class, gotcha from 2026-09-11).
+18. Scratch-module proxy probe per published symbol surface (their 2026-09-28 lesson 3) — at least root + spot set.
+19. Proxy-`.mod` verification for all 89 tags (loop, record URLs+dates) → POISONERS.md cqrs-lite row Active → Resolved with tag-pair + evidence.
+20. cqrs-htmx: `who-forces` map across its importers (surface map BEFORE its re-tag).
+21. cqrs-htmx: strip 36 go.mods → tidy (needs clean cqrs-lite pins) → build+test → 14 tags → push → proxy-verify → POISONERS row update.
+22. WP-05: fleet sweep baseline `check --quiet --expect-minor 1.27 ~/projects/*/` (expect dep-forced → clean transitions across dnsblockd/DiscordSync/…).
+23. WP-05: bump remaining go-output v0.38.2 pinners fleet-wide (`go get …@v0.38.3` + tidy + gvac fix).
+24. WP-05: ADR-0001 appendix count refresh (baseline 36/48 drifted → new number).
+25. WP-16: POISONERS.md evidence convention (proxy `.mod` URL + date per row) + maintenance rule.
+26. WP-16: ADR-0001 records — 2026-09-26 classification session + the v0.38.2 regression incident + THIS wave's numbers.
+27. WP-09: CI `go mod tidy -diff` gate job (the 2026-09-30 class dies pre-push).
+28. WP-09: pin golangci-lint in ci.yml to devShell version; erraudit step; concurrency group.
+29. WP-09: README floor-line dogfood + `version`-stamp assertion; verify workflow green end-to-end.
+30. WP-10: e2e fixture through the REAL `go mod tidy -diff` gate; ParseDirective invariants post-v0.38.3; deliberate `buildflow update` re-run asserting settle at 1.27.
+31. WP-11: go-nix-helpers bump + FOD floor `checks` entry.
+32. WP-12: depFloor unification (who.go + floor.go) proven behavior-identical via the WP-06 goldens.
+33. WP-13: benchmarks + coverage re-measure into a LIVING doc.
+34. WP-14: license-check ×5 isolated runs; doctor warnings; vulnix CVE triage; art-dupl vs DEDUPLICATION baseline.
+35. WP-15: gomod-check ↔ go-mod-normalize flipflop reproduction + disposition alignment.
+36. WP-17: sibling inverted-claim grep ("v0.38.2 is minor-form") + fixes + date.
+37. WP-19: README who-forces example from the WP-06 fixture; CanonicalizeGoMod nuance; FEATURES evidence re-walk; ADR-0001 verify.
+38. WP-20: standing docs gate script + wiring.
+39. WP-21: test-depth batch (flag-help, exitFrom table, runSorted, version golden, BenchmarkApplyAll).
+40. WP-22: T5 gomod-checker tidy-revert rule (spec + fixtures + BuildFlow implementation).
+41. WP-23: T6 release-authority-drift Discover pass + tests.
+42. WP-24: T9 nix-pin home decision + record.
+43. WP-26: website decision row.
+44. Final: fold CHANGELOG, cut v0.2.5 (needs §g Q3), full gates, tag+push+proxy-verify.
+45. Final: TODO_LIST harvest (delete done rows), FEATURES refresh, plan ANNOTATE (never rewrite), this report's harvest under resolved-or-owned.
+46. Post-campaign: re-run `gvac who-forces` on the former poisoner consumers to confirm at-parity carriers now name the clean generation.
+47. Record the "scan-tooling validated on known case" lesson in the project AGENTS.md testing notes.
+48. Consider a gvac TODO row: "latest-tag floor table" command (from §e2) — the campaign just paid for its absence twice.
 
 ## g) QUESTIONS I CANNOT ANSWER MYSELF
 

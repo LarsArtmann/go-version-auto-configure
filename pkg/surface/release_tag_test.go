@@ -78,10 +78,17 @@ func TestReleaseTagIssues(t *testing.T) {
 		issues := ReleaseTagIssues(test.versionFile, test.changelogTop, test.tag)
 		if test.wantFires {
 			assert.Len(t, issues, 1, "%s: expected exactly one finding", test.name)
+
 			if len(issues) == 1 {
 				assert.Equal(t, RuleReleaseTagDrift, issues[0].Rule, test.name)
 				assert.Nil(t, issues[0].Fix, "%s: must stay suggest-only", test.name)
-				assert.Contains(t, issues[0].Message, string(test.versionFile), "%s: message names the file stamp", test.name)
+				assert.Contains(
+					t,
+					issues[0].Message,
+					string(test.versionFile),
+					"%s: message names the file stamp",
+					test.name,
+				)
 				assert.Contains(t, issues[0].Message, string(test.tag), "%s: message names the tag", test.name)
 			}
 

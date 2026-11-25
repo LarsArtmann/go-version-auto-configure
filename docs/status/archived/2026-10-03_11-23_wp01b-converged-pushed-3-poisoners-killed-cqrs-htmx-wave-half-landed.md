@@ -91,18 +91,18 @@ WP-05 (fleet sweep + go-output v0.38.2 pinner bumps + ADR-0001 counts — NOTE: 
 33. WP-13: per-package coverage re-measure; update FEATURES/TODO numbers.
 34. WP-14: license-check 5 isolated runs; diff cache/network/package-set.
 35. ~~WP-14: doctor "tools unavailable" warnings review.~~ done (docs-health pass 2026-11-25: documented environment-scoped, see TODO_LIST's BuildFlow-binary row)
-~~36. WP-14: vulnix gcc CVE-2023-4039 triage.~~ p:-
-37. WP-14: art-dupl vs DEDUPLICATION baseline diff; record verdict.
-38. WP-15: reproduce gomod-check ↔ go-mod-normalize 20×-flip warning.
-39. WP-15: read BuildFlow dispositions; align; record decision by .buildflow.yml.
-40. WP-22: T5 rule spec vs gomod-checker API; fixtures a/b/c; implement in BuildFlow; cross-check vs gvac check.
-41. gvac CHANGELOG: WP-22 entry when done; fold [Unreleased] → v0.2.5.
-42. v0.2.5: full devShell gates (build, test -race, buildflow lint, dogfood `check --expect-minor 1.27 .`).
-43. v0.2.5: tag + push + proxy `go get` verify + pkg.go.dev check.
-44. Plan ANNOTATE (never rewrite) + TODO_LIST harvest + row updates (T6 done, T14-① progress).
-45. Suggest to cqrs-lite: TestEveryModuleGoSumIsTidy quiet-window awareness (their repo).
-46. Check parallel cqrs-lint session state before any cmd/cqrs-lint* work (was silent since 07:46).
-47. README: release-authority-drift example + who-forces example from the real cqrs-htmx run (WP-19 partial).
+    ~~36. WP-14: vulnix gcc CVE-2023-4039 triage.~~ p:-
+36. WP-14: art-dupl vs DEDUPLICATION baseline diff; record verdict.
+37. WP-15: reproduce gomod-check ↔ go-mod-normalize 20×-flip warning.
+38. WP-15: read BuildFlow dispositions; align; record decision by .buildflow.yml.
+39. WP-22: T5 rule spec vs gomod-checker API; fixtures a/b/c; implement in BuildFlow; cross-check vs gvac check.
+40. gvac CHANGELOG: WP-22 entry when done; fold [Unreleased] → v0.2.5.
+41. v0.2.5: full devShell gates (build, test -race, buildflow lint, dogfood `check --expect-minor 1.27 .`).
+42. v0.2.5: tag + push + proxy `go get` verify + pkg.go.dev check.
+43. Plan ANNOTATE (never rewrite) + TODO_LIST harvest + row updates (T6 done, T14-① progress).
+44. Suggest to cqrs-lite: TestEveryModuleGoSumIsTidy quiet-window awareness (their repo).
+45. Check parallel cqrs-lint session state before any cmd/cqrs-lint* work (was silent since 07:46).
+46. README: release-authority-drift example + who-forces example from the real cqrs-htmx run (WP-19 partial).
 
 ## g) QUESTIONS I CANNOT ANSWER MYSELF
 

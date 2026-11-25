@@ -193,7 +193,10 @@ func TestRepairStructured_FactsAndModifiedFiles(t *testing.T) {
 	t.Parallel()
 
 	root := t.TempDir()
-	require.NoError(t, os.WriteFile(filepath.Join(root, "go.mod"), []byte("module example.com/m\n\ngo 1.26.7\n"), 0o644))
+	require.NoError(
+		t,
+		os.WriteFile(filepath.Join(root, "go.mod"), []byte("module example.com/m\n\ngo 1.26.7\n"), 0o644),
+	)
 
 	ctx := finding.WithWorkingDir(context.Background(), root)
 	result, err := Provider.Repair.Repair(ctx)
@@ -305,7 +308,7 @@ func TestProvider_DetectV2CarriesCoverage(t *testing.T) {
 	ctx := finding.WithWorkingDir(context.Background(), root)
 	result, err := finding.RunDetect(ctx, Provider.Detect)
 	require.NoError(t, err)
-	assert.Greater(t, result.FilesScanned, 0, "the fixture's go.mod was scanned")
+	assert.Positive(t, result.FilesScanned, "the fixture's go.mod was scanned")
 }
 
 func TestRepair_CleanRepo(t *testing.T) {

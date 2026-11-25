@@ -86,19 +86,19 @@ WP-02 (cqrs-htmx who-forces map → strip → 14 tags), WP-05 (fleet sweep + go-
 31. WP-13: per-package coverage re-measure; update FEATURES/TODO numbers.
 32. WP-14: license-check 5 isolated runs; diff cache/network/package-set.
 33. ~~WP-14: doctor "tools unavailable" warnings review; install or document.~~ done (docs-health pass 2026-11-25: documented environment-scoped, see TODO_LIST's BuildFlow-binary row)
-~~34. WP-14: vulnix gcc CVE-2023-4039 triage.~~ p:-
-35. WP-14: art-dupl vs DEDUPLICATION baseline diff; record verdict.
-36. WP-15: reproduce gomod-check ↔ go-mod-normalize 20×-flip warning.
-37. WP-15: read BuildFlow dispositions; align (their repo or local skip posture).
-38. WP-15: record decision next to the .buildflow.yml guard.
-39. WP-22: T5 rule spec vs gomod-checker API; fixtures a/b/c; implement in BuildFlow; cross-check vs gvac `check`.
-40. Verify gvac e2e_test.go lint cleanliness with the real gate (close the stale-LSP question).
-41. gvac CHANGELOG [Unreleased]: add WP-12 (depFloor unification) + WP-10 (e2e/invariants) entries.
-42. Final v0.2.5: fold [Unreleased], full devShell gates (build, test -race, lint, dogfood `check --expect-minor 1.27 .`).
-43. Final: tag v0.2.5 + push (per Q3 standing interpretation) + proxy `go get` verify + pkg.go.dev check.
-44. Plan ANNOTATE (never rewrite) + TODO_LIST harvest + row updates.
-45. Coordinate with the parallel cqrs-lint session on its remaining tail (stale.go ratchet, cmdguard filings, nightly timer install) — avoid double-work.
-46. Suggest to cqrs-lite: make `TestEveryModuleGoSumIsTidy` quiet-window-aware or daemon-sequential (their repo, their call).
+    ~~34. WP-14: vulnix gcc CVE-2023-4039 triage.~~ p:-
+34. WP-14: art-dupl vs DEDUPLICATION baseline diff; record verdict.
+35. WP-15: reproduce gomod-check ↔ go-mod-normalize 20×-flip warning.
+36. WP-15: read BuildFlow dispositions; align (their repo or local skip posture).
+37. WP-15: record decision next to the .buildflow.yml guard.
+38. WP-22: T5 rule spec vs gomod-checker API; fixtures a/b/c; implement in BuildFlow; cross-check vs gvac `check`.
+39. Verify gvac e2e_test.go lint cleanliness with the real gate (close the stale-LSP question).
+40. gvac CHANGELOG [Unreleased]: add WP-12 (depFloor unification) + WP-10 (e2e/invariants) entries.
+41. Final v0.2.5: fold [Unreleased], full devShell gates (build, test -race, lint, dogfood `check --expect-minor 1.27 .`).
+42. Final: tag v0.2.5 + push (per Q3 standing interpretation) + proxy `go get` verify + pkg.go.dev check.
+43. Plan ANNOTATE (never rewrite) + TODO_LIST harvest + row updates.
+44. Coordinate with the parallel cqrs-lint session on its remaining tail (stale.go ratchet, cmdguard filings, nightly timer install) — avoid double-work.
+45. Suggest to cqrs-lite: make `TestEveryModuleGoSumIsTidy` quiet-window-aware or daemon-sequential (their repo, their call).
 
 ## g) QUESTIONS I CANNOT ANSWER MYSELF
 

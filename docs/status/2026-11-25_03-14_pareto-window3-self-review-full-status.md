@@ -139,4 +139,4 @@
 
 ---
 
-*Report per the section a–g format request. All claims above are sourced from this session's runs; the window-2 open questions remain open and unchanged.*
+_Report per the section a–g format request. All claims above are sourced from this session's runs; the window-2 open questions remain open and unchanged._

@@ -125,7 +125,10 @@ func analyzeWith(ctx context.Context, run fix.GoCommandRunner) ([]autoconfigure.
 
 	surf, discoverIssues, err := surface.Discover(root)
 	if err != nil {
-		return nil, finding.NewIOError(fmt.Sprintf("%s analyze: read the version surface under %s", toolName, root), err)
+		return nil, finding.NewIOError(
+			fmt.Sprintf("%s analyze: read the version surface under %s", toolName, root),
+			err,
+		)
 	}
 
 	issues := make([]autoconfigure.ConfigIssue, 0, len(discoverIssues))
@@ -278,7 +281,10 @@ func repairStructured(ctx context.Context) (toolsdk.RepairResult, error) {
 
 	s, _, err := surface.Discover(root)
 	if err != nil {
-		return toolsdk.RepairResult{}, finding.NewIOError(fmt.Sprintf("%s repair: read the version surface under %s", toolName, root), err)
+		return toolsdk.RepairResult{}, finding.NewIOError(
+			fmt.Sprintf("%s repair: read the version surface under %s", toolName, root),
+			err,
+		)
 	}
 
 	var fixes []surface.Fix
@@ -295,7 +301,10 @@ func repairStructured(ctx context.Context) (toolsdk.RepairResult, error) {
 
 	res, err := fix.Apply(ctx, root, fixes, fix.Options{DryRun: toolsdk.DryRunFromContext(ctx)}, nil)
 	if err != nil {
-		return toolsdk.RepairResult{}, finding.NewConflictError(fmt.Sprintf("%s repair: apply mechanical fixes in %s", toolName, root), err)
+		return toolsdk.RepairResult{}, finding.NewConflictError(
+			fmt.Sprintf("%s repair: apply mechanical fixes in %s", toolName, root),
+			err,
+		)
 	}
 
 	modified := make([]string, 0, len(res.Applied))

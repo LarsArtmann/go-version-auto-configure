@@ -128,6 +128,7 @@ func TestReleaseAuthorityTagIssues(t *testing.T) {
 		issues := ReleaseAuthorityTagIssues(ctx, "/repo", test.surf, test.run)
 		if test.wantFires {
 			assert.Len(t, issues, 1, test.name)
+
 			if len(issues) == 1 {
 				assert.Equal(t, surface.RuleReleaseTagDrift, issues[0].Rule, test.name)
 			}

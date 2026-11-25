@@ -2,7 +2,7 @@ package main
 
 import (
 	"context"
-	"encoding/json"
+	"encoding/json/v2"
 	"os"
 	"path/filepath"
 	"strings"
@@ -64,7 +64,12 @@ func TestSARIFWireContractGolden(t *testing.T) {
 	props, ok := run["properties"].(map[string]any)
 	require.True(t, ok, "run propertyBag present")
 	assert.Equal(t, []any{"<ROOT>"}, props["scanRoots"], "scanRoots stamped")
-	assert.Equal(t, float64(jsonSchemaVersion), props["schemaVersion"], "schemaVersion ties the export to the --json contract")
+	assert.Equal(
+		t,
+		float64(jsonSchemaVersion),
+		props["schemaVersion"],
+		"schemaVersion ties the export to the --json contract",
+	)
 	assert.NotContains(t, props, "failedRoots", "no failed roots in a clean scenario")
 
 	results, ok := run["results"].([]any)
@@ -98,6 +103,7 @@ func TestSARIFRoundTrip(t *testing.T) {
 	)
 
 	var out strings.Builder
+
 	code := run([]string{"check", "--sarif", drifted}, &out)
 	require.NotEqual(t, exitError, code)
 
@@ -123,6 +129,7 @@ func TestSARIFCleanRepoAndExitCode(t *testing.T) {
 	clean := seedCleanRepo(t)
 
 	var out strings.Builder
+
 	code := run([]string{"check", "--sarif", clean}, &out)
 	assert.Equal(t, exitOK, code, "clean repo exits 0 under --sarif")
 
