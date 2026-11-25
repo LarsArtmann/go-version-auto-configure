@@ -69,8 +69,8 @@ type jsonRepo struct {
 // trees the walk skipped, so a clean answer is provable against what was
 // examined.
 type jsonCoverage struct {
-	FilesScanned   int                  `json:"filesScanned"`
-	SkippedModules []surface.FilePath   `json:"skippedModules,omitempty"`
+	FilesScanned   int                `json:"filesScanned"`
+	SkippedModules []surface.FilePath `json:"skippedModules,omitempty"`
 }
 
 // checkDocument is the --json payload of check.

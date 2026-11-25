@@ -78,58 +78,58 @@
 
 ## f) Top 50 things we should get done next (ranked by impact; HARVEST input for docs-health)
 
-| #  | Task | Impact                                                                                                          | Effort   | Category |
-| -- | ---- | --------------------------------------------------------------------------------------------------------------- | -------- | -------- |
-|  | ~~1~~ | ~~Consumer sweep: run `fix` across go-cqrs-lite (97 mechanical findings), verify tidy-stable, commit~~ | ~~Critical~~ | ~~M~~ |
-|  | ~~2~~ | ~~Fleet sweep execution: batch `fix` the remaining 35 drifted repos (mechanical only, per-repo commits)~~ | ~~Critical~~ | ~~L~~ |
-|  | ~~3~~ | ~~Fix this repo's `.github/dependabot.yml` actions entry (explicit limit + actions group) — the true positives~~ | ~~High~~ | ~~S~~ |
-|  | ~~4~~ | ~~go-cqrs-lite#42: add the none-import guard to toolspec `detect` + fixture test, then un-skip `cqrs-lint` here~~ | ~~High~~ | ~~M~~ |
-|  | ~~5~~ | ~~dependabot-auto-configure#3: track raw `groups` presence through decode; false positive dies~~ | ~~High~~ | ~~M~~ |
-|  | ~~6~~ | ~~branching-flow#1: model `make(T, len(x))` ↔ `range x` boundedness in the panic analyzer~~ | ~~High~~ | ~~M~~ |
-|  | ~~7~~ | ~~Run full-mode `buildflow` (race + coverage pipeline) end-to-end on this repo~~ | ~~High~~ | ~~S~~ |
-|  | ~~8~~ | ~~Re-measure per-package coverage after the run-function extraction; refresh the 80%-bar table~~ | ~~High~~ | ~~S~~ |
-|  | ~~9~~ | ~~`nix flake check` + `nix run .#test` on the new flake (only `nix build` was verified)~~ | ~~High~~ | ~~S~~ |
-|  | ~~10~~ | ~~Pin golangci-lint version in CI to the devShell's 2.13.2 (reproducible lint)~~ | ~~Medium~~ | ~~S~~ |
-|  | ~~11~~ | ~~Add erraudit step + `fix --dry-run` dogfood gate to CI~~ | ~~Medium~~ | ~~S~~ |
-|  | ~~12~~ | ~~Add CI concurrency group (cancel superseded runs)~~ | ~~Low~~ | ~~S~~ |
-|  | ~~13~~ | ~~Confirm pkg.go.dev listing for v0.2.0 once indexed~~ | ~~Low~~ | ~~S~~ |
-|  | ~~14~~ | ~~Apply the fleet's `.go-auto-upgrade.json` testifyassert exclusion wherever the 366 findings fire~~ | ~~Medium~~ | ~~M~~ |
-|  | ~~15~~ | ~~x/text: decide + execute upstream engagement on the permanent `go 1.26.0` floor (owner question)~~ | ~~Medium~~ | ~~M~~ |
-|  | ~~16~~ | ~~Implement the T5 gomod-checker "tidy revert" rule from the sketched spec (x-text/jsonv2 fixtures)~~ | ~~Medium~~ | ~~L~~ |
-|  | ~~17~~ | ~~Implement T6 release-authority drift detector (VERSION vs CHANGELOG vs tag)~~ | ~~Medium~~ | ~~L~~ |
-|  | ~~18~~ | ~~Implement `gvac nix-pin` (T9): impure flake.lock effective-Go check as an opt-in command~~ | ~~Medium~~ | ~~L~~ |
-|  | ~~19~~ | ~~Root validation: `check` should error (not report clean) on non-directory roots (watch item)~~ | ~~Medium~~ | ~~S~~ |
-|  | ~~20~~ | ~~BuildFlow: make `--format finding` emit JSON for every tool step (golangci-only today)~~ | ~~Medium~~ | ~~M~~ |
-|  | ~~21~~ | ~~Align LSP golines config with buildflow's golines config (kill the false positive)~~ | ~~Low~~ | ~~S~~ |
-|  | ~~22~~ | ~~Migrate the 3 sibling autoconfigurers onto the cmdguard CLI surface (ROADMAP theme 2)~~ | ~~Medium~~ | ~~L~~ |
-|  | ~~23~~ | ~~Propose the fleet-standard devShell/GOTOOLCHAIN-pin pattern doc (choose the owning repo)~~ | ~~Medium~~ | ~~M~~ |
-|  | ~~24~~ | ~~Update go-finding consumers to fully leverage v1.13.0 (workspace-aware floors) — library-deep-dive~~ | ~~Medium~~ | ~~M~~ |
-|  | ~~25~~ | ~~Exercise `SyncGoWorkDirectives` from BuildFlow's go-work-sync arbiter against a real workspace drift incident~~ | ~~Medium~~ | ~~M~~ |
-|  | ~~26~~ | ~~go-output: document "v0.38.2 is the good release; v0.38.1 known-broken" in its README/CHANGELOG (no retraction)~~ | ~~Medium~~ | ~~S~~ |
-|  | ~~27~~ | ~~Land oxlint-auto-configure's dirty flake.nix hermetic-test-wrapper (parallel session's in-flight work)~~ | ~~Low~~ | ~~S~~ |
-|  | ~~28~~ | ~~Archive/ineline `/tmp/cg-spike` evidence referenced by the cmdguard plan §6~~ | ~~Low~~ | ~~S~~ |
-|  | ~~29~~ | ~~Wire `--expect-minor` into the BuildFlow provider as a policy input (not just CLI)~~ | ~~Medium~~ | ~~M~~ |
-|  | ~~30~~ | ~~who-forces fleet aggregation: one fleet-wide poisoner table (ROADMAP item)~~ | ~~Medium~~ | ~~L~~ |
-|  | ~~31~~ | ~~GoReleaser: enable generated release notes (currently `changelog.disable: true`)~~ | ~~Low~~ | ~~S~~ |
-|  | ~~32~~ | ~~Release hardening: artifact signing (cosign) or documented checksum verification~~ | ~~Low~~ | ~~M~~ |
-|  | ~~33~~ | ~~README: add a `who-forces` example output block next to the dep-forced example~~ | ~~Low~~ | ~~S~~ |
-|  | ~~34~~ | ~~Fleet heads-up issue for the `-h` exit-2→0 breaking change (cmdguard session item e.8)~~ | ~~Medium~~ | ~~S~~ |
-|  | ~~35~~ | ~~`BenchmarkApplyAll` with a temp git repo (fix-path performance unmeasured)~~ | ~~Low~~ | ~~M~~ |
-|  | ~~36~~ | ~~BDD: stand up the first ginkgo/gomega behavior suite for new specs (policy allows)~~ | ~~Low~~ | ~~M~~ |
-|  | ~~37~~ | ~~gvac `version` stamp assertion in CI (catch stale binary stamps)~~ | ~~Low~~ | ~~S~~ |
-|  | ~~38~~ | ~~Retract tooling: document the go-release Phase 9 recovery flow even though unused for v0.38.1~~ | ~~Low~~ | ~~S~~ |
-|  | ~~39~~ | ~~dependabot: add the missing gomod/github-actions consistency configs to the 3 sibling repos~~ | ~~Low~~ | ~~S~~ |
-|  | ~~40~~ | ~~Schema policy: write the schema-version bump rules (ADR-0002 candidate)~~ | ~~Low~~ | ~~S~~ |
-|  | ~~41~~ | ~~Sweep-ergonomics: `--fail-fast` or aggregated root-error rows for multi-root runs~~ | ~~Low~~ | ~~M~~ |
-|  | ~~42~~ | ~~Website launch per the sibling-project pattern (gated: "if it earns one")~~ | ~~Low~~ | ~~L~~ |
-|  | ~~43~~ | ~~ROADMAP theme review: prune shipped themes (T0/T1/T4 are done), re-rank the rest~~ | ~~Low~~ | ~~S~~ |
-|  | ~~44~~ | ~~forbidigo-vanishing watch item: keep monitoring for recurrence~~ | ~~Low~~ | ~~S~~ |
-|  | ~~45~~ | ~~DAG-position note: document `go-version-auto-configure` step ordering rationale in BuildFlow docs~~ | ~~Low~~ | ~~S~~ |
-|  | ~~46~~ | ~~Add `check` smoke test against a deliberately poisoned fixture repo in CI (regression canary)~~ | ~~Medium~~ | ~~S~~ |
-|  | ~~47~~ | ~~Study json/v2 std-floor behavior across future Go minors; keep the std-floor vocabulary current~~ | ~~Low~~ | ~~M~~ |
-|  | ~~48~~ | ~~go-finding `AnalyzeFloors`: add `poisonerFloors` ordering guarantee to the provider HealthCheck path~~ | ~~Low~~ | ~~S~~ |
-|  | ~~49~~ | ~~Add the sweep cron recipe to a real crontab/systemd timer somewhere (README shows the line; nothing runs it)~~ | ~~Medium~~ | ~~S~~ |
-|  | ~~50~~ | ~~Post-campaign ADR appendix delta: re-run the 48-root sweep after items 1–2 and record the "after" numbers~~ | ~~High~~ | ~~S~~ |
+| # | Task   | Impact                                                                                                              | Effort       | Category |
+| - | ------ | ------------------------------------------------------------------------------------------------------------------- | ------------ | -------- |
+|   | ~~1~~  | ~~Consumer sweep: run `fix` across go-cqrs-lite (97 mechanical findings), verify tidy-stable, commit~~              | ~~Critical~~ | ~~M~~    |
+|   | ~~2~~  | ~~Fleet sweep execution: batch `fix` the remaining 35 drifted repos (mechanical only, per-repo commits)~~           | ~~Critical~~ | ~~L~~    |
+|   | ~~3~~  | ~~Fix this repo's `.github/dependabot.yml` actions entry (explicit limit + actions group) — the true positives~~    | ~~High~~     | ~~S~~    |
+|   | ~~4~~  | ~~go-cqrs-lite#42: add the none-import guard to toolspec `detect` + fixture test, then un-skip `cqrs-lint` here~~   | ~~High~~     | ~~M~~    |
+|   | ~~5~~  | ~~dependabot-auto-configure#3: track raw `groups` presence through decode; false positive dies~~                    | ~~High~~     | ~~M~~    |
+|   | ~~6~~  | ~~branching-flow#1: model `make(T, len(x))` ↔ `range x` boundedness in the panic analyzer~~                         | ~~High~~     | ~~M~~    |
+|   | ~~7~~  | ~~Run full-mode `buildflow` (race + coverage pipeline) end-to-end on this repo~~                                    | ~~High~~     | ~~S~~    |
+|   | ~~8~~  | ~~Re-measure per-package coverage after the run-function extraction; refresh the 80%-bar table~~                    | ~~High~~     | ~~S~~    |
+|   | ~~9~~  | ~~`nix flake check` + `nix run .#test` on the new flake (only `nix build` was verified)~~                           | ~~High~~     | ~~S~~    |
+|   | ~~10~~ | ~~Pin golangci-lint version in CI to the devShell's 2.13.2 (reproducible lint)~~                                    | ~~Medium~~   | ~~S~~    |
+|   | ~~11~~ | ~~Add erraudit step + `fix --dry-run` dogfood gate to CI~~                                                          | ~~Medium~~   | ~~S~~    |
+|   | ~~12~~ | ~~Add CI concurrency group (cancel superseded runs)~~                                                               | ~~Low~~      | ~~S~~    |
+|   | ~~13~~ | ~~Confirm pkg.go.dev listing for v0.2.0 once indexed~~                                                              | ~~Low~~      | ~~S~~    |
+|   | ~~14~~ | ~~Apply the fleet's `.go-auto-upgrade.json` testifyassert exclusion wherever the 366 findings fire~~                | ~~Medium~~   | ~~M~~    |
+|   | ~~15~~ | ~~x/text: decide + execute upstream engagement on the permanent `go 1.26.0` floor (owner question)~~                | ~~Medium~~   | ~~M~~    |
+|   | ~~16~~ | ~~Implement the T5 gomod-checker "tidy revert" rule from the sketched spec (x-text/jsonv2 fixtures)~~               | ~~Medium~~   | ~~L~~    |
+|   | ~~17~~ | ~~Implement T6 release-authority drift detector (VERSION vs CHANGELOG vs tag)~~                                     | ~~Medium~~   | ~~L~~    |
+|   | ~~18~~ | ~~Implement `gvac nix-pin` (T9): impure flake.lock effective-Go check as an opt-in command~~                        | ~~Medium~~   | ~~L~~    |
+|   | ~~19~~ | ~~Root validation: `check` should error (not report clean) on non-directory roots (watch item)~~                    | ~~Medium~~   | ~~S~~    |
+|   | ~~20~~ | ~~BuildFlow: make `--format finding` emit JSON for every tool step (golangci-only today)~~                          | ~~Medium~~   | ~~M~~    |
+|   | ~~21~~ | ~~Align LSP golines config with buildflow's golines config (kill the false positive)~~                              | ~~Low~~      | ~~S~~    |
+|   | ~~22~~ | ~~Migrate the 3 sibling autoconfigurers onto the cmdguard CLI surface (ROADMAP theme 2)~~                           | ~~Medium~~   | ~~L~~    |
+|   | ~~23~~ | ~~Propose the fleet-standard devShell/GOTOOLCHAIN-pin pattern doc (choose the owning repo)~~                        | ~~Medium~~   | ~~M~~    |
+|   | ~~24~~ | ~~Update go-finding consumers to fully leverage v1.13.0 (workspace-aware floors) — library-deep-dive~~              | ~~Medium~~   | ~~M~~    |
+|   | ~~25~~ | ~~Exercise `SyncGoWorkDirectives` from BuildFlow's go-work-sync arbiter against a real workspace drift incident~~   | ~~Medium~~   | ~~M~~    |
+|   | ~~26~~ | ~~go-output: document "v0.38.2 is the good release; v0.38.1 known-broken" in its README/CHANGELOG (no retraction)~~ | ~~Medium~~   | ~~S~~    |
+|   | ~~27~~ | ~~Land oxlint-auto-configure's dirty flake.nix hermetic-test-wrapper (parallel session's in-flight work)~~          | ~~Low~~      | ~~S~~    |
+|   | ~~28~~ | ~~Archive/ineline `/tmp/cg-spike` evidence referenced by the cmdguard plan §6~~                                     | ~~Low~~      | ~~S~~    |
+|   | ~~29~~ | ~~Wire `--expect-minor` into the BuildFlow provider as a policy input (not just CLI)~~                              | ~~Medium~~   | ~~M~~    |
+|   | ~~30~~ | ~~who-forces fleet aggregation: one fleet-wide poisoner table (ROADMAP item)~~                                      | ~~Medium~~   | ~~L~~    |
+|   | ~~31~~ | ~~GoReleaser: enable generated release notes (currently `changelog.disable: true`)~~                                | ~~Low~~      | ~~S~~    |
+|   | ~~32~~ | ~~Release hardening: artifact signing (cosign) or documented checksum verification~~                                | ~~Low~~      | ~~M~~    |
+|   | ~~33~~ | ~~README: add a `who-forces` example output block next to the dep-forced example~~                                  | ~~Low~~      | ~~S~~    |
+|   | ~~34~~ | ~~Fleet heads-up issue for the `-h` exit-2→0 breaking change (cmdguard session item e.8)~~                          | ~~Medium~~   | ~~S~~    |
+|   | ~~35~~ | ~~`BenchmarkApplyAll` with a temp git repo (fix-path performance unmeasured)~~                                      | ~~Low~~      | ~~M~~    |
+|   | ~~36~~ | ~~BDD: stand up the first ginkgo/gomega behavior suite for new specs (policy allows)~~                              | ~~Low~~      | ~~M~~    |
+|   | ~~37~~ | ~~gvac `version` stamp assertion in CI (catch stale binary stamps)~~                                                | ~~Low~~      | ~~S~~    |
+|   | ~~38~~ | ~~Retract tooling: document the go-release Phase 9 recovery flow even though unused for v0.38.1~~                   | ~~Low~~      | ~~S~~    |
+|   | ~~39~~ | ~~dependabot: add the missing gomod/github-actions consistency configs to the 3 sibling repos~~                     | ~~Low~~      | ~~S~~    |
+|   | ~~40~~ | ~~Schema policy: write the schema-version bump rules (ADR-0002 candidate)~~                                         | ~~Low~~      | ~~S~~    |
+|   | ~~41~~ | ~~Sweep-ergonomics: `--fail-fast` or aggregated root-error rows for multi-root runs~~                               | ~~Low~~      | ~~M~~    |
+|   | ~~42~~ | ~~Website launch per the sibling-project pattern (gated: "if it earns one")~~                                       | ~~Low~~      | ~~L~~    |
+|   | ~~43~~ | ~~ROADMAP theme review: prune shipped themes (T0/T1/T4 are done), re-rank the rest~~                                | ~~Low~~      | ~~S~~    |
+|   | ~~44~~ | ~~forbidigo-vanishing watch item: keep monitoring for recurrence~~                                                  | ~~Low~~      | ~~S~~    |
+|   | ~~45~~ | ~~DAG-position note: document `go-version-auto-configure` step ordering rationale in BuildFlow docs~~               | ~~Low~~      | ~~S~~    |
+|   | ~~46~~ | ~~Add `check` smoke test against a deliberately poisoned fixture repo in CI (regression canary)~~                   | ~~Medium~~   | ~~S~~    |
+|   | ~~47~~ | ~~Study json/v2 std-floor behavior across future Go minors; keep the std-floor vocabulary current~~                 | ~~Low~~      | ~~M~~    |
+|   | ~~48~~ | ~~go-finding `AnalyzeFloors`: add `poisonerFloors` ordering guarantee to the provider HealthCheck path~~            | ~~Low~~      | ~~S~~    |
+|   | ~~49~~ | ~~Add the sweep cron recipe to a real crontab/systemd timer somewhere (README shows the line; nothing runs it)~~    | ~~Medium~~   | ~~S~~    |
+|   | ~~50~~ | ~~Post-campaign ADR appendix delta: re-run the 48-root sweep after items 1–2 and record the "after" numbers~~       | ~~High~~     | ~~S~~    |
 
 ## g) Questions I can NOT answer myself (top 3)
 

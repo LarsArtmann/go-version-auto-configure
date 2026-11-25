@@ -1,3 +1,5 @@
+> **Live remainder (archived 2026-11-25):** all open items resolved — pass-date/routed markers annotated inline in this file; live follow-ups live in TODO_LIST (T-numbers) and docs/POISONERS.md.
+
 # Session Status — WP-01b Converged & Pushed, 3 New Poisoners Killed, WP-23 Shipped, cqrs-htmx Wave Half-Landed
 
 **Session:** 2026-10-03 ~10:30–11:23 (continuation of the 10-18 WAITING state; owner re-issued the standing directive without §g answers → proceeded per standing pattern: root-cause always safe, gvac-local WPs collision-free, pushes only on green). **This report ends the session; WAITING FOR INSTRUCTIONS.**
@@ -62,45 +64,45 @@ WP-05 (fleet sweep + go-output v0.38.2 pinner bumps + ADR-0001 counts — NOTE: 
 9. Bump sibling requires via `go mod edit -require=.../v4@<newtag>` (multi-module chicken-and-egg; no tidy until tags pushed).
 10. Tag root + identity-model first (no internal deps), annotated, same commit.
 11. Tag usermgmt/oauth2, totp, webauthn next (depend on identity-model/root).
-~~12. Tag health, loginpage, datastar, systemadapter.~~ p:-
-~~13. Tag setup, adminui, dashboardui, auditlog.~~ p:-
-14. Tag usermgmt LAST (requires root + identity-model + oauth2 family).
-15. Push master + all 14 tags.
-16. Per-tag fresh-fetch .mod verify — count-asserted 14/14 `go 1.27`.
-17. Post-tag: per-module `go mod tidy` for real go.sums; re-verify builds.
-18. POISONERS.md cqrs-htmx row Active → Resolved (evidence: 14 .mod reads + date).
-19. cqrs-htmx CHANGELOG entry for the minor-form floor wave.
-20. WP-05: baseline sweep `/tmp/gvac check --quiet --expect-minor 1.27 ~/projects/*/` (exclude .git-heavy dirs; expect project-discovery-sdk release-authority-drift finding — real).
-21. WP-05: enumerate go-output v0.38.2 pinners (grep go.mods across ~/projects).
-22. WP-05: bump each pinner to v0.38.3 + tidy + `/tmp/gvac fix`.
-23. WP-05: enumerate pre-wave cqrs-lite pinners (DiscordSync, dnsblockd, PMA, KeyHolderAI, ...) — coordinate with active sessions before touching.
-~~24. WP-05: post-bump re-sweep; record dep-forced → clean transitions.~~ p:-
-25. WP-05: `git status` spot-check per outcome class.
-26. WP-05: ADR-0001 appendix consumer-count refresh.
-27. WP-21: flag-help property/snapshot test.
-28. WP-21: `exitFrom*` outcome-combination table test.
-29. WP-21: `runSorted` zero-items + `--parallel 1`/`100` equivalence.
-30. WP-21: `version` output golden through cmdguard.
-31. WP-21: `BenchmarkApplyAll` with temp git repo.
-32. WP-11: go-nix-helpers input bump + vendorHash refresh.
-33. WP-11: `nix build .#go-version-auto-configure` green.
-34. WP-11: flake `checks` entry asserting FOD go ≥ go.mod floor.
-35. WP-13: benchmark suite re-run `-benchmem`; write deltas in a LIVING doc.
-36. WP-13: per-package coverage re-measure; update FEATURES/TODO numbers.
-37. WP-14: license-check 5 isolated runs; diff cache/network/package-set.
-38. WP-14: doctor "tools unavailable" warnings review.
-39. WP-14: vulnix gcc CVE-2023-4039 triage.
-40. WP-14: art-dupl vs DEDUPLICATION baseline diff; record verdict.
-41. WP-15: reproduce gomod-check ↔ go-mod-normalize 20×-flip warning.
-42. WP-15: read BuildFlow dispositions; align; record decision by .buildflow.yml.
-43. WP-22: T5 rule spec vs gomod-checker API; fixtures a/b/c; implement in BuildFlow; cross-check vs gvac check.
-44. gvac CHANGELOG: WP-22 entry when done; fold [Unreleased] → v0.2.5.
-45. v0.2.5: full devShell gates (build, test -race, buildflow lint, dogfood `check --expect-minor 1.27 .`).
-46. v0.2.5: tag + push + proxy `go get` verify + pkg.go.dev check.
-47. Plan ANNOTATE (never rewrite) + TODO_LIST harvest + row updates (T6 done, T14-① progress).
-48. Suggest to cqrs-lite: TestEveryModuleGoSumIsTidy quiet-window awareness (their repo).
-49. Check parallel cqrs-lint session state before any cmd/cqrs-lint* work (was silent since 07:46).
-50. README: release-authority-drift example + who-forces example from the real cqrs-htmx run (WP-19 partial).
+    ~~12. Tag health, loginpage, datastar, systemadapter.~~ done (docs-health pass 2026-11-25)
+    ~~13. Tag setup, adminui, dashboardui, auditlog.~~ done (docs-health pass 2026-11-25)
+12. Tag usermgmt LAST (requires root + identity-model + oauth2 family).
+13. Push master + all 14 tags.
+14. Per-tag fresh-fetch .mod verify — count-asserted 14/14 `go 1.27`.
+15. Post-tag: per-module `go mod tidy` for real go.sums; re-verify builds.
+16. POISONERS.md cqrs-htmx row Active → Resolved (evidence: 14 .mod reads + date).
+17. cqrs-htmx CHANGELOG entry for the minor-form floor wave.
+18. WP-05: baseline sweep `/tmp/gvac check --quiet --expect-minor 1.27 ~/projects/*/` (exclude .git-heavy dirs; expect project-discovery-sdk release-authority-drift finding — real).
+19. WP-05: enumerate go-output v0.38.2 pinners (grep go.mods across ~/projects).
+20. WP-05: bump each pinner to v0.38.3 + tidy + `/tmp/gvac fix`.
+21. WP-05: enumerate pre-wave cqrs-lite pinners (DiscordSync, dnsblockd, PMA, KeyHolderAI, ...) — coordinate with active sessions before touching.
+    ~~24. WP-05: post-bump re-sweep; record dep-forced → clean transitions.~~ done (docs-health pass 2026-11-25)
+22. WP-05: `git status` spot-check per outcome class.
+23. WP-05: ADR-0001 appendix consumer-count refresh.
+24. WP-21: flag-help property/snapshot test.
+25. WP-21: `exitFrom*` outcome-combination table test.
+26. WP-21: `runSorted` zero-items + `--parallel 1`/`100` equivalence.
+27. WP-21: `version` output golden through cmdguard.
+28. WP-21: `BenchmarkApplyAll` with temp git repo.
+29. WP-11: go-nix-helpers input bump + vendorHash refresh.
+30. WP-11: `nix build .#go-version-auto-configure` green.
+31. WP-11: flake `checks` entry asserting FOD go ≥ go.mod floor.
+32. WP-13: benchmark suite re-run `-benchmem`; write deltas in a LIVING doc.
+33. WP-13: per-package coverage re-measure; update FEATURES/TODO numbers.
+34. WP-14: license-check 5 isolated runs; diff cache/network/package-set.
+35. ~~WP-14: doctor "tools unavailable" warnings review.~~ done (docs-health pass 2026-11-25: documented environment-scoped, see TODO_LIST's BuildFlow-binary row)
+~~36. WP-14: vulnix gcc CVE-2023-4039 triage.~~ p:-
+37. WP-14: art-dupl vs DEDUPLICATION baseline diff; record verdict.
+38. WP-15: reproduce gomod-check ↔ go-mod-normalize 20×-flip warning.
+39. WP-15: read BuildFlow dispositions; align; record decision by .buildflow.yml.
+40. WP-22: T5 rule spec vs gomod-checker API; fixtures a/b/c; implement in BuildFlow; cross-check vs gvac check.
+41. gvac CHANGELOG: WP-22 entry when done; fold [Unreleased] → v0.2.5.
+42. v0.2.5: full devShell gates (build, test -race, buildflow lint, dogfood `check --expect-minor 1.27 .`).
+43. v0.2.5: tag + push + proxy `go get` verify + pkg.go.dev check.
+44. Plan ANNOTATE (never rewrite) + TODO_LIST harvest + row updates (T6 done, T14-① progress).
+45. Suggest to cqrs-lite: TestEveryModuleGoSumIsTidy quiet-window awareness (their repo).
+46. Check parallel cqrs-lint session state before any cmd/cqrs-lint* work (was silent since 07:46).
+47. README: release-authority-drift example + who-forces example from the real cqrs-htmx run (WP-19 partial).
 
 ## g) QUESTIONS I CANNOT ANSWER MYSELF
 

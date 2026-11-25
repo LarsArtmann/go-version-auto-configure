@@ -94,17 +94,17 @@ _Brainstorm list — a menu, not a commitment. Items 1–12 are the highest-impa
 **Fleet-blocking / supply side (T1, T4):**
 
 1. Re-tag `go-finding` with major.minor-only `go` directives (decide 1.26 vs 1.27 first — Q1 below).
-2. Re-tag `go-atomic-write` after owner confirms the accidental `1.27.1` downgrade (F16).
-~~3. Re-tag `go-error-family` + remaining go-* libraries with patch-form floors.~~ p:-
-4. Verify no `replace` directives leak into any re-tagged go.mod (go-release Phase 3).
-5. Post-re-tag: `go get @vX.Y.Z` clean-module proxy verification per library.
-6. Bump the autoconfigure family + fleet consumers to the clean versions (go-ecosystem-upgrade protocol).
-7. Re-run `go-version-auto-configure check` fleet-wide; confirm ~0 dep-forced findings survive tidy.
-8. T4: record the fleet-minor decision (1.26 vs 1.27) as an ADR.
-9. Encode the decision: `--expect-minor` flag so `check` enforces the fleet policy mechanically.
-10. After re-tags: re-run this repo's own `fix .` until the dogfood steady state is `applied 1` (the strip finally sticks).
-11. Re-check the `.buildflow.yml` `go-mod-update` skip: once supply side is clean, the tug-of-war guard can be lifted.
-12. Same for the `go-structure-linter` skip (its go-version rule becomes correct or stays wrong per the ADR).
+2. ~~Re-tag `go-atomic-write` after owner confirms the accidental `1.27.1` downgrade (F16).~~ done (docs-health pass 2026-09-22, v0.6.0 minor-form)
+   ~~3. Re-tag `go-error-family` + remaining go-* libraries with patch-form floors.~~ done (docs-health pass 2026-11-25)
+3. Verify no `replace` directives leak into any re-tagged go.mod (go-release Phase 3).
+4. Post-re-tag: `go get @vX.Y.Z` clean-module proxy verification per library.
+5. Bump the autoconfigure family + fleet consumers to the clean versions (go-ecosystem-upgrade protocol).
+6. Re-run `go-version-auto-configure check` fleet-wide; confirm ~0 dep-forced findings survive tidy.
+7. T4: record the fleet-minor decision (1.26 vs 1.27) as an ADR.
+8. Encode the decision: `--expect-minor` flag so `check` enforces the fleet policy mechanically.
+9. After re-tags: re-run this repo's own `fix .` until the dogfood steady state is `applied 1` (the strip finally sticks).
+10. Re-check the `.buildflow.yml` `go-mod-update` skip: once supply side is clean, the tug-of-war guard can be lifted.
+11. Same for the `go-structure-linter` skip (its go-version rule becomes correct or stays wrong per the ADR).
 
 **This repo, publish track (T3):**
 13. GitHub Actions CI: lint + test matrix + dogfood `check .` as a gate (remember `GOEXPERIMENT=jsonv2` in the workflow env).

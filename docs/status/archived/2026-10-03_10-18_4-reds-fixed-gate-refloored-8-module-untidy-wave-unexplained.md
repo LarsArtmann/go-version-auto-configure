@@ -1,3 +1,5 @@
+> **Live remainder (archived 2026-11-25):** all open items resolved — pass-date/routed markers annotated inline in this file; live follow-ups live in TODO_LIST (T-numbers) and docs/POISONERS.md.
+
 # Session Status — 4 Reds Root-Caused & Fixed, Gate Re-Floored, New 8-Module Untidy Wave Undiagnosed
 
 **Session:** 2026-10-03 ~07:16–10:18 (continuation of the 07-15 WAITING state; owner re-issued "READ, UNDERSTAND… Keep going until everything works" twice). Machine suspended mid-session (~07:50 → 10:15 wall-clock jump). **This report ends the session; WAITING FOR INSTRUCTIONS.**
@@ -65,38 +67,38 @@ WP-02 (cqrs-htmx who-forces map → strip → 14 tags), WP-05 (fleet sweep + go-
 14. WP-05: baseline sweep `check --quiet --expect-minor 1.27 ~/projects/*/` snapshot.
 15. WP-05: enumerate go-output v0.38.2 pinners (grep go.mods across ~/projects).
 16. WP-05: bump pinners to v0.38.3 + tidy + gvac fix, per repo.
-~~17. WP-05: post-re-tag re-sweep; record dep-forced → clean transitions.~~ p:-
-18. WP-05: `git status` spot-check per outcome class (applied / dep-forced / failed).
-19. WP-05: ADR-0001 appendix consumer-count refresh.
-20. WP-10 mt3: `buildflow update` re-run proving settle at `go 1.27` (skill already loaded).
-21. WP-23: T6 `release-authority-drift` pure pass in `Discover` (VERSION vs CHANGELOG top), suggest-only.
-22. WP-23: T6 tests + optional git-tag second-pass design note.
-23. WP-21: flag-help property/snapshot test.
-24. WP-21: `exitFrom*` outcome-combination table test.
-25. WP-21: `runSorted` zero-items + `--parallel 1`/`100` equivalence.
-26. WP-21: `version` output golden through cmdguard.
-27. WP-21: `BenchmarkApplyAll` with temp git repo.
-28. WP-11: go-nix-helpers input bump + vendorHash refresh.
-29. WP-11: `nix build .#go-version-auto-configure` green.
-30. WP-11: flake `checks` entry asserting FOD go ≥ go.mod floor.
-31. WP-13: benchmark suite re-run with `-benchmem`.
-~~32. WP-13: write deltas into a LIVING doc (not archive-only).~~ p:-
-33. WP-13: per-package coverage re-measure; update FEATURES/TODO numbers.
-34. WP-14: license-check 5 isolated runs; diff cache/network/package-set.
-35. WP-14: doctor "tools unavailable" warnings review; install or document.
-36. WP-14: vulnix gcc CVE-2023-4039 triage.
-37. WP-14: art-dupl vs DEDUPLICATION baseline diff; record verdict.
-38. WP-15: reproduce gomod-check ↔ go-mod-normalize 20×-flip warning.
-39. WP-15: read BuildFlow dispositions; align (their repo or local skip posture).
-40. WP-15: record decision next to the .buildflow.yml guard.
-41. WP-22: T5 rule spec vs gomod-checker API; fixtures a/b/c; implement in BuildFlow; cross-check vs gvac `check`.
-42. Verify gvac e2e_test.go lint cleanliness with the real gate (close the stale-LSP question).
-43. gvac CHANGELOG [Unreleased]: add WP-12 (depFloor unification) + WP-10 (e2e/invariants) entries.
-44. Final v0.2.5: fold [Unreleased], full devShell gates (build, test -race, lint, dogfood `check --expect-minor 1.27 .`).
-45. Final: tag v0.2.5 + push (per Q3 standing interpretation) + proxy `go get` verify + pkg.go.dev check.
-46. Plan ANNOTATE (never rewrite) + TODO_LIST harvest + row updates.
-47. Coordinate with the parallel cqrs-lint session on its remaining tail (stale.go ratchet, cmdguard filings, nightly timer install) — avoid double-work.
-48. Suggest to cqrs-lite: make `TestEveryModuleGoSumIsTidy` quiet-window-aware or daemon-sequential (their repo, their call).
+    ~~17. WP-05: post-re-tag re-sweep; record dep-forced → clean transitions.~~ done (docs-health pass 2026-11-25)
+17. WP-05: `git status` spot-check per outcome class (applied / dep-forced / failed).
+18. WP-05: ADR-0001 appendix consumer-count refresh.
+19. WP-10 mt3: `buildflow update` re-run proving settle at `go 1.27` (skill already loaded).
+20. WP-23: T6 `release-authority-drift` pure pass in `Discover` (VERSION vs CHANGELOG top), suggest-only.
+21. WP-23: T6 tests + optional git-tag second-pass design note.
+22. WP-21: flag-help property/snapshot test.
+23. WP-21: `exitFrom*` outcome-combination table test.
+24. WP-21: `runSorted` zero-items + `--parallel 1`/`100` equivalence.
+25. WP-21: `version` output golden through cmdguard.
+26. WP-21: `BenchmarkApplyAll` with temp git repo.
+27. WP-11: go-nix-helpers input bump + vendorHash refresh.
+28. WP-11: `nix build .#go-version-auto-configure` green.
+29. WP-11: flake `checks` entry asserting FOD go ≥ go.mod floor.
+30. WP-13: benchmark suite re-run with `-benchmem`.
+    ~~32. WP-13: write deltas into a LIVING doc (not archive-only).~~ done (docs-health pass 2026-11-25)
+31. WP-13: per-package coverage re-measure; update FEATURES/TODO numbers.
+32. WP-14: license-check 5 isolated runs; diff cache/network/package-set.
+33. ~~WP-14: doctor "tools unavailable" warnings review; install or document.~~ done (docs-health pass 2026-11-25: documented environment-scoped, see TODO_LIST's BuildFlow-binary row)
+~~34. WP-14: vulnix gcc CVE-2023-4039 triage.~~ p:-
+35. WP-14: art-dupl vs DEDUPLICATION baseline diff; record verdict.
+36. WP-15: reproduce gomod-check ↔ go-mod-normalize 20×-flip warning.
+37. WP-15: read BuildFlow dispositions; align (their repo or local skip posture).
+38. WP-15: record decision next to the .buildflow.yml guard.
+39. WP-22: T5 rule spec vs gomod-checker API; fixtures a/b/c; implement in BuildFlow; cross-check vs gvac `check`.
+40. Verify gvac e2e_test.go lint cleanliness with the real gate (close the stale-LSP question).
+41. gvac CHANGELOG [Unreleased]: add WP-12 (depFloor unification) + WP-10 (e2e/invariants) entries.
+42. Final v0.2.5: fold [Unreleased], full devShell gates (build, test -race, lint, dogfood `check --expect-minor 1.27 .`).
+43. Final: tag v0.2.5 + push (per Q3 standing interpretation) + proxy `go get` verify + pkg.go.dev check.
+44. Plan ANNOTATE (never rewrite) + TODO_LIST harvest + row updates.
+45. Coordinate with the parallel cqrs-lint session on its remaining tail (stale.go ratchet, cmdguard filings, nightly timer install) — avoid double-work.
+46. Suggest to cqrs-lite: make `TestEveryModuleGoSumIsTidy` quiet-window-aware or daemon-sequential (their repo, their call).
 
 ## g) QUESTIONS I CANNOT ANSWER MYSELF
 

@@ -53,100 +53,100 @@
 
 ## Comprehensive plan (30–100 min tasks, sorted by impact)
 
-| ID | Task | Repo                                                                                                                                                                                                                                      | Impact    | Effort   | Depends on |
-| -- | ---- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------- | -------- | ---------- |
-|  | ~~P1~~ | ~~Release go-health **v0.4.1**: CHANGELOG `Fixed` entry (go directive 1.27.1→1.27, unblocks consumers from patch-form floor), annotated tag, push master+tag, proxy verify `go get @v0.4.1`; fold in TODO note for `/version` endpoint idea~~ | ~~go-health~~ | ~~Critical~~ | ~~45m~~ |
-|  | ~~P2~~ | ~~Ship **v0.2.1** of this tool: FP fix (P5) + exit doc (P6) + check UX (P7) + ADR row (P8) + CHANGELOG + full gates + tag + push + proxy verify~~ | ~~this repo~~ | ~~Critical~~ | ~~90m~~ |
-|  | ~~P3~~ | ~~BuildFlow repin v0.2.1 + **rebuild + reinstall binary** + verify embedded gvac version + update S87/P1 TODO rows + evaluate retiring GoWorkFloorFinding defenses~~ | ~~BuildFlow~~ | ~~Critical~~ | ~~60m~~ |
-|  | ~~P4~~ | ~~Dashboard consumer bump: `go get go-health@v0.4.1`, tidy settles `go 1.27`, run gates (build/test/lint), commit~~ | ~~dashboard~~ | ~~Critical~~ | ~~60m~~ |
-|  | ~~P5~~ | ~~FP fix: comment-aware `scanNixPins` (strip `#` outside strings, `/* */` spans) + fixtures incl. go-health's exact comment shape~~ | ~~this repo~~ | ~~Critical~~ | ~~60m~~ |
-|  | ~~P6~~ | ~~Exit-contract alignment: AGENTS.md wording (fix: dep-forced-only = 0, check/who-forces = 1), main.go comment, regression test~~ | ~~this repo~~ | ~~High~~ | ~~45m~~ |
-|  | ~~P7~~ | ~~check honesty: relabel gate-dependent fixability ("fixable pending dep-floor gate") + append supply-side hint to check output for patch-form findings~~ | ~~this repo~~ | ~~High~~ | ~~90m~~ |
-|  | ~~P8~~ | ~~ADR 0001 appendix: dashboard consumer row (poisoner go-health v0.4.0 → resolved v0.4.1)~~ | ~~this repo~~ | ~~High~~ | ~~30m~~ |
-|  | ~~P9~~ | ~~Dashboard guard removal: delete `scripts/check-go-directive.sh` + CI wiring in `ci.yml`, close fleet-filing TODO row with gate-fixed-upstream evidence + `who-forces` output~~ | ~~dashboard~~ | ~~High~~ | ~~45m~~ |
-|  | ~~P10~~ | ~~TODO_LIST harvest: new T13 section, mark T2 done-stale, update T1 open consumer row; correction appendix in the 05-32 status report (flake FP)~~ | ~~this repo~~ | ~~Medium~~ | ~~30m~~ |
-|  | ~~P11~~ | ~~Fleet consumer sweep: all go-health importers `check`/`fix` post-re-tag; confirm each settles minor-form~~ | ~~fleet~~ | ~~Medium~~ | ~~60m~~ |
-|  | ~~P12~~ | ~~CanonicalizeGoMod dep-forced fixture: verify gate coverage, add dashboard-shaped case~~ | ~~this repo~~ | ~~Medium~~ | ~~45m~~ |
-|  | ~~P13~~ | ~~Poisoner registry doc: consolidate active poisoner list from AGENTS.md + ADR appendix into one table~~ | ~~this repo~~ | ~~Low~~ | ~~30m~~ |
-|  | ~~P14~~ | ~~Gate-verification recipe doc: throwaway-copy method for testing poisoner consumers safely~~ | ~~this repo~~ | ~~Low~~ | ~~30m~~ |
-|  | ~~P15~~ | ~~Severity-review note: document that dep-forced patch-form findings stay warning-severity (rules.go comment + DOMAIN_LANGUAGE)~~ | ~~this repo~~ | ~~Low~~ | ~~30m~~ |
+| ID | Task    | Repo                                                                                                                                                                                                                                          | Impact        | Effort       | Depends on |
+| -- | ------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------- | ------------ | ---------- |
+|    | ~~P1~~  | ~~Release go-health **v0.4.1**: CHANGELOG `Fixed` entry (go directive 1.27.1→1.27, unblocks consumers from patch-form floor), annotated tag, push master+tag, proxy verify `go get @v0.4.1`; fold in TODO note for `/version` endpoint idea~~ | ~~go-health~~ | ~~Critical~~ | ~~45m~~    |
+|    | ~~P2~~  | ~~Ship **v0.2.1** of this tool: FP fix (P5) + exit doc (P6) + check UX (P7) + ADR row (P8) + CHANGELOG + full gates + tag + push + proxy verify~~                                                                                             | ~~this repo~~ | ~~Critical~~ | ~~90m~~    |
+|    | ~~P3~~  | ~~BuildFlow repin v0.2.1 + **rebuild + reinstall binary** + verify embedded gvac version + update S87/P1 TODO rows + evaluate retiring GoWorkFloorFinding defenses~~                                                                          | ~~BuildFlow~~ | ~~Critical~~ | ~~60m~~    |
+|    | ~~P4~~  | ~~Dashboard consumer bump: `go get go-health@v0.4.1`, tidy settles `go 1.27`, run gates (build/test/lint), commit~~                                                                                                                           | ~~dashboard~~ | ~~Critical~~ | ~~60m~~    |
+|    | ~~P5~~  | ~~FP fix: comment-aware `scanNixPins` (strip `#` outside strings, `/* */` spans) + fixtures incl. go-health's exact comment shape~~                                                                                                           | ~~this repo~~ | ~~Critical~~ | ~~60m~~    |
+|    | ~~P6~~  | ~~Exit-contract alignment: AGENTS.md wording (fix: dep-forced-only = 0, check/who-forces = 1), main.go comment, regression test~~                                                                                                             | ~~this repo~~ | ~~High~~     | ~~45m~~    |
+|    | ~~P7~~  | ~~check honesty: relabel gate-dependent fixability ("fixable pending dep-floor gate") + append supply-side hint to check output for patch-form findings~~                                                                                     | ~~this repo~~ | ~~High~~     | ~~90m~~    |
+|    | ~~P8~~  | ~~ADR 0001 appendix: dashboard consumer row (poisoner go-health v0.4.0 → resolved v0.4.1)~~                                                                                                                                                   | ~~this repo~~ | ~~High~~     | ~~30m~~    |
+|    | ~~P9~~  | ~~Dashboard guard removal: delete `scripts/check-go-directive.sh` + CI wiring in `ci.yml`, close fleet-filing TODO row with gate-fixed-upstream evidence + `who-forces` output~~                                                              | ~~dashboard~~ | ~~High~~     | ~~45m~~    |
+|    | ~~P10~~ | ~~TODO_LIST harvest: new T13 section, mark T2 done-stale, update T1 open consumer row; correction appendix in the 05-32 status report (flake FP)~~                                                                                            | ~~this repo~~ | ~~Medium~~   | ~~30m~~    |
+|    | ~~P11~~ | ~~Fleet consumer sweep: all go-health importers `check`/`fix` post-re-tag; confirm each settles minor-form~~                                                                                                                                  | ~~fleet~~     | ~~Medium~~   | ~~60m~~    |
+|    | ~~P12~~ | ~~CanonicalizeGoMod dep-forced fixture: verify gate coverage, add dashboard-shaped case~~                                                                                                                                                     | ~~this repo~~ | ~~Medium~~   | ~~45m~~    |
+|    | ~~P13~~ | ~~Poisoner registry doc: consolidate active poisoner list from AGENTS.md + ADR appendix into one table~~                                                                                                                                      | ~~this repo~~ | ~~Low~~      | ~~30m~~    |
+|    | ~~P14~~ | ~~Gate-verification recipe doc: throwaway-copy method for testing poisoner consumers safely~~                                                                                                                                                 | ~~this repo~~ | ~~Low~~      | ~~30m~~    |
+|    | ~~P15~~ | ~~Severity-review note: document that dep-forced patch-form findings stay warning-severity (rules.go comment + DOMAIN_LANGUAGE)~~                                                                                                             | ~~this repo~~ | ~~Low~~      | ~~30m~~    |
 
 ## Fine breakdown (≤12 min tasks, sorted by impact; ALL TODOs)
 
 ### Tier 1 — Critical path
 
-| #  | Task (≤12m) | Parent                                                                                                                         | Est |
-| -- | ----------- | ------------------------------------------------------------------------------------------------------------------------------ | --- |
-|  | ~~1~~ | ~~go-health: verify master state (go.mod `go 1.27`, clean tree, no stray replaces)~~ | ~~P1~~ |
-|  | ~~2~~ | ~~go-health: devShell build + test green precondition~~ | ~~P1~~ |
-|  | ~~3~~ | ~~go-health: CHANGELOG `[v0.4.1]` Fixed entry (floor 1.27.1→1.27 minor form)~~ | ~~P1~~ |
-|  | ~~4~~ | ~~go-health: commit CHANGELOG~~ | ~~P1~~ |
-|  | ~~5~~ | ~~go-health: annotated tag `v0.4.1` (message: floor fix rationale)~~ | ~~P1~~ |
-|  | ~~6~~ | ~~go-health: push master + tag~~ | ~~P1~~ |
-|  | ~~7~~ | ~~go-health: proxy verify (`go get github.com/larsartmann/go-health@v0.4.1` in scratch module)~~ | ~~P1~~ |
-|  | ~~8~~ | ~~go-health: TODO/ROADMAP note — `/version` endpoint idea (health-endpoint feature, not version-surface)~~ | ~~P1~~ |
-|  | ~~9~~ | ~~this repo: read `scanNixPins` + write comment-stripping helper design (inline `#`, block `/* */`, quote-aware)~~ | ~~P5~~ |
-|  | ~~10~~ | ~~this repo: implement `stripNixComment(line, state)` w/ block-comment carry~~ | ~~P5~~ |
-|  | ~~11~~ | ~~this repo: fixture — go-health's exact lines 39–43 (comment go_1_26, real go_1_27) → expect single pin 1.27~~ | ~~P5~~ |
-|  | ~~12~~ | ~~this repo: fixture — block comment spanning lines w/ pins; quoted `#` in URLs not treated as comment~~ | ~~P5~~ |
-|  | ~~13~~ | ~~this repo: fixture — `buildGo126Module` inside comment ignored~~ | ~~P5~~ |
-|  | ~~14~~ | ~~this repo: run pkg/surface tests + gofmt~~ | ~~P5~~ |
-|  | ~~15~~ | ~~this repo: live re-run `check` on go-health → expect 0 findings (exit 0)~~ | ~~P5~~ |
-|  | ~~16~~ | ~~this repo: AGENTS.md exit-contract wording fix (fix=0 on dep-forced-only; 1 = check findings/failed fixes/who-forces poisoned)~~ | ~~P6~~ |
-|  | ~~17~~ | ~~this repo: main.go line-37 comment fix~~ | ~~P6~~ |
-|  | ~~18~~ | ~~this repo: regression test — fix on dep-forced-only repo → exit 0, dep-forced counted~~ | ~~P6~~ |
-|  | ~~19~~ | ~~this repo: check UX — locate renderFixability/summary code path~~ | ~~P7~~ |
-|  | ~~20~~ | ~~this repo: implement relabel: "auto-fixable (pending dep-floor gate)" when patch-form go.mod finding present~~ | ~~P7~~ |
-|  | ~~21~~ | ~~this repo: check output appends supply-side hint line for patch-form findings~~ | ~~P7~~ |
-|  | ~~22~~ | ~~this repo: tests for 20–21 (human + `--json` schema stability check)~~ | ~~P7~~ |
-|  | ~~23~~ | ~~this repo: ADR appendix dashboard row (markdown table append)~~ | ~~P8~~ |
-|  | ~~24~~ | ~~this repo: CHANGELOG `## [Unreleased]`→v0.2.1 section (FP fix, check honesty, exit doc)~~ | ~~P2~~ |
-|  | ~~25~~ | ~~this repo: full gates in devShell: `go build`, `go test ./...`, `go vet`, golangci if configured~~ | ~~P2~~ |
-|  | ~~26~~ | ~~this repo: dogfood `check --expect-minor 1.27 .` exit 0~~ | ~~P2~~ |
-|  | ~~27~~ | ~~this repo: commit v0.2.1 work (detailed message)~~ | ~~P2~~ |
-|  | ~~28~~ | ~~this repo: tag `v0.2.1` + push master + tag~~ | ~~P2~~ |
-|  | ~~29~~ | ~~this repo: proxy verify `go get @v0.2.1`~~ | ~~P2~~ |
+| # | Task (≤12m) | Parent                                                                                                                             | Est    |
+| - | ----------- | ---------------------------------------------------------------------------------------------------------------------------------- | ------ |
+|   | ~~1~~       | ~~go-health: verify master state (go.mod `go 1.27`, clean tree, no stray replaces)~~                                               | ~~P1~~ |
+|   | ~~2~~       | ~~go-health: devShell build + test green precondition~~                                                                            | ~~P1~~ |
+|   | ~~3~~       | ~~go-health: CHANGELOG `[v0.4.1]` Fixed entry (floor 1.27.1→1.27 minor form)~~                                                     | ~~P1~~ |
+|   | ~~4~~       | ~~go-health: commit CHANGELOG~~                                                                                                    | ~~P1~~ |
+|   | ~~5~~       | ~~go-health: annotated tag `v0.4.1` (message: floor fix rationale)~~                                                               | ~~P1~~ |
+|   | ~~6~~       | ~~go-health: push master + tag~~                                                                                                   | ~~P1~~ |
+|   | ~~7~~       | ~~go-health: proxy verify (`go get github.com/larsartmann/go-health@v0.4.1` in scratch module)~~                                   | ~~P1~~ |
+|   | ~~8~~       | ~~go-health: TODO/ROADMAP note — `/version` endpoint idea (health-endpoint feature, not version-surface)~~                         | ~~P1~~ |
+|   | ~~9~~       | ~~this repo: read `scanNixPins` + write comment-stripping helper design (inline `#`, block `/* */`, quote-aware)~~                 | ~~P5~~ |
+|   | ~~10~~      | ~~this repo: implement `stripNixComment(line, state)` w/ block-comment carry~~                                                     | ~~P5~~ |
+|   | ~~11~~      | ~~this repo: fixture — go-health's exact lines 39–43 (comment go_1_26, real go_1_27) → expect single pin 1.27~~                    | ~~P5~~ |
+|   | ~~12~~      | ~~this repo: fixture — block comment spanning lines w/ pins; quoted `#` in URLs not treated as comment~~                           | ~~P5~~ |
+|   | ~~13~~      | ~~this repo: fixture — `buildGo126Module` inside comment ignored~~                                                                 | ~~P5~~ |
+|   | ~~14~~      | ~~this repo: run pkg/surface tests + gofmt~~                                                                                       | ~~P5~~ |
+|   | ~~15~~      | ~~this repo: live re-run `check` on go-health → expect 0 findings (exit 0)~~                                                       | ~~P5~~ |
+|   | ~~16~~      | ~~this repo: AGENTS.md exit-contract wording fix (fix=0 on dep-forced-only; 1 = check findings/failed fixes/who-forces poisoned)~~ | ~~P6~~ |
+|   | ~~17~~      | ~~this repo: main.go line-37 comment fix~~                                                                                         | ~~P6~~ |
+|   | ~~18~~      | ~~this repo: regression test — fix on dep-forced-only repo → exit 0, dep-forced counted~~                                          | ~~P6~~ |
+|   | ~~19~~      | ~~this repo: check UX — locate renderFixability/summary code path~~                                                                | ~~P7~~ |
+|   | ~~20~~      | ~~this repo: implement relabel: "auto-fixable (pending dep-floor gate)" when patch-form go.mod finding present~~                   | ~~P7~~ |
+|   | ~~21~~      | ~~this repo: check output appends supply-side hint line for patch-form findings~~                                                  | ~~P7~~ |
+|   | ~~22~~      | ~~this repo: tests for 20–21 (human + `--json` schema stability check)~~                                                           | ~~P7~~ |
+|   | ~~23~~      | ~~this repo: ADR appendix dashboard row (markdown table append)~~                                                                  | ~~P8~~ |
+|   | ~~24~~      | ~~this repo: CHANGELOG `## [Unreleased]`→v0.2.1 section (FP fix, check honesty, exit doc)~~                                        | ~~P2~~ |
+|   | ~~25~~      | ~~this repo: full gates in devShell: `go build`, `go test ./...`, `go vet`, golangci if configured~~                               | ~~P2~~ |
+|   | ~~26~~      | ~~this repo: dogfood `check --expect-minor 1.27 .` exit 0~~                                                                        | ~~P2~~ |
+|   | ~~27~~      | ~~this repo: commit v0.2.1 work (detailed message)~~                                                                               | ~~P2~~ |
+|   | ~~28~~      | ~~this repo: tag `v0.2.1` + push master + tag~~                                                                                    | ~~P2~~ |
+|   | ~~29~~      | ~~this repo: proxy verify `go get @v0.2.1`~~                                                                                       | ~~P2~~ |
 
 ### Tier 2 — Activation & consumer closure
 
-| #  | Task (≤12m) | Parent                                                                                                         | Est |
-| -- | ----------- | -------------------------------------------------------------------------------------------------------------- | --- |
-|  | ~~30~~ | ~~BuildFlow: `nix flake update go-version-auto-configure` (or edit ref→v0.2.1)~~ | ~~P3~~ |
-|  | ~~31~~ | ~~BuildFlow: bump tools/go.mod require + `go work vendor` + vendorHash refresh~~ | ~~P3~~ |
-|  | ~~32~~ | ~~BuildFlow: `nix build .` (FOD, may take long — background)~~ | ~~P3~~ |
-|  | ~~33~~ | ~~BuildFlow: reinstall binary to profile; verify `buildflow` resolves to new store path~~ | ~~P3~~ |
-|  | ~~34~~ | ~~BuildFlow: verify embedded gvac version (single-step dry run or version stamp)~~ | ~~P3~~ |
-|  | ~~35~~ | ~~BuildFlow: S87 row update (upstream fix shipped v0.2.0/v0.2.1; defenses = safety net; retire decision)~~ | ~~P3~~ |
-|  | ~~36~~ | ~~BuildFlow: P1 row update (release chain done)~~ | ~~P3~~ |
-|  | ~~37~~ | ~~dashboard: `go get go-health@v0.4.1` + `go mod tidy` (expect settle `go 1.27`)~~ | ~~P4~~ |
-|  | ~~38~~ | ~~dashboard: verify go.mod `go 1.27`, no toolchain line, go.sum consistent~~ | ~~P4~~ |
-|  | ~~39~~ | ~~dashboard: gates — build + test (+ templ regenerate first per their rules)~~ | ~~P4~~ |
-|  | ~~40~~ | ~~dashboard: commit bump (detailed message) + push~~ | ~~P4~~ |
-|  | ~~41~~ | ~~dashboard: `gvac check` → expect 0 findings, exit 0 (first time clean)~~ | ~~P4~~ |
-|  | ~~42~~ | ~~dashboard: delete `scripts/check-go-directive.sh`~~ | ~~P9~~ |
-|  | ~~43~~ | ~~dashboard: remove CI wiring (ci.yml steps + comments)~~ | ~~P9~~ |
-|  | ~~44~~ | ~~dashboard: `gvac who-forces` output → paste into TODO fleet-filing row; close as fixed-upstream (gate v0.2.0+)~~ | ~~P9~~ |
-|  | ~~45~~ | ~~dashboard: AGENTS.md gotcha update (guard obsolete; note resolution)~~ | ~~P9~~ |
-|  | ~~46~~ | ~~dashboard: commit + push guard removal~~ | ~~P9~~ |
+| # | Task (≤12m) | Parent                                                                                                             | Est    |
+| - | ----------- | ------------------------------------------------------------------------------------------------------------------ | ------ |
+|   | ~~30~~      | ~~BuildFlow: `nix flake update go-version-auto-configure` (or edit ref→v0.2.1)~~                                   | ~~P3~~ |
+|   | ~~31~~      | ~~BuildFlow: bump tools/go.mod require + `go work vendor` + vendorHash refresh~~                                   | ~~P3~~ |
+|   | ~~32~~      | ~~BuildFlow: `nix build .` (FOD, may take long — background)~~                                                     | ~~P3~~ |
+|   | ~~33~~      | ~~BuildFlow: reinstall binary to profile; verify `buildflow` resolves to new store path~~                          | ~~P3~~ |
+|   | ~~34~~      | ~~BuildFlow: verify embedded gvac version (single-step dry run or version stamp)~~                                 | ~~P3~~ |
+|   | ~~35~~      | ~~BuildFlow: S87 row update (upstream fix shipped v0.2.0/v0.2.1; defenses = safety net; retire decision)~~         | ~~P3~~ |
+|   | ~~36~~      | ~~BuildFlow: P1 row update (release chain done)~~                                                                  | ~~P3~~ |
+|   | ~~37~~      | ~~dashboard: `go get go-health@v0.4.1` + `go mod tidy` (expect settle `go 1.27`)~~                                 | ~~P4~~ |
+|   | ~~38~~      | ~~dashboard: verify go.mod `go 1.27`, no toolchain line, go.sum consistent~~                                       | ~~P4~~ |
+|   | ~~39~~      | ~~dashboard: gates — build + test (+ templ regenerate first per their rules)~~                                     | ~~P4~~ |
+|   | ~~40~~      | ~~dashboard: commit bump (detailed message) + push~~                                                               | ~~P4~~ |
+|   | ~~41~~      | ~~dashboard: `gvac check` → expect 0 findings, exit 0 (first time clean)~~                                         | ~~P4~~ |
+|   | ~~42~~      | ~~dashboard: delete `scripts/check-go-directive.sh`~~                                                              | ~~P9~~ |
+|   | ~~43~~      | ~~dashboard: remove CI wiring (ci.yml steps + comments)~~                                                          | ~~P9~~ |
+|   | ~~44~~      | ~~dashboard: `gvac who-forces` output → paste into TODO fleet-filing row; close as fixed-upstream (gate v0.2.0+)~~ | ~~P9~~ |
+|   | ~~45~~      | ~~dashboard: AGENTS.md gotcha update (guard obsolete; note resolution)~~                                           | ~~P9~~ |
+|   | ~~46~~      | ~~dashboard: commit + push guard removal~~                                                                         | ~~P9~~ |
 
 ### Tier 3 — Hardening, docs, closure (the other 20%)
 
-| #  | Task (≤12m) | Parent                                                                                                     | Est |
-| -- | ----------- | ---------------------------------------------------------------------------------------------------------- | --- |
-|  | ~~47~~ | ~~this repo: TODO_LIST — add T13 (this plan's durable items)~~ | ~~P10~~ |
-|  | ~~48~~ | ~~this repo: TODO_LIST — mark T2 done-stale (BuildFlow wiring shipped 09-18)~~ | ~~P10~~ |
-|  | ~~49~~ | ~~this repo: TODO_LIST — T1 consumer-row update (dashboard resolved via go-health v0.4.1)~~ | ~~P10~~ |
-|  | ~~50~~ | ~~status report 05-32: append correction appendix (flake finding = our FP; resolved by P5)~~ | ~~P10~~ |
-|  | ~~51~~ | ~~this repo: verify CanonicalizeGoMod gate test coverage (grep dep-floor tests)~~ | ~~P12~~ |
-|  | ~~52~~ | ~~this repo: add dashboard-shaped canonicalize fixture if 51 finds a gap~~ | ~~P12~~ |
-|  | ~~53~~ | ~~fleet: enumerate go-health importers (grep go.mod across ~/projects)~~ | ~~P11~~ |
-|  | ~~54~~ | ~~fleet: run `check` on each importer; record drift matrix~~ | ~~P11~~ |
-|  | ~~55~~ | ~~fleet: `fix` where mechanical; verify tidy stability~~ | ~~P11~~ |
-|  | ~~56~~ | ~~this repo: poisoner registry doc `docs/POISONERS.md` (table: module, floor, status)~~ | ~~P13~~ |
-|  | ~~57~~ | ~~this repo: link registry from AGENTS.md floor-poisoning section~~ | ~~P13~~ |
-|  | ~~58~~ | ~~this repo: recipe doc — throwaway-copy gate verification (cp --exclude .git, fix, assert untouched, trash)~~ | ~~P14~~ |
-|  | ~~59~~ | ~~this repo: severity-review note in rules.go + DOMAIN_LANGUAGE (dep-forced = warning, not error)~~ | ~~P15~~ |
-|  | ~~60~~ | ~~this repo: final full gate run + commit remaining docs~~ | ~~P15~~ |
+| # | Task (≤12m) | Parent                                                                                                         | Est     |
+| - | ----------- | -------------------------------------------------------------------------------------------------------------- | ------- |
+|   | ~~47~~      | ~~this repo: TODO_LIST — add T13 (this plan's durable items)~~                                                 | ~~P10~~ |
+|   | ~~48~~      | ~~this repo: TODO_LIST — mark T2 done-stale (BuildFlow wiring shipped 09-18)~~                                 | ~~P10~~ |
+|   | ~~49~~      | ~~this repo: TODO_LIST — T1 consumer-row update (dashboard resolved via go-health v0.4.1)~~                    | ~~P10~~ |
+|   | ~~50~~      | ~~status report 05-32: append correction appendix (flake finding = our FP; resolved by P5)~~                   | ~~P10~~ |
+|   | ~~51~~      | ~~this repo: verify CanonicalizeGoMod gate test coverage (grep dep-floor tests)~~                              | ~~P12~~ |
+|   | ~~52~~      | ~~this repo: add dashboard-shaped canonicalize fixture if 51 finds a gap~~                                     | ~~P12~~ |
+|   | ~~53~~      | ~~fleet: enumerate go-health importers (grep go.mod across ~/projects)~~                                       | ~~P11~~ |
+|   | ~~54~~      | ~~fleet: run `check` on each importer; record drift matrix~~                                                   | ~~P11~~ |
+|   | ~~55~~      | ~~fleet: `fix` where mechanical; verify tidy stability~~                                                       | ~~P11~~ |
+|   | ~~56~~      | ~~this repo: poisoner registry doc `docs/POISONERS.md` (table: module, floor, status)~~                        | ~~P13~~ |
+|   | ~~57~~      | ~~this repo: link registry from AGENTS.md floor-poisoning section~~                                            | ~~P13~~ |
+|   | ~~58~~      | ~~this repo: recipe doc — throwaway-copy gate verification (cp --exclude .git, fix, assert untouched, trash)~~ | ~~P14~~ |
+|   | ~~59~~      | ~~this repo: severity-review note in rules.go + DOMAIN_LANGUAGE (dep-forced = warning, not error)~~            | ~~P15~~ |
+|   | ~~60~~      | ~~this repo: final full gate run + commit remaining docs~~                                                     | ~~P15~~ |
 
 ## Execution graph
 

@@ -184,6 +184,32 @@ repo by repo unless repos pin their tidy toolchain. M9's shape should
 therefore shift: pin `GOTOOLCHAIN` per repo first, then strip; judge drift by
 published tags, not working trees.
 
+**Re-measure 2026-11-25 (nextd sweep, `check --json --expect-minor 1.27`
+across ~/projects/*):** 327 repos swept, 134 dirty, **108 distinct projects**
+carrying >=1 patch-form `go` directive (94 → 108 in one day — the treadmill
+confirmed again: untouched masters regrow patch-form on every auto-toolchain
+tidy). Full inventory with per-repo findings: the sweep's `--json` document
+(re-run the command; the number is not stable enough to stamp as a table).
+M9 execution state (2026-11-25, pareto window): the reframed recipe
+(pin tidy toolchain → strip → verify tidy-stability → judge by tags) is the
+campaign's unit of work; the campaign itself remains open — per-repo writes
+stay gated on the parallel-session lease check (fleet-run report question 2).
+
+**Pilot proven (2026-11-25, DiscordSync):** the full consumer-side recipe
+ran end-to-end — bump larsartmann deps to the wave tags (`go get @latest`
+under `GOTOOLCHAIN=auto`; the PRE-wave pins cqrs-htmx v4.16.0/go-codec
+v0.3.3 carried patch floors and were the tidy's re-lift carriers),
+`go mod tidy`, then `fix` strips `go 1.27.2 → go 1.27` (max dep floor now
+minor), and the stability check holds: a `GOTOOLCHAIN=auto go mod tidy`
+does NOT re-lift — the wave tags killed the re-lift, so the strip is
+durable without a GOTOOLCHAIN pin as long as the deps stay on wave tags.
+Build green; suite has one PRE-EXISTING red
+(`TestSnapshotOf_NeverExposesSecrets`, fails at the pre-bump commit too,
+json time.Duration marshaling — not this change's). Pushed 53bd8a21.
+The remaining ~107 repos run the same recipe; each needs the lease check
+and its own dependency-version inspection first (the bump targets are
+whatever pre-wave pins each repo carries).
+
 ## 2026-11-24 — the cluster wave (go-taskqueue + cqrs-htmx + go-cqrs-lite + go-codec + go-appkit)
 
 The 2026-10-17 backlog named go-taskqueue and the cqrs-htmx regression as the two

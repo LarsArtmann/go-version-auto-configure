@@ -53,38 +53,38 @@ Radical honesty, my own failures this session:
 
 ## f) NEXT TASKS (ranked, session-grounded — HARVEST input for `TODO_LIST.md`/`ROADMAP.md`)
 
-| #  | Task | Impact                                                                                                                                                               | Effort           | Category |
-| -- | ---- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------- | -------- |
-|  | ~~1~~ | ~~Land/finish the concurrent session's pkg/fix canonicalize WIP (`surface.HasPatch`/`MinorForm` undefined; `GoVersion` vs `string` in `GreaterVersion` calls)~~ | ~~Critical~~ | ~~M~~ |
-|  | ~~2~~ | ~~Restore full `go test ./...` green (pkg/fix test-build currently fails)~~ | ~~Critical~~ | ~~S~~ |
-|  | ~~3~~ | ~~Decide go.mod floor policy: stay `go 1.27` at head vs return to documented 1.26.7 steady state~~ | ~~Critical~~ | ~~S~~ |
-|  | ~~4~~ | ~~Reconcile AGENTS.md dogfooding caveat with head `go 1.27` after #3~~ | ~~High~~ | ~~S~~ |
-|  | ~~5~~ | ~~Move `GOTOOLCHAIN=go1.27.1` pin from AGENTS.md commands into `flake.nix` devShell~~ | ~~High~~ | ~~S~~ |
-|  | ~~6~~ | ~~Pass/normalize toolchain env in fix pkg's exec'd `go list` so `who-forces` works on 1.27-floor repos from 1.26.7 shells~~ | ~~High~~ | ~~M~~ |
-|  | ~~7~~ | ~~Run buildflow lint gate repo-wide once tree compiles; confirm dedup introduced zero findings~~ | ~~High~~ | ~~S~~ |
-|  | ~~8~~ | ~~HARVEST this report into TODO_LIST.md / ROADMAP.md (docs-health)~~ | ~~High~~ | ~~S~~ |
-|  | ~~9~~ | ~~Add regression test asserting identical `--help` text across check/fix/who-forces (golden-file `PrintDefaults`) — guards the sync hazard this session removed~~ | ~~High~~ | ~~S~~ |
-|  | ~~10~~ | ~~Add grep/buildflow gate for repeated `flag.NewFlagSet` literals (art-dupl under-report guard)~~ | ~~Medium~~ | ~~S~~ |
-|  | ~~11~~ | ~~Baseline file for accepted clone groups (DEDUPLICATION.md or art-dupl config)~~ | ~~Medium~~ | ~~S~~ |
-|  | ~~12~~ | ~~Unit test `parseRoots` error path (flag typo → exit 2, usage to stderr)~~ | ~~Medium~~ | ~~S~~ |
-|  | ~~13~~ | ~~Unit test `readLines` unreadable-path path (nil, no panic)~~ | ~~Medium~~ | ~~S~~ |
-|  | ~~14~~ | ~~who-forces end-to-end smoke on a 1.27-floor repo with GOTOOLCHAIN exported (validates #6 workaround)~~ | ~~Medium~~ | ~~S~~ |
-|  | ~~15~~ | ~~Evaluate deduplicating the worker-pool shape shared by `analyzeAll`/`applyAll`/`cmdWhoForces` (sem+wg+sort; generics candidate — art-dupl can't see it across types)~~ | ~~Medium~~ | ~~M~~ |
-|  | ~~16~~ | ~~Golden tests for JSON contract (`emitCheckJSON`/`emitFixJSON`/`emitFloorsJSON`) proving the refactor changed nothing on the wire~~ | ~~Medium~~ | ~~M~~ |
-|  | ~~17~~ | ~~Teach auto-commit daemon session attribution so parallel sessions don't interleave in one heuristic commit~~ | ~~Medium~~ | ~~M~~ |
-|  | ~~18~~ | ~~Record fleet lesson "clone reports are lower bounds — read whole dispatch files" in crush-config `references/lessons.md` (by commit)~~ | ~~Medium~~ | ~~S~~ |
-|  | ~~19~~ | ~~If GOTOOLCHAIN override becomes fleet standard, update `FLEET-STANDARD-VERSION-STAMPS.md` sibling docs~~ | ~~Medium~~ | ~~S~~ |
-|  | ~~20~~ | ~~CHANGELOG entry for the dedup refactor (if CHANGELOG.md is maintained here)~~ | ~~Low~~ | ~~S~~ |
-|  | ~~21~~ | ~~Test `version`/`--version` stamp behavior in CI (manually verified `ce1d149-dirty` this session)~~ | ~~Low~~ | ~~S~~ |
-|  | ~~22~~ | ~~Test `-h` exit-code contract (ContinueOnError → exit 2)~~ | ~~Low~~ | ~~S~~ |
-|  | ~~23~~ | ~~Re-run art-dupl at default `-t 5` with `--html` to confirm the accepted group vanishes at reporting thresholds~~ | ~~Low~~ | ~~S~~ |
-|  | ~~24~~ | ~~gopls "go-atomic-write should be direct" go.mod warning — resolve after floor decision #3 (tidy direction depends on it)~~ | ~~Low~~ | ~~S~~ |
-|  | ~~25~~ | ~~Standing: un-skip `cqrs-lint` when it learns to skip non-consumers (AGENTS note; not re-verified this session)~~ | ~~Low~~ | ~~S~~ |
-|  | ~~26~~ | ~~Standing: dependabot-auto-configure "no update groups" false positive (AGENTS note)~~ | ~~Low~~ | ~~S~~ |
-|  | ~~27~~ | ~~Standing: branching-flow INDEX_OUT_OF_RANGE warnings on worker-pool indexing (provably safe, gate passes)~~ | ~~Low~~ | ~~S~~ |
-|  | ~~28~~ | ~~T1 supply-side re-tags (poisoning deps) — after which `/tmp/gvac fix .` should report `applied > 0` here instead of `dep-forced 1`~~ | ~~Critical (fleet)~~ | ~~L~~ |
-|  | ~~29~~ | ~~After T1: verify the strip-canonicalize path sticks in this repo (fix → re-check clean)~~ | ~~High~~ | ~~S~~ |
-|  | ~~30~~ | ~~Add "shared run flags / subcommand scaffolding" vocabulary to docs/DOMAIN_LANGUAGE.md if command-surface terms are tracked there~~ | ~~Low~~ | ~~S~~ |
+| # | Task   | Impact                                                                                                                                                                   | Effort               | Category |
+| - | ------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | -------------------- | -------- |
+|   | ~~1~~  | ~~Land/finish the concurrent session's pkg/fix canonicalize WIP (`surface.HasPatch`/`MinorForm` undefined; `GoVersion` vs `string` in `GreaterVersion` calls)~~          | ~~Critical~~         | ~~M~~    |
+|   | ~~2~~  | ~~Restore full `go test ./...` green (pkg/fix test-build currently fails)~~                                                                                              | ~~Critical~~         | ~~S~~    |
+|   | ~~3~~  | ~~Decide go.mod floor policy: stay `go 1.27` at head vs return to documented 1.26.7 steady state~~                                                                       | ~~Critical~~         | ~~S~~    |
+|   | ~~4~~  | ~~Reconcile AGENTS.md dogfooding caveat with head `go 1.27` after #3~~                                                                                                   | ~~High~~             | ~~S~~    |
+|   | ~~5~~  | ~~Move `GOTOOLCHAIN=go1.27.1` pin from AGENTS.md commands into `flake.nix` devShell~~                                                                                    | ~~High~~             | ~~S~~    |
+|   | ~~6~~  | ~~Pass/normalize toolchain env in fix pkg's exec'd `go list` so `who-forces` works on 1.27-floor repos from 1.26.7 shells~~                                              | ~~High~~             | ~~M~~    |
+|   | ~~7~~  | ~~Run buildflow lint gate repo-wide once tree compiles; confirm dedup introduced zero findings~~                                                                         | ~~High~~             | ~~S~~    |
+|   | ~~8~~  | ~~HARVEST this report into TODO_LIST.md / ROADMAP.md (docs-health)~~                                                                                                     | ~~High~~             | ~~S~~    |
+|   | ~~9~~  | ~~Add regression test asserting identical `--help` text across check/fix/who-forces (golden-file `PrintDefaults`) — guards the sync hazard this session removed~~        | ~~High~~             | ~~S~~    |
+|   | ~~10~~ | ~~Add grep/buildflow gate for repeated `flag.NewFlagSet` literals (art-dupl under-report guard)~~                                                                        | ~~Medium~~           | ~~S~~    |
+|   | ~~11~~ | ~~Baseline file for accepted clone groups (DEDUPLICATION.md or art-dupl config)~~                                                                                        | ~~Medium~~           | ~~S~~    |
+|   | ~~12~~ | ~~Unit test `parseRoots` error path (flag typo → exit 2, usage to stderr)~~                                                                                              | ~~Medium~~           | ~~S~~    |
+|   | ~~13~~ | ~~Unit test `readLines` unreadable-path path (nil, no panic)~~                                                                                                           | ~~Medium~~           | ~~S~~    |
+|   | ~~14~~ | ~~who-forces end-to-end smoke on a 1.27-floor repo with GOTOOLCHAIN exported (validates #6 workaround)~~                                                                 | ~~Medium~~           | ~~S~~    |
+|   | ~~15~~ | ~~Evaluate deduplicating the worker-pool shape shared by `analyzeAll`/`applyAll`/`cmdWhoForces` (sem+wg+sort; generics candidate — art-dupl can't see it across types)~~ | ~~Medium~~           | ~~M~~    |
+|   | ~~16~~ | ~~Golden tests for JSON contract (`emitCheckJSON`/`emitFixJSON`/`emitFloorsJSON`) proving the refactor changed nothing on the wire~~                                     | ~~Medium~~           | ~~M~~    |
+|   | ~~17~~ | ~~Teach auto-commit daemon session attribution so parallel sessions don't interleave in one heuristic commit~~                                                           | ~~Medium~~           | ~~M~~    |
+|   | ~~18~~ | ~~Record fleet lesson "clone reports are lower bounds — read whole dispatch files" in crush-config `references/lessons.md` (by commit)~~                                 | ~~Medium~~           | ~~S~~    |
+|   | ~~19~~ | ~~If GOTOOLCHAIN override becomes fleet standard, update `FLEET-STANDARD-VERSION-STAMPS.md` sibling docs~~                                                               | ~~Medium~~           | ~~S~~    |
+|   | ~~20~~ | ~~CHANGELOG entry for the dedup refactor (if CHANGELOG.md is maintained here)~~                                                                                          | ~~Low~~              | ~~S~~    |
+|   | ~~21~~ | ~~Test `version`/`--version` stamp behavior in CI (manually verified `ce1d149-dirty` this session)~~                                                                     | ~~Low~~              | ~~S~~    |
+|   | ~~22~~ | ~~Test `-h` exit-code contract (ContinueOnError → exit 2)~~                                                                                                              | ~~Low~~              | ~~S~~    |
+|   | ~~23~~ | ~~Re-run art-dupl at default `-t 5` with `--html` to confirm the accepted group vanishes at reporting thresholds~~                                                       | ~~Low~~              | ~~S~~    |
+|   | ~~24~~ | ~~gopls "go-atomic-write should be direct" go.mod warning — resolve after floor decision #3 (tidy direction depends on it)~~                                             | ~~Low~~              | ~~S~~    |
+|   | ~~25~~ | ~~Standing: un-skip `cqrs-lint` when it learns to skip non-consumers (AGENTS note; not re-verified this session)~~                                                       | ~~Low~~              | ~~S~~    |
+|   | ~~26~~ | ~~Standing: dependabot-auto-configure "no update groups" false positive (AGENTS note)~~                                                                                  | ~~Low~~              | ~~S~~    |
+|   | ~~27~~ | ~~Standing: branching-flow INDEX_OUT_OF_RANGE warnings on worker-pool indexing (provably safe, gate passes)~~                                                            | ~~Low~~              | ~~S~~    |
+|   | ~~28~~ | ~~T1 supply-side re-tags (poisoning deps) — after which `/tmp/gvac fix .` should report `applied > 0` here instead of `dep-forced 1`~~                                   | ~~Critical (fleet)~~ | ~~L~~    |
+|   | ~~29~~ | ~~After T1: verify the strip-canonicalize path sticks in this repo (fix → re-check clean)~~                                                                              | ~~High~~             | ~~S~~    |
+|   | ~~30~~ | ~~Add "shared run flags / subcommand scaffolding" vocabulary to docs/DOMAIN_LANGUAGE.md if command-surface terms are tracked there~~                                     | ~~Low~~              | ~~S~~    |
 
 Items 25-27 are standing AGENTS.md notes I did not re-verify this session — listed so the inventory is complete, not as new findings. Items beyond 30 would be padding; I stopped at what this session actually surfaced.
 

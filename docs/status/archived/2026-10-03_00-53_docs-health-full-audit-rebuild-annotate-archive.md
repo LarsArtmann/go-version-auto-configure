@@ -1,3 +1,5 @@
+> **Live remainder (archived 2026-11-25):** all open items resolved — pass-date/routed markers annotated inline in this file; live follow-ups live in TODO_LIST (T-numbers) and docs/POISONERS.md.
+
 # Status Report — Docs-Health Full Audit: Rebuild, Annotate, Archive, Harvest
 
 - **Generated:** 2026-10-03 00:53 CEST (session ran ~23:30 → 00:55)

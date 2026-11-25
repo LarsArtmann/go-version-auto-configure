@@ -1,3 +1,5 @@
+> **Live remainder (archived 2026-11-25):** all open items resolved — pass-date/routed markers annotated inline in this file; live follow-ups live in TODO_LIST (T-numbers) and docs/POISONERS.md.
+
 # Status Report — TODO backlog closure (verify + cause golden + FOD guard + docs reconcile)
 
 - **Date:** 2026-10-17 08:50 CEST (Saturday)
@@ -172,13 +174,13 @@ Strong: 5 packages, race-clean, every package ≥80%, wire goldens for the stabl
 22. Delete the local FOD guard once go-nix-helpers provides an eval-time check.
 23. Bump the go-nix-helpers pin (65+ commits behind).
 24. Run the full `buildflow` pipeline in the devShell and clear remaining findings.
-25. `buildflow upgrade` (stale binary `7baef1c` vs HEAD `7108ef9`).
-26. Add a coverage-floor CI gate (fail if any package <80%).
+25. ~~`buildflow upgrade` (stale binary `7baef1c` vs HEAD `7108ef9`).~~ done (docs-health pass 2026-11-25: rebuilt ff4aaa4 from checkout, reinstalled into the nix profile)
+~~26. Add a coverage-floor CI gate (fail if any package <80%).~~ r:TODO_LIST T16 coverage-floor row (2026-11-25)
 27. Add an `art-dupl` machine baseline + `art-dupl check` CI step.
 28. Add a fuzz target for `ParseDirective`/`ParseModulePath`.
 29. Add a `--benchmem` comparison table + a nix app to run the benchmark suite.
 30. Add a CI dogfood on a seeded drifted fixture (CI only dogfoods this clean repo today).
-~~31. Add a `buildflow timings --regressions` check for this repo.~~ p:-
+~~31. Add a `buildflow timings --regressions` check for this repo.~~ done (docs-health pass 2026-11-25)
 32. license-check isolation runs → root-cause or reasoned skip.
 33. gomod-check ↔ go-mod-normalize disposition alignment (BuildFlow).
 34. vulnix CVE-2023-4039 triage inside the devShell.

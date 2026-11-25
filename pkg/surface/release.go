@@ -177,7 +177,7 @@ func ReleaseTagIssues(versionFile, changelogTop, tag ReleaseVersion) []Issue {
 		return nil
 	}
 
-	if !semver.IsValid("v" + string(versionFile)) || !semver.IsValid("v" + string(tag)) {
+	if !semver.IsValid("v"+string(versionFile)) || !semver.IsValid("v"+string(tag)) {
 		return nil
 	}
 
