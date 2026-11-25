@@ -3,7 +3,7 @@
 # Status — WP-04 repin complete; supply-side re-tags shipped for 4 repos; cqrs-lite Wave-0 blocked on go-output submodules
 
 **Session:** 2026-10-03 ~03:44–05:06 CEST (resumed from the 02:13 mid-flight handoff)
-**Plan:** [docs/planning/2026-10-03_00-56_SUPERB-fleet-convergence-execution-plan.md](../planning/2026-10-03_00-56_SUPERB-fleet-convergence-execution-plan.md)
+**Plan:** [docs/planning/2026-10-03_00-56_SUPERB-fleet-convergence-execution-plan.md](../../planning/2026-10-03_00-56_SUPERB-fleet-convergence-execution-plan.md)
 **State at write:** gvac master @ `57f9cfe` (= v0.2.4, clean; daemon sweeps). BuildFlow `eb35fce` (repinned). **WAITING FOR INSTRUCTIONS** — 3 owner questions in §g.
 
 ---

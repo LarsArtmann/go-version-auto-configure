@@ -2,7 +2,7 @@
 
 # Status Report — Plan Execution: P0 + Phase PA complete, v0.2.4 shipped, BuildFlow repin mid-flight
 
-**Session:** 2026-10-03 01:43 – 02:13 CEST · **Repo:** go-version-auto-configure (master @ `57f9cfe` = tag `v0.2.4`, clean) · **Plan:** [docs/planning/2026-10-03_00-56_SUPERB-fleet-convergence-execution-plan.md](../planning/2026-10-03_00-56_SUPERB-fleet-convergence-execution-plan.md)
+**Session:** 2026-10-03 01:43 – 02:13 CEST · **Repo:** go-version-auto-configure (master @ `57f9cfe` = tag `v0.2.4`, clean) · **Plan:** [docs/planning/2026-10-03_00-56_SUPERB-fleet-convergence-execution-plan.md](../../planning/2026-10-03_00-56_SUPERB-fleet-convergence-execution-plan.md)
 **Owner gates answered at session start:** g1 = YES coordinated batch · g2 = cut v0.2.4 after WP-06/07 · G3 = YES provenance · archive rule = resolved-or-owned.
 
 ---
