@@ -1,18 +1,18 @@
 # go-linter-sdk — utilization review
 
-| | |
-|---|---|
-| Reviewed | 2026-11-23 |
-| Consumer | go-version-auto-configure @ 07d4d51 |
-| Library | github.com/larsartmann/go-linter-sdk — not a dependency, latest local tag v0.6.1 @ HEAD 1694dcb |
-| Provenance | Group C |
+|                          |                                                                                                                        |
+| ------------------------ | ---------------------------------------------------------------------------------------------------------------------- |
+| Reviewed                 | 2026-11-23                                                                                                             |
+| Consumer                 | go-version-auto-configure @ 07d4d51                                                                                    |
+| Library                  | github.com/larsartmann/go-linter-sdk — not a dependency, latest local tag v0.6.1 @ HEAD 1694dcb                        |
+| Provenance               | Group C                                                                                                                |
 | Format (M17, 2026-11-24) | Compact grade format declared canonical for NOT-ADOPTED reviews — the four-column inventory below carries the evidence |
 
 ## Verdict
 
-**NOT-ADOPTED (justified).** No split-brain risk — that was the first thing checked, and it clears: go-linter-sdk is not a competing findings model. It is a scaffolding layer *on top of* go-finding (go-linter-sdk/go.mod:5 requires go-finding v1.15.1, the exact version this consumer pins; go-linter-sdk/README.md:3 "building linters that plug into a finding-based ecosystem"; go-linter-sdk/README.md:136-171 shows its own BuildFlow recipe routes through `toolsdk.Register` — the same terminal API this consumer's provider already reaches). Adopting it would be additive to the adopted stack, not a replacement.
+**NOT-ADOPTED (justified).** No split-brain risk — that was the first thing checked, and it clears: go-linter-sdk is not a competing findings model. It is a scaffolding layer _on top of_ go-finding (go-linter-sdk/go.mod:5 requires go-finding v1.15.1, the exact version this consumer pins; go-linter-sdk/README.md:3 "building linters that plug into a finding-based ecosystem"; go-linter-sdk/README.md:136-171 shows its own BuildFlow recipe routes through `toolsdk.Register` — the same terminal API this consumer's provider already reaches). Adopting it would be additive to the adopted stack, not a replacement.
 
-The justification for not adopting is shape, not allegiance: go-linter-sdk packages the *rule interface + registry + directory-walking execution* tier (`RuleFunc.Check(ctx context.Context, dir string)`, go-linter-sdk/rule.go:306; `Registry.Run`, go-linter-sdk/registry.go:218). This consumer's check tier is fundamentally different: one pure function `surface.Analyze(surf *Surface, opts ...) []Issue` (pkg/surface/rules.go:30) over a discovered version surface, single-pass, shared by detection AND fix verification (the "fix is checked with exactly the code that detected it" contract, AGENTS.md). Wrapping `Analyze` as a `RuleFunc` would add a registry, an `ID()/Name()/Category()` ceremony layer, and a `(ctx, dir)` walk the domain does not have (Discover already walked; rules run over the in-memory `Surface`). No hand-rolled registry, no per-rule dispatch, no converter — the three things the SDK eliminates do not exist here.
+The justification for not adopting is shape, not allegiance: go-linter-sdk packages the _rule interface + registry + directory-walking execution_ tier (`RuleFunc.Check(ctx context.Context, dir string)`, go-linter-sdk/rule.go:306; `Registry.Run`, go-linter-sdk/registry.go:218). This consumer's check tier is fundamentally different: one pure function `surface.Analyze(surf *Surface, opts ...) []Issue` (pkg/surface/rules.go:30) over a discovered version surface, single-pass, shared by detection AND fix verification (the "fix is checked with exactly the code that detected it" contract, AGENTS.md). Wrapping `Analyze` as a `RuleFunc` would add a registry, an `ID()/Name()/Category()` ceremony layer, and a `(ctx, dir)` walk the domain does not have (Discover already walked; rules run over the in-memory `Surface`). No hand-rolled registry, no per-rule dispatch, no converter — the three things the SDK eliminates do not exist here.
 
 ## Adoption score
 
@@ -31,20 +31,20 @@ Rows below: 6, N/A: 4 → A = 2. The 2 applicable rows grade what the consumer d
 
 - Latest tag **v0.6.1** (2026-11-20), 9 tags total — healthy cadence. HEAD 1694dcb (2026-11-22) is 8 commits past, all docs/tooling-tier auto-commits; the last one fixes dangling DOMAIN_LANGUAGE citations (1694dcb "docs: fix dangling code citations in DOMAIN_LANGUAGE"). No exported-API drift since the tag.
 - CHANGELOG `[0.6.1] - 2026-11-19` documents the slot decision as PATCH ("no exported SDK surface changed") — disciplined semver hygiene. README status line: "Early, adopted, proven", 100% library coverage measured 2026-11-19, six fleet repos already import it.
-- Maturity read: this is the *most production-mature* of the three audited libs — real consumers, measured coverage, release discipline. Not adopting it is a shape decision, not a quality call.
+- Maturity read: this is the _most production-mature_ of the three audited libs — real consumers, measured coverage, release discipline. Not adopting it is a shape decision, not a quality call.
 
 ## Capability inventory
 
-| Capability | Status | Consumer evidence | Library evidence |
-|---|---|---|---|
-| `Rule` interface: ID/Name/Category/Severity/Check + `RuleFunc` struct literal | N/A — no dynamic rule enumeration; policy is one function | pkg/surface/rules.go:30 (`Analyze`); pkg/surface/surface.go:39-76 (branded `Rule` constants) | go-linter-sdk/rule.go:115 (`Rule`), :158 (`RuleFunc`), :169 (`RuleMeta` + `Validate` :216) |
-| Opt-in rule wrapper | N/A — rule enablement is flags (`--respect-patch-floor`, `--expect-minor`) | pkg/surface/rules.go:77-95, :97-111 | go-linter-sdk/rule.go:275 (`OptIn`) |
-| `Registry` with register/get/deregister + `Run` (fail-fast or `ContinueOnError`) | N/A — nothing to registry-drive | pkg/surface/rules.go:42-62 (fixed rule list inside `Analyze`) | go-linter-sdk/registry.go:39 (`NewRegistry`), :218 (`Run`), :194 (`ContinueOnError`) |
-| go-finding Detector adapters, `DetectV2` coverage evidence | N/A — BuildFlow wiring via ProviderSpec bridge | pkg/provider/provider.go:46 (`autoconfigure.ProviderFromSpec`), :67 (`toolsdk.Register`) | go-linter-sdk/registry.go:294 (`DetectorFromRegistry`), :319 (`DetectV2`), :362 (`DetectorsFromRegistry`) |
-| Exit-code mapping from report/findings | Fully — own cmdguard-integrated contract | cmd/go-version-auto-configure/contract_test.go:17 (exit contract comment), cmd/go-version-auto-configure/json.go (wire DTOs) | go-linter-sdk/registry.go:415 (`ExitCodeFromReport`), :426, :512 (`ExitCodeByConfidence`) |
-| Rule enable/disable selection | N/A — flags not rule IDs | pkg/surface/rules.go:77, :97 (`AnalyzeOption`s) | go-linter-sdk/registry.go:450 (`FilterRules`), :479 (`SelectRules`); go-linter-sdk/filter.go:17 (`Filter`) |
-| Findings emitted as `finding.Finding` (zero converter) | Fully (own idiom, single boundary conversion) | pkg/surface/surface.go:301 (`Issue`); conversion once in the provider bridge | go-linter-sdk/rule.go:306 (`Check` returns `[]finding.Finding`), :329 (`NewFinding` builder) |
-| RuleSet grouping + batch Check | N/A — no grouped sub-runs | — | go-linter-sdk/ruleset.go:33 (`NewRuleSet`), :98 (`Check`) |
+| Capability                                                                       | Status                                                                     | Consumer evidence                                                                                                            | Library evidence                                                                                           |
+| -------------------------------------------------------------------------------- | -------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
+| `Rule` interface: ID/Name/Category/Severity/Check + `RuleFunc` struct literal    | N/A — no dynamic rule enumeration; policy is one function                  | pkg/surface/rules.go:30 (`Analyze`); pkg/surface/surface.go:39-76 (branded `Rule` constants)                                 | go-linter-sdk/rule.go:115 (`Rule`), :158 (`RuleFunc`), :169 (`RuleMeta` + `Validate` :216)                 |
+| Opt-in rule wrapper                                                              | N/A — rule enablement is flags (`--respect-patch-floor`, `--expect-minor`) | pkg/surface/rules.go:77-95, :97-111                                                                                          | go-linter-sdk/rule.go:275 (`OptIn`)                                                                        |
+| `Registry` with register/get/deregister + `Run` (fail-fast or `ContinueOnError`) | N/A — nothing to registry-drive                                            | pkg/surface/rules.go:42-62 (fixed rule list inside `Analyze`)                                                                | go-linter-sdk/registry.go:39 (`NewRegistry`), :218 (`Run`), :194 (`ContinueOnError`)                       |
+| go-finding Detector adapters, `DetectV2` coverage evidence                       | N/A — BuildFlow wiring via ProviderSpec bridge                             | pkg/provider/provider.go:46 (`autoconfigure.ProviderFromSpec`), :67 (`toolsdk.Register`)                                     | go-linter-sdk/registry.go:294 (`DetectorFromRegistry`), :319 (`DetectV2`), :362 (`DetectorsFromRegistry`)  |
+| Exit-code mapping from report/findings                                           | Fully — own cmdguard-integrated contract                                   | cmd/go-version-auto-configure/contract_test.go:17 (exit contract comment), cmd/go-version-auto-configure/json.go (wire DTOs) | go-linter-sdk/registry.go:415 (`ExitCodeFromReport`), :426, :512 (`ExitCodeByConfidence`)                  |
+| Rule enable/disable selection                                                    | N/A — flags not rule IDs                                                   | pkg/surface/rules.go:77, :97 (`AnalyzeOption`s)                                                                              | go-linter-sdk/registry.go:450 (`FilterRules`), :479 (`SelectRules`); go-linter-sdk/filter.go:17 (`Filter`) |
+| Findings emitted as `finding.Finding` (zero converter)                           | Fully (own idiom, single boundary conversion)                              | pkg/surface/surface.go:301 (`Issue`); conversion once in the provider bridge                                                 | go-linter-sdk/rule.go:306 (`Check` returns `[]finding.Finding`), :329 (`NewFinding` builder)               |
+| RuleSet grouping + batch Check                                                   | N/A — no grouped sub-runs                                                  | —                                                                                                                            | go-linter-sdk/ruleset.go:33 (`NewRuleSet`), :98 (`Check`)                                                  |
 
 ## Gap analysis / ranked opportunities
 

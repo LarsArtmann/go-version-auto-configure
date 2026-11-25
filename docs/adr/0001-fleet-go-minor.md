@@ -165,12 +165,12 @@ per the registry convention).
 
 Same exclusions as the 2026-10-17 sweep:
 
-| Signal                                                             | Value                              |
-| ------------------------------------------------------------------ | ---------------------------------- |
-| Distinct top-level projects with >=1 patch-form `go` directive     | 94 (was 91)                        |
-| `go.mod` files at minor-form `go 1.27`                             | 533 (was 535)                      |
-| `go.mod` files at patch-form `1.27.1` / `1.27.2` / `1.27.4`        | 16 / 190 / 12 (was 148 / 58 / —)   |
-| Consumers still pinning `github.com/larsartmann/go-output v0.38.2` | **0 live** (1 archived repo only)  |
+| Signal                                                             | Value                             |
+| ------------------------------------------------------------------ | --------------------------------- |
+| Distinct top-level projects with >=1 patch-form `go` directive     | 94 (was 91)                       |
+| `go.mod` files at minor-form `go 1.27`                             | 533 (was 535)                     |
+| `go.mod` files at patch-form `1.27.1` / `1.27.2` / `1.27.4`        | 16 / 190 / 12 (was 148 / 58 / —)  |
+| Consumers still pinning `github.com/larsartmann/go-output v0.38.2` | **0 live** (1 archived repo only) |
 
 **The headline is the direction, not the absolute:** the go-output v0.38.2
 consumer campaign decayed to zero on its own, and the cluster wave killed every

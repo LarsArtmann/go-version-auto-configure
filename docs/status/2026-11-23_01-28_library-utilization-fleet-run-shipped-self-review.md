@@ -50,11 +50,13 @@
 **What I forgot:** the `question` tool exists for permission/billing blockers (d-1, d-2); the vision-subagent step of Phase 8 (follows from the screenshot); per-finding routing markers (b-5); a CHANGELOG decision (c-2).
 
 **Ghost systems / split brains (skill questions, answered honestly):**
+
 - Ghost systems created: **none** — `citation-sweep.py` is referenced from the index, AGENTS.md, T17, and is the stated ship gate; it is wired.
 - Split brains created: **one, small and disclosed** — the two scoring semantics (d-5). Also inherent drift risk: `index.html` restates verdicts/scores that live in the reports; write-once snapshots freeze both, so on re-review the index and reports must be regenerated together (noted in the index footer).
 - Docs lying: no drift found — every fact I re-derived matched its report (that was the point of the stamp-and-replay loop).
 
 **How to be less stupid next fleet run:**
+
 1. Ask about providers/billing/permissions the FIRST time a dispatch fails — never guess provider availability twice.
 2. Pace rate-limit resumes with ≥60s of local work (the pattern that finally worked).
 3. Derive defect lists from the gate tool's output, never from parallel hand-rolled greps (d-4).
@@ -67,6 +69,7 @@
 ## f) Up to 50 things to get done next
 
 **Already routed as TODO_LIST T17 (the actionable audit outcomes):**
+
 1. Declare the true read surface: `ConfigFiles`/`Spec.Inputs` = go.mod, go.work, flake.nix, .github/workflows/*, VERSION, CHANGELOG.md — the top finding.
 2. Declare `Spec.Outputs` (go.mod, go.work, .github/workflows/*).
 3. Swap the raw bool map assertion for `toolsdk.BoolFromContext`.
@@ -106,7 +109,7 @@
 29. Watch go-linter-sdk's fleet-convergence trajectory (six fleet importers already).
 30. flake.lock effective-Go-revision step (T9, pre-existing) — the audit's Inputs finding makes its BuildFlow-step home even more clearly correct.
 
-*(30 items, honestly scoped; the remaining 20 of the 50-cap would be padding. Items 7–11 are this run's closeout; 12–20 are infrastructure; 21–30 are follow-ons.)*
+_(30 items, honestly scoped; the remaining 20 of the 50-cap would be padding. Items 7–11 are this run's closeout; 12–20 are infrastructure; 21–30 are follow-ons.)_
 
 ## g) Questions I can NOT figure out myself
 
@@ -116,7 +119,7 @@
 
 ---
 
-*Report written per the user's explicit format request (sections a–g, Markdown, docs/status/). The actionable core of section (f) is already in TODO_LIST (T17); the remainder is Roadmap-class unless you pick from it. WAITING FOR INSTRUCTIONS.*
+_Report written per the user's explicit format request (sections a–g, Markdown, docs/status/). The actionable core of section (f) is already in TODO_LIST (T17); the remainder is Roadmap-class unless you pick from it. WAITING FOR INSTRUCTIONS._
 
 ---
 
@@ -126,18 +129,18 @@ Items 8 (semantic QC) and 11 (format normalization) from section (f), executed p
 
 **Semantic QC — the ten highest-stakes Group B/C citations re-read at source, verdicts recorded:**
 
-| # | Claim under test | Source re-read | Verdict |
-|---|---|---|---|
-| 1 | ParseVersion accepts only strict major.minor.patch (rejects `1.2`, `1.2.3.4`, `latest`, `""`) | go-policy-dsl version.go:32-48 (`versionComponentCount = 3`, doc comment enumerates the rejects) | Holds |
-| 2 | Policy versions are library versions, "NOT the Go toolchain version" | go-policy-dsl policy.go:181-186 (comment verbatim) | Holds |
-| 3 | DSL owns no matching semantics; patterns are opaque `[]string` | go-policy-dsl README.md:176 | Holds |
-| 4 | ConfigIssue has no metadata field (the bridge gap) | linter-autoconfigure-sdk autoconfigure.go:247-267 (fields: Rule, Message, Severity, File, Line, Suggestion, Confidence) | Holds — gap confirmed |
-| 5 | `Rule` interface ID/Name/Category/Severity/Check | go-linter-sdk rule.go:115+ | Holds, one prose nuance: the interface also has `Description()`, which the report's summary row omits — summary-level omission, not a false claim |
-| 6 | `RuleFunc` struct literal (Meta + Run) | go-linter-sdk rule.go:158-162 | Holds |
-| 7 | `RuleMeta` + `Validate` | go-linter-sdk rule.go:169, :216 | Holds |
-| 8 | `OptIn` wrapper | go-linter-sdk rule.go:275 | Holds |
-| 9 | go-dag-app `IsDebugDIEnabled` / `PrintDependencyTree` (`do.ExplainInjector`) | go-dag-app container.go:34, :49-64 | Holds |
-| 10 | go-compliance `State`/`Rank`/`DeriveState` + `FoldEvidence`/`CompleteWithDiscovery`; consumer `CompareDirective` bare-minor-below-patch-zero ranking | go-compliance state.go:13, :50, :112; fold.go:113, :196; pkg/surface/parse.go:97-118 | Holds |
+| #  | Claim under test                                                                                                                                     | Source re-read                                                                                                          | Verdict                                                                                                                                           |
+| -- | ---------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1  | ParseVersion accepts only strict major.minor.patch (rejects `1.2`, `1.2.3.4`, `latest`, `""`)                                                        | go-policy-dsl version.go:32-48 (`versionComponentCount = 3`, doc comment enumerates the rejects)                        | Holds                                                                                                                                             |
+| 2  | Policy versions are library versions, "NOT the Go toolchain version"                                                                                 | go-policy-dsl policy.go:181-186 (comment verbatim)                                                                      | Holds                                                                                                                                             |
+| 3  | DSL owns no matching semantics; patterns are opaque `[]string`                                                                                       | go-policy-dsl README.md:176                                                                                             | Holds                                                                                                                                             |
+| 4  | ConfigIssue has no metadata field (the bridge gap)                                                                                                   | linter-autoconfigure-sdk autoconfigure.go:247-267 (fields: Rule, Message, Severity, File, Line, Suggestion, Confidence) | Holds — gap confirmed                                                                                                                             |
+| 5  | `Rule` interface ID/Name/Category/Severity/Check                                                                                                     | go-linter-sdk rule.go:115+                                                                                              | Holds, one prose nuance: the interface also has `Description()`, which the report's summary row omits — summary-level omission, not a false claim |
+| 6  | `RuleFunc` struct literal (Meta + Run)                                                                                                               | go-linter-sdk rule.go:158-162                                                                                           | Holds                                                                                                                                             |
+| 7  | `RuleMeta` + `Validate`                                                                                                                              | go-linter-sdk rule.go:169, :216                                                                                         | Holds                                                                                                                                             |
+| 8  | `OptIn` wrapper                                                                                                                                      | go-linter-sdk rule.go:275                                                                                               | Holds                                                                                                                                             |
+| 9  | go-dag-app `IsDebugDIEnabled` / `PrintDependencyTree` (`do.ExplainInjector`)                                                                         | go-dag-app container.go:34, :49-64                                                                                      | Holds                                                                                                                                             |
+| 10 | go-compliance `State`/`Rank`/`DeriveState` + `FoldEvidence`/`CompleteWithDiscovery`; consumer `CompareDirective` bare-minor-below-patch-zero ranking | go-compliance state.go:13, :50, :112; fold.go:113, :196; pkg/surface/parse.go:97-118                                    | Holds                                                                                                                                             |
 
 **Zero errata.** The one nuance (row 5) stays a listed observation, not a report edit: the inventory row is a capability summary, and the cited lines remain accurate.
 

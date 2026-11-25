@@ -1,11 +1,11 @@
 # go-dag-app — utilization review
 
-| | |
-|---|---|
-| Reviewed | 2026-11-23 |
-| Consumer | go-version-auto-configure @ 07d4d51 |
-| Library | github.com/larsartmann/go-dag-app — not a dependency, latest local tag v0.1.1 @ HEAD c2b6c99 |
-| Provenance | Group C |
+|                          |                                                                                                                        |
+| ------------------------ | ---------------------------------------------------------------------------------------------------------------------- |
+| Reviewed                 | 2026-11-23                                                                                                             |
+| Consumer                 | go-version-auto-configure @ 07d4d51                                                                                    |
+| Library                  | github.com/larsartmann/go-dag-app — not a dependency, latest local tag v0.1.1 @ HEAD c2b6c99                           |
+| Provenance               | Group C                                                                                                                |
 | Format (M17, 2026-11-24) | Compact grade format declared canonical for NOT-ADOPTED reviews — the four-column inventory below carries the evidence |
 
 ## Verdict
@@ -18,13 +18,13 @@ It is also **not** a worker-pool library: the fleet argument below traces that s
 
 Rows below: 5, N/A: 4 → A = 1. Σ = 0 (the one applicable capability is missed). Score = **0 / 100** — band **low**.
 
-| # | Capability | Grade |
-|---|---|---|
-| 1 | Debug-DI env gate (`<APP>_DEBUG_DI`) | N/A — consumer has no DI tree to debug |
-| 2 | Dependency-tree printer (`do.ExplainInjector` wrapper) | N/A — no injector |
-| 3 | Injector bootstrap + cleanup (`NewContainer`/`NewContainerWithOpts`) | N/A — no injector |
-| 4 | Custom samber/do options pass-through (HEAD commit c2b6c99) | N/A — no injector |
-| 5 | Bounded parallel fan-out with sorted deterministic output | **Missed** — but the consumer already implements this itself, see below |
+| # | Capability                                                           | Grade                                                                   |
+| - | -------------------------------------------------------------------- | ----------------------------------------------------------------------- |
+| 1 | Debug-DI env gate (`<APP>_DEBUG_DI`)                                 | N/A — consumer has no DI tree to debug                                  |
+| 2 | Dependency-tree printer (`do.ExplainInjector` wrapper)               | N/A — no injector                                                       |
+| 3 | Injector bootstrap + cleanup (`NewContainer`/`NewContainerWithOpts`) | N/A — no injector                                                       |
+| 4 | Custom samber/do options pass-through (HEAD commit c2b6c99)          | N/A — no injector                                                       |
+| 5 | Bounded parallel fan-out with sorted deterministic output            | **Missed** — but the consumer already implements this itself, see below |
 
 ## Version currency
 
@@ -35,13 +35,13 @@ Rows below: 5, N/A: 4 → A = 1. Σ = 0 (the one applicable capability is missed
 
 ## Capability inventory
 
-| Capability | Status | Consumer evidence | Library evidence |
-|---|---|---|---|
-| `<APP>_DEBUG_DI` env-var debug gate | N/A — no DI debug surface exists here | — | go-dag-app/container.go:34-38 (`IsDebugDIEnabled`) |
-| Dependency-tree printing (`do.ExplainInjector`) | N/A — no injector to explain | — | go-dag-app/container.go:49-64 (`PrintDependencyTree`) |
-| Injector bootstrap with shutdown cleanup | N/A — lifecycle is Go default; exit codes in cmd/main.go | — | go-dag-app/container.go:75-103 (`NewContainer`, `NewContainerWithOpts`) |
-| Custom injector options (auditlog plugin hooks) | N/A — no plugin system | — | go-dag-app/container.go:91-103 (HEAD addition) |
-| Bounded worker pool, sorted output | Missed (but hand-rolled equivalently) | cmd/go-version-auto-configure/main.go:377-402 (`runSorted` — semaphore + `wg.Go`, `slices.SortFunc` for determinism), cmd/go-version-auto-configure/main.go:439-441 (`workersFor`) | — (go-dag-app has no concurrency API at all) |
+| Capability                                      | Status                                                   | Consumer evidence                                                                                                                                                                  | Library evidence                                                        |
+| ----------------------------------------------- | -------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------- |
+| `<APP>_DEBUG_DI` env-var debug gate             | N/A — no DI debug surface exists here                    | —                                                                                                                                                                                  | go-dag-app/container.go:34-38 (`IsDebugDIEnabled`)                      |
+| Dependency-tree printing (`do.ExplainInjector`) | N/A — no injector to explain                             | —                                                                                                                                                                                  | go-dag-app/container.go:49-64 (`PrintDependencyTree`)                   |
+| Injector bootstrap with shutdown cleanup        | N/A — lifecycle is Go default; exit codes in cmd/main.go | —                                                                                                                                                                                  | go-dag-app/container.go:75-103 (`NewContainer`, `NewContainerWithOpts`) |
+| Custom injector options (auditlog plugin hooks) | N/A — no plugin system                                   | —                                                                                                                                                                                  | go-dag-app/container.go:91-103 (HEAD addition)                          |
+| Bounded worker pool, sorted output              | Missed (but hand-rolled equivalently)                    | cmd/go-version-auto-configure/main.go:377-402 (`runSorted` — semaphore + `wg.Go`, `slices.SortFunc` for determinism), cmd/go-version-auto-configure/main.go:439-441 (`workersFor`) | — (go-dag-app has no concurrency API at all)                            |
 
 ## Gap analysis / ranked opportunities
 
@@ -54,8 +54,8 @@ Nothing to rank above trivial. The only theoretical "opportunity" — replacing 
 
 The owner's framing — re-implementation means fixing the same bug N times — applies only when the hand-rolled code duplicates a shared lib. Here the trace shows the opposite:
 
-- **Worker pools:** the consumer's `runSorted` (cmd/go-version-auto-configure/main.go:378) is the *only* pool in the codebase, generic over `I`/`R`, with sorted output as the CLI's determinism contract. go-dag-app contains no pool. Adopting go-dag-app would not remove `runSorted`.
-- **DI bootstrap:** go-dag-app deduplicated the bootstrap across BuildFlow and library-policy — two apps that *inject*. This consumer does not inject, so there is no duplicate to deduplicate. Adoption would ADD a second implementation (a container) of something the consumer intentionally does not have.
+- **Worker pools:** the consumer's `runSorted` (cmd/go-version-auto-configure/main.go:378) is the _only_ pool in the codebase, generic over `I`/`R`, with sorted output as the CLI's determinism contract. go-dag-app contains no pool. Adopting go-dag-app would not remove `runSorted`.
+- **DI bootstrap:** go-dag-app deduplicated the bootstrap across BuildFlow and library-policy — two apps that _inject_. This consumer does not inject, so there is no duplicate to deduplicate. Adoption would ADD a second implementation (a container) of something the consumer intentionally does not have.
 
 Verdict on the fleet framing: correct call to skip; nothing is being fixed N times.
 

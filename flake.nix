@@ -8,9 +8,11 @@
       inputs.nixpkgs-lib.follows = "nixpkgs";
     };
     go-nix-helpers = {
-      # Pinned 2026-09-22 to c42fd77 — same pin as file-and-image-renamer
-      # (base-form pseudo-version normalization; revs below a97742e fail eval).
-      url = "github:LarsArtmann/go-nix-helpers/1a553ce7ad5a9e84b7e04a60e68ab81ff5dd6ab8";
+      # Bumped 2026-11-25 to e0c4b70 (2026-11-19, 65+ commits past the
+      # 2026-09-22 c42fd77/1a553ce pin; includes the auto-newest goPkgAttr
+      # default + templ-freshness oracle fix). Same pin as the fleet's other
+      # consumers should re-verify independently.
+      url = "github:LarsArtmann/go-nix-helpers/e0c4b7002621c89e66ef977b7a13380c5c0365e2";
       inputs.nixpkgs.follows = "nixpkgs";
     };
   };
@@ -80,16 +82,16 @@
       go-standard = {
         pname = "go-version-auto-configure";
         inherit version src;
-        vendorHash = "sha256-ABzLwLCghbDr8iB5WXW+YD8HTF/75yWKy1RO5dbHb3U=";
+        vendorHash = "sha256-wTAviJbzF4zJmf/fs08Xrv16Ufj3D9jQixp28Fqvdvg=";
         description = "Detects and auto-fixes Go toolchain version-surface drift across the fleet";
 
         # ADR-0001: the fleet minor is 1.27 and go.mod declares `go 1.27`.
-        # The pinned go-nix-helpers (c42fd77) defaults goPkgAttr to "go_1_26"
-        # (the null auto-newest default landed after the pin), and the FOD
-        # runs GOTOOLCHAIN=local — so the go-modules derivation died with
-        # "go.mod requires go >= 1.27 (running go 1.26.7)" (2026-09-26).
-        # Pin the branch explicitly; the locked nixpkgs ships go_1_27 (1.27.x;
-        # 1.27.2 at the 2026-10-16 lock).
+        # go-nix-helpers (e0c4b70) now defaults goPkgAttr to the newest Go
+        # in the locked nixpkgs — but the value stays EXPLICIT: the FOD runs
+        # GOTOOLCHAIN=local, so an implicit default would shift the build
+        # under us on a nixpkgs bump, and checks.go-fod-floor asserts this
+        # exact value against go.mod's floor.
+        # The locked nixpkgs ships go_1_27 (1.27.x; 1.27.2 at the 2026-10-16 lock).
         # The value lives in the top-level let so checks.go-fod-floor can assert
         # it against go.mod's floor.
         inherit goPkgAttr;

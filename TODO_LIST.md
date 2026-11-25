@@ -40,7 +40,7 @@ Completed 2026-11-24 (the cluster wave, CHANGELOG [Unreleased] + ADR-0001 append
 
 - [ ] forbidigo vanishing (9 `fmt.Print*` hits gone after `buildflow format`) not reproducible in the 2026-09-22 run — watch for recurrence (no recurrence observed through 2026-11-24 full BuildFlow runs)
 
-*(branching-flow#1, dependabot-auto-configure#3, go-cqrs-lite#42 all closed and resolved 2026-11-24 — see AGENTS.md known-tool-bugs and CHANGELOG; M20, plan T12 watch batch.)*
+_(branching-flow#1, dependabot-auto-configure#3, go-cqrs-lite#42 all closed and resolved 2026-11-24 — see AGENTS.md known-tool-bugs and CHANGELOG; M20, plan T12 watch batch.)_
 
 ## T3 — Publish (remainder)
 
