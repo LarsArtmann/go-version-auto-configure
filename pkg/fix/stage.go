@@ -132,22 +132,29 @@ func stageGoMod(goModPath string, candidate []byte) (*stagedGoMod, error) {
 	staged := &stagedGoMod{dir: dir, modPath: filepath.Join(dir, "go.mod")}
 
 	if err = atomicwrite.Write(staged.modPath, candidate); err != nil {
-		_ = staged.Close()
-
-		return nil, fmt.Errorf("stage candidate %s: %w", goModPath, err)
+		return nil, errors.Join(fmt.Errorf("stage candidate %s: %w", goModPath, err), closeStaged(staged))
 	}
 
 	if liveSum != nil {
 		staged.sumPath = filepath.Join(dir, "go.sum")
 
 		if err = atomicwrite.Write(staged.sumPath, liveSum); err != nil {
-			_ = staged.Close()
-
-			return nil, fmt.Errorf("stage %s: %w", goSumPath, err)
+			return nil, errors.Join(fmt.Errorf("stage %s: %w", goSumPath, err), closeStaged(staged))
 		}
 	}
 
 	return staged, nil
+}
+
+// closeStaged removes the staged copies and reports a failed removal; a
+// clean removal is nil, so the result can be joined into the error that
+// made the cleanup necessary without masking it.
+func closeStaged(staged *stagedGoMod) error {
+	if err := staged.Close(); err != nil {
+		return fmt.Errorf("remove staged copy %s: %w", staged.dir, err)
+	}
+
+	return nil
 }
 
 // Close removes the staged copies. A missing directory is not an error.

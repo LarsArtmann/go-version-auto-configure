@@ -16,7 +16,12 @@ func TestFindingsFromIssues(t *testing.T) {
 
 		findings, err := FindingsFromIssues(ToolName, []surface.Issue{
 			{Rule: surface.RuleGoModUnparseable, Message: "go.mod: unparseable", File: "go.mod", Line: 3},
-			{Rule: surface.RuleGoDirectivePatchForm, Message: "go directive carries a patch version", File: "go.mod", Line: 5},
+			{
+				Rule:    surface.RuleGoDirectivePatchForm,
+				Message: "go directive carries a patch version",
+				File:    "go.mod",
+				Line:    5,
+			},
 		})
 		require.NoError(t, err)
 		require.Len(t, findings, 2)
