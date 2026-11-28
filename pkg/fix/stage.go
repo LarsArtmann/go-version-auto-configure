@@ -118,6 +118,15 @@ func gateGoModRewrite(
 // module's go.sum (when the module has one). Nothing is written into the
 // module directory.
 func stageGoMod(goModPath string, candidate []byte) (*stagedGoMod, error) {
+	goSumPath := filepath.Join(filepath.Dir(goModPath), "go.sum")
+
+	// A module without go.sum (ErrNotExist) has nothing to copy; liveSum
+	// then stays nil.
+	liveSum, err := os.ReadFile(goSumPath)
+	if err != nil && !errors.Is(err, os.ErrNotExist) {
+		return nil, fmt.Errorf("read %s: %w", goSumPath, err)
+	}
+
 	dir, err := os.MkdirTemp("", stageDirPattern)
 	if err != nil {
 		return nil, fmt.Errorf("create stage directory for %s: %w", goModPath, err)
@@ -131,22 +140,14 @@ func stageGoMod(goModPath string, candidate []byte) (*stagedGoMod, error) {
 		return nil, fmt.Errorf("stage candidate %s: %w", goModPath, err)
 	}
 
-	liveSum, err := os.ReadFile(filepath.Join(filepath.Dir(goModPath), "go.sum"))
-	switch {
-	case err == nil:
+	if liveSum != nil {
 		staged.sumPath = filepath.Join(dir, "go.sum")
 
 		if err = os.WriteFile(staged.sumPath, liveSum, 0o600); err != nil {
 			_ = staged.Close()
 
-			return nil, fmt.Errorf("stage go.sum next to %s: %w", goModPath, err)
+			return nil, fmt.Errorf("stage %s: %w", goSumPath, err)
 		}
-	case errors.Is(err, os.ErrNotExist):
-		// A module without go.sum has nothing to copy.
-	default:
-		_ = staged.Close()
-
-		return nil, fmt.Errorf("read go.sum next to %s: %w", goModPath, err)
 	}
 
 	return staged, nil
