@@ -249,19 +249,21 @@ func heldMetadata(issue surface.Issue, held map[string]fix.HeldStrip) map[string
 // BuildFlow findings share the bridge. It is the plain conversion: the
 // dep-forced held-strip annotation is detect-time-only (toConfigIssue's
 // held map) and intentionally absent here, matching what the CLI's human
-// and schema-2 JSON reports show.
-func FindingsFromIssues(tool string, issues []surface.Issue) []finding.Finding {
+// and schema-2 JSON reports show. An issue the bridge refuses fails the
+// conversion and is named in the error: a finding never just vanishes
+// from an export.
+func FindingsFromIssues(tool string, issues []surface.Issue) ([]finding.Finding, error) {
 	findings := make([]finding.Finding, 0, len(issues))
 	for _, issue := range issues {
-		f, err := autoconfigure.FindingFromIssue(finding.ToolName(tool), toConfigIssue(issue, nil))
+		converted, err := autoconfigure.FindingFromIssue(finding.ToolName(tool), toConfigIssue(issue, nil))
 		if err != nil {
-			continue
+			return nil, fmt.Errorf("convert %s:%d (%s): %w", issue.File, issue.Line, issue.Rule, err)
 		}
 
-		findings = append(findings, f)
+		findings = append(findings, converted)
 	}
 
-	return findings
+	return findings, nil
 }
 
 // repairStructured is the structured repair contract (sdk v0.9.0): the

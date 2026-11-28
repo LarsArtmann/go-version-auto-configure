@@ -331,7 +331,15 @@ func emitSARIF(ctx context.Context, out io.Writer, analyses []repoAnalysis) int 
 		for _, issue := range analysis.report.all() {
 			located := issue
 			located.File = filepath.Join(analysis.root, located.File)
-			findings = append(findings, provider.FindingsFromIssues(provider.ToolName, []surface.Issue{located})...)
+
+			converted, err := provider.FindingsFromIssues(provider.ToolName, []surface.Issue{located})
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "sarif: %v\n", err)
+
+				return exitError
+			}
+
+			findings = append(findings, converted...)
 		}
 	}
 
