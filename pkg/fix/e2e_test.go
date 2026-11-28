@@ -22,7 +22,7 @@ import (
 // seedRealGateFixture writes a consumer module requiring a local poisoner
 // through a directory replace (offline-safe: no module downloads, no
 // go.sum), plus a .go file so the module has packages to resolve.
-func seedRealGateFixture(t *testing.T, directive string) string {
+func seedRealGateFixture(t *testing.T) string {
 	t.Helper()
 
 	root := t.TempDir()
@@ -38,7 +38,7 @@ func seedRealGateFixture(t *testing.T, directive string) string {
 	consumer := filepath.Join(root, "consumer")
 	require.NoError(t, os.MkdirAll(consumer, 0o755))
 
-	goMod := "module example.com/m\n\ngo " + directive + "\n\n" +
+	goMod := "module example.com/m\n\ngo 1.27.1\n\n" +
 		"require example.com/poisoner v0.0.0\n\n" +
 		"replace example.com/poisoner => ../poisoner\n"
 	require.NoError(t, os.WriteFile(filepath.Join(consumer, "go.mod"), []byte(goMod), 0o644))
@@ -61,7 +61,7 @@ func TestApply_E2E_RealTidyGateRejectsDepForcedDowngrade(t *testing.T) {
 
 	t.Parallel()
 
-	root := seedRealGateFixture(t, "1.27.1")
+	root := seedRealGateFixture(t)
 	goModPath := filepath.Join(root, "consumer", "go.mod")
 	original := readFile(t, goModPath)
 	seen := gateObservation{}
@@ -98,7 +98,7 @@ func TestApply_E2E_RealTidyGateAcceptsCleanStrip(t *testing.T) {
 
 	t.Parallel()
 
-	root := seedRealGateFixture(t, "1.27.1")
+	root := seedRealGateFixture(t)
 	goModPath := filepath.Join(root, "consumer", "go.mod")
 
 	// Drop the poisoner: an independent module whose floor nothing forces.

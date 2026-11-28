@@ -18,6 +18,12 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+// Canned gate failures of the staged-gate tests.
+var (
+	errVetLanguageFloor = errors.New("go vet: stdversion: fmt.Println requires go1.27 or later")
+	errNoMainModule     = errors.New("go: cannot find main module")
+)
+
 // gateObservation is what the dependency gate saw of the module at the
 // moment it ran.
 type gateObservation struct {
@@ -209,18 +215,17 @@ func TestCanonicalizeGoMod_ExtraGateRejectionWithholdsRewrite(t *testing.T) {
 	original := "module example.com/norm\n\ngo 1.26.7\n"
 	path := writeGoModFixture(t, original)
 	sighting := extraGateSighting{livePath: path}
-	rejection := errors.New("go vet: stdversion: fmt.Println requires go1.27 or later")
 
 	res, err := CanonicalizeGoMod(context.Background(), path, CanonicalizeOptions{
 		InstalledToolchain: "1.26.7",
-		ExtraGate:          sighting.reject(rejection),
+		ExtraGate:          sighting.reject(errVetLanguageFloor),
 	}, noopGate())
 	require.NoError(t, err)
 
 	assert.True(t, res.HeldBackByExtraGate)
 	assert.False(t, res.HeldBackByDepFloor)
 	assert.False(t, res.Changed)
-	assert.Equal(t, rejection.Error(), res.GateDetail)
+	assert.Equal(t, errVetLanguageFloor.Error(), res.GateDetail)
 	assert.Equal(t, original, readFile(t, path))
 }
 
@@ -264,7 +269,12 @@ func TestCanonicalizeGoMod_ToolchainOnlyStripRunsExtraGate(t *testing.T) {
 	require.NoError(t, err)
 
 	assert.True(t, res.Changed)
-	assert.Equal(t, 1, sighting.calls, "a stripped toolchain line can change which toolchain builds, so the caller gate still runs")
+	assert.Equal(
+		t,
+		1,
+		sighting.calls,
+		"a stripped toolchain line can change which toolchain builds, so the caller gate still runs",
+	)
 	assert.Equal(t, "module example.com/norm\n\ngo 1.26\n", sighting.candidate)
 	assert.Equal(t, sighting.candidate, readFile(t, path))
 }
@@ -338,7 +348,7 @@ func TestCanonicalizeGoMod_StagedCopyNeverOutlivesTheCall(t *testing.T) {
 	}{
 		{name: "accepted", wantChanged: true},
 		{name: "dependency floor rejects", gateDiff: "diff", wantHeldByFloor: true},
-		{name: "dependency gate fails", gateErr: errors.New("go: cannot find main module"), wantHeldByFloor: true},
+		{name: "dependency gate fails", gateErr: errNoMainModule, wantHeldByFloor: true},
 		{name: "dry run runs no gate", dryRun: true},
 	}
 
@@ -361,7 +371,12 @@ func TestCanonicalizeGoMod_StagedCopyNeverOutlivesTheCall(t *testing.T) {
 
 			assert.Equal(t, tt.wantChanged, res.Changed)
 			assert.Equal(t, tt.wantHeldByFloor, res.HeldBackByDepFloor)
-			assert.Equal(t, []string{"go.mod"}, dirEntryNames(t, filepath.Dir(path)), "the module directory never holds a staged copy")
+			assert.Equal(
+				t,
+				[]string{"go.mod"},
+				dirEntryNames(t, filepath.Dir(path)),
+				"the module directory never holds a staged copy",
+			)
 
 			if tt.dryRun {
 				assert.Empty(t, seen.modFile)

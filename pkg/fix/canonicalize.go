@@ -288,17 +288,9 @@ func CanonicalizeGoMod(
 		return res, nil
 	}
 
-	updated := string(content)
-
-	if plan.patchPinned {
-		updated, err = rewriteGoDirective(updated, string(plan.minor))
-		if err != nil {
-			return CanonicalizeResult{}, fmt.Errorf("canonicalize %s: %w", goModPath, err)
-		}
-	}
-
-	if plan.stripToolchain {
-		updated = stripToolchainDirective(updated)
+	updated, err := plan.candidateContent(goModPath, string(content))
+	if err != nil {
+		return CanonicalizeResult{}, err
 	}
 
 	verdict, gateErr := gateGoModRewrite(ctx, goModPath, content, []byte(updated), rewriteGates{
@@ -316,6 +308,37 @@ func CanonicalizeGoMod(
 		return CanonicalizeResult{}, fmt.Errorf("canonicalize: %w", gateErr)
 	}
 
+	recordGateVerdict(&res, verdict)
+
+	return res, nil
+}
+
+// candidateContent applies the plan's rewrites to the go.mod content, in
+// application order.
+func (p canonicalizePlan) candidateContent(goModPath, content string) (string, error) {
+	updated := content
+
+	if p.patchPinned {
+		rewritten, err := rewriteGoDirective(updated, string(p.minor))
+		if err != nil {
+			return "", fmt.Errorf("canonicalize %s: %w", goModPath, err)
+		}
+
+		updated = rewritten
+	}
+
+	if p.stripToolchain {
+		updated = stripToolchainDirective(updated)
+	}
+
+	return updated, nil
+}
+
+// recordGateVerdict folds the gates' verdict into the result: the first
+// rejecting gate names why the rewrite was withheld (the dependency-floor
+// gate runs first, so its rejection skips the caller gate), an approved
+// candidate reports Changed.
+func recordGateVerdict(res *CanonicalizeResult, verdict rewriteVerdict) {
 	switch {
 	case verdict.tidy.Dirty():
 		res.HeldBackByDepFloor, res.GateDetail = true, verdict.tidy.Detail
@@ -324,8 +347,6 @@ func CanonicalizeGoMod(
 	default:
 		res.Changed = true
 	}
-
-	return res, nil
 }
 
 // changes lists the planned rewrites in application order.

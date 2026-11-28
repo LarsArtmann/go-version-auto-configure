@@ -21,76 +21,78 @@ import (
 // realObservingGate is the production dependency gate, recording what it
 // saw of the live go.mod and which staged copy it judged when it ran.
 func realObservingGate(goModPath string, seen *gateObservation) SplitRunner {
-	real := ExecSplitRunner()
+	production := ExecSplitRunner()
 
 	return observingGate(goModPath, seen, func(dir string, args []string) (string, string, error) {
-		return real(context.Background(), dir, args...)
+		return production(context.Background(), dir, args...)
 	})
 }
 
-// TestCanonicalizeGoMod_E2E_RealGateJudgesStagedCandidate drives the
-// production dependency gate over a staged candidate for both verdicts.
-func TestCanonicalizeGoMod_E2E_RealGateJudgesStagedCandidate(t *testing.T) {
+// TestCanonicalizeGoMod_E2E_RealGateWithholdsDepForcedDowngrade drives the
+// production dependency gate over a staged candidate a replace target's
+// floor rejects: the diff names that floor (so the staged copy outside the
+// module still resolved the relative replace), and the live go.mod never
+// leaves its original state.
+func TestCanonicalizeGoMod_E2E_RealGateWithholdsDepForcedDowngrade(t *testing.T) {
 	if testing.Short() {
 		t.Skip("e2e: needs the real go toolchain")
 	}
 
 	t.Parallel()
 
-	installed := surface.GoVersion(probeInstalledVersion(t))
+	root := seedRealGateFixture(t)
+	consumer := filepath.Join(root, "consumer")
+	goModPath := filepath.Join(consumer, "go.mod")
+	original := readFile(t, goModPath)
+	seen := gateObservation{}
 
-	t.Run("dep-forced downgrade is withheld and the live file never moves", func(t *testing.T) {
-		t.Parallel()
+	res, err := CanonicalizeGoMod(context.Background(), goModPath, CanonicalizeOptions{
+		InstalledToolchain: surface.GoVersion(probeInstalledVersion(t)),
+	}, realObservingGate(goModPath, &seen))
+	require.NoError(t, err)
 
-		root := seedRealGateFixture(t, "1.27.1")
-		consumer := filepath.Join(root, "consumer")
-		goModPath := filepath.Join(consumer, "go.mod")
-		original := readFile(t, goModPath)
-		seen := gateObservation{}
-		gate := realObservingGate(goModPath, &seen)
+	assert.True(t, res.HeldBackByDepFloor)
+	assert.False(t, res.Changed)
+	assert.Contains(t, res.GateDetail, "+go 1.27.1",
+		"the real gate reports the floor the replace target forces")
+	assert.Equal(t, original, seen.live, "the real gate ran while the live file held the original directive")
+	assert.Equal(t, original, readFile(t, goModPath))
+	assert.Equal(t, []string{"go.mod", "main.go"}, dirEntryNames(t, consumer))
+	assertStagedCopyGone(t, seen.modFile)
+}
 
-		res, err := CanonicalizeGoMod(context.Background(), goModPath, CanonicalizeOptions{
-			InstalledToolchain: installed,
-		}, gate)
-		require.NoError(t, err)
+// TestCanonicalizeGoMod_E2E_RealGateCommitsFloorSafeDowngrade proves the
+// green path against the real toolchain: with no dependency above the
+// target, the staged candidate passes and is committed to the live file.
+func TestCanonicalizeGoMod_E2E_RealGateCommitsFloorSafeDowngrade(t *testing.T) {
+	if testing.Short() {
+		t.Skip("e2e: needs the real go toolchain")
+	}
 
-		assert.True(t, res.HeldBackByDepFloor)
-		assert.False(t, res.Changed)
-		assert.Contains(t, res.GateDetail, "+go 1.27.1",
-			"the real gate reports the floor the replace target forces; a staged copy outside the module still resolves the relative replace")
-		assert.Equal(t, original, seen.live, "the real gate ran while the live file held the original directive")
-		assert.Equal(t, original, readFile(t, goModPath))
-		assert.Equal(t, []string{"go.mod", "main.go"}, dirEntryNames(t, consumer))
-		assertStagedCopyGone(t, seen.modFile)
-	})
+	t.Parallel()
 
-	t.Run("floor-safe downgrade is committed", func(t *testing.T) {
-		t.Parallel()
+	root := seedRealGateFixture(t)
+	consumer := filepath.Join(root, "consumer")
+	goModPath := filepath.Join(consumer, "go.mod")
 
-		root := seedRealGateFixture(t, "1.27.1")
-		consumer := filepath.Join(root, "consumer")
-		goModPath := filepath.Join(consumer, "go.mod")
+	// Drop the poisoner: an independent module whose floor nothing forces.
+	require.NoError(t, os.WriteFile(goModPath, []byte("module example.com/m\n\ngo 1.27.1\n"), 0o644))
+	require.NoError(
+		t,
+		os.WriteFile(filepath.Join(consumer, "main.go"), []byte("package main\n\nfunc main() {}\n"), 0o644),
+	)
 
-		// Drop the poisoner: an independent module whose floor nothing forces.
-		require.NoError(t, os.WriteFile(goModPath, []byte("module example.com/m\n\ngo 1.27.1\n"), 0o644))
-		require.NoError(
-			t,
-			os.WriteFile(filepath.Join(consumer, "main.go"), []byte("package main\n\nfunc main() {}\n"), 0o644),
-		)
+	seen := gateObservation{}
 
-		seen := gateObservation{}
-		gate := realObservingGate(goModPath, &seen)
+	res, err := CanonicalizeGoMod(context.Background(), goModPath, CanonicalizeOptions{
+		InstalledToolchain: surface.GoVersion(probeInstalledVersion(t)),
+	}, realObservingGate(goModPath, &seen))
+	require.NoError(t, err)
 
-		res, err := CanonicalizeGoMod(context.Background(), goModPath, CanonicalizeOptions{
-			InstalledToolchain: installed,
-		}, gate)
-		require.NoError(t, err)
-
-		assert.True(t, res.Changed)
-		assert.False(t, res.HeldBackByDepFloor)
-		assert.Equal(t, "module example.com/m\n\ngo 1.27.1\n", seen.live, "even the real gate judged the staged copy")
-		assert.Equal(t, "module example.com/m\n\ngo 1.27\n", readFile(t, goModPath))
-		assert.Equal(t, []string{"go.mod", "main.go"}, dirEntryNames(t, consumer))
-		assertStagedCopyGone(t, seen.modFile)
-	})
+	assert.True(t, res.Changed)
+	assert.False(t, res.HeldBackByDepFloor)
+	assert.Equal(t, "module example.com/m\n\ngo 1.27.1\n", seen.live, "even the real gate judged the staged copy")
+	assert.Equal(t, "module example.com/m\n\ngo 1.27\n", readFile(t, goModPath))
+	assert.Equal(t, []string{"go.mod", "main.go"}, dirEntryNames(t, consumer))
+	assertStagedCopyGone(t, seen.modFile)
 }

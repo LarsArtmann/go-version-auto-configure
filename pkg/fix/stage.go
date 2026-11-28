@@ -56,17 +56,14 @@ type rewriteGates struct {
 	extra ExtraGate
 }
 
-// rewriteVerdict reports the gates' judgement of one candidate go.mod.
+// rewriteVerdict reports the gates' judgement of one candidate go.mod: an
+// empty verdict approved the candidate.
 type rewriteVerdict struct {
-	// tidy is the dependency-floor gate's output; zero when it did not run.
+	// tidy is the dependency-floor gate's output; zero when it approved or
+	// did not run.
 	tidy gateResult
 	// extraErr is the caller gate's error; nil when it approved or did not run.
 	extraErr error
-}
-
-// rejected reports whether any gate refused the candidate.
-func (v rewriteVerdict) rejected() bool {
-	return v.tidy.Dirty() || v.extraErr != nil
 }
 
 // gateGoModRewrite stages candidate (a rewrite of goModPath's original
@@ -134,7 +131,7 @@ func stageGoMod(goModPath string, candidate []byte) (*stagedGoMod, error) {
 
 	staged := &stagedGoMod{dir: dir, modPath: filepath.Join(dir, "go.mod")}
 
-	if err = os.WriteFile(staged.modPath, candidate, 0o600); err != nil {
+	if err = atomicwrite.Write(staged.modPath, candidate); err != nil {
 		_ = staged.Close()
 
 		return nil, fmt.Errorf("stage candidate %s: %w", goModPath, err)
@@ -143,7 +140,7 @@ func stageGoMod(goModPath string, candidate []byte) (*stagedGoMod, error) {
 	if liveSum != nil {
 		staged.sumPath = filepath.Join(dir, "go.sum")
 
-		if err = os.WriteFile(staged.sumPath, liveSum, 0o600); err != nil {
+		if err = atomicwrite.Write(staged.sumPath, liveSum); err != nil {
 			_ = staged.Close()
 
 			return nil, fmt.Errorf("stage %s: %w", goSumPath, err)
