@@ -5,7 +5,7 @@
 - **Type:** Single-module Go CLI + BuildFlow provider (the "auto-configure" family: golangci-lint, oxlint, dependabot, and now the Go version surface)
 - **Purpose:** Detect Go toolchain version-surface drift (patch components in `go` directives, `go.work` below the workspace floor, Nix/CI pins trailing the module floor) and auto-fix the mechanically safe part
 - **Repo:** `github.com/larsartmann/go-version-auto-configure`
-- **Version:** v0.2.7 (latest tag, 2026-11-01, CI-pin auto-fix graduation). v0.2.6 shipped the testdata exclusion; v0.2.5 the patch-floor policy (`--respect-patch-floor`) and the release-authority first pass; v0.2.4 the at-parity `who-forces` + wire goldens. The 2026-10-17 backlog pass (T15 cause golden, T16 test depth + flake FOD guard, doc refresh) shipped in v0.2.7.
+- **Version:** v0.2.8 (latest tag, 2026-11-28, staged `go.mod` gate: a gated rewrite is judged on a staged copy and the live file is written once). v0.2.7 shipped the CI-pin auto-fix graduation; v0.2.6 the testdata exclusion; v0.2.5 the patch-floor policy (`--respect-patch-floor`) and the release-authority first pass; v0.2.4 the at-parity `who-forces` + wire goldens. The 2026-10-17 backlog pass (T15 cause golden, T16 test depth + flake FOD guard, doc refresh) shipped in v0.2.7.
 - **Toolchain floor:** the module `go` directive is `go 1.27` (minor-only), `tidy` is stable, `check` exits clean. Every dependency carries a minor-form floor (`go 1.27`: go-finding v1.16.0, toolsdk v1.16.0, linter-autoconfigure-sdk v0.9.0, go-atomic-write v0.6.x, go-output v0.38.5). Poisoner history and the registry live in [docs/POISONERS.md](docs/POISONERS.md) — the single source of truth.
 
 ## Build & Run
