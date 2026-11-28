@@ -9,6 +9,11 @@ Completed 2026-11-24 (the cluster wave, CHANGELOG [Unreleased] + ADR-0001 append
 - [ ] **`go-daemon` re-tag (the last Active poisoner)** — strip master (drifted to `go 1.27.2`), re-tag v0.4.1 minor-form with bumped sibling pins (sseparse v0.2.1, go-codec v0.3.4 already minor-form), then bump nextd. Published-`.mod` evidence in [docs/POISONERS.md](docs/POISONERS.md).
 - [ ] go-taskqueue master push — blocked by the repo's push-timing guard while a parallel session folds commits; tags are live and consumer-visible (the poison fix), master carries the policy re-strip.
 
+## T20 — Staged go.mod gate (BuildFlow#124)
+
+- [ ] Staged go.mod gate — **DONE in code 2026-11-28, release pending**: every gated go.mod rewrite (`CanonicalizeGoMod`, `Apply`'s patch-form strip) is judged on a staged copy of the candidate mod files through `go -modfile` (`pkg/fix/stage.go`), so the live `go.mod` is written exactly once and only after the verdict; the commit is verified against a concurrent writer (`atomicwrite.WriteVerified`); `CanonicalizeOptions.ExtraGate` lets BuildFlow run its `go vet` gate inside the same probe. Root cause it closes: BuildFlow's `go-mod-normalize` probed a downgrade on the LIVE file, and concurrent `go generate` / `govalid` steps failed with "updates to go.mod needed" (BuildFlow#124).
+- [ ] Release it as v0.2.8 and bump BuildFlow (owner go-ahead for the push): tag, then in BuildFlow `tools/go.mod` bump, repin the flake input, pass `ExtraGate` from `tools/gomod/module_2.go` (`go vet -modfile=<modFile>` with `GOWORK=off`), `nix run .#update-vendor-hash`, close BuildFlow#124.
+
 ## T1 — Fleet consumer campaign (remainder)
 
 - [ ] Consumer sweep: bump the repos still pinning `go-output v0.38.2` (verified 2026-10-17: `index`, `projects-management-automation/pkg/domain`, `projects-management-automation/pma-daemon`), then re-run `check --quiet --expect-minor 1.27 ~/projects/*/` and refresh the ADR-0001 appendix counts.

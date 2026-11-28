@@ -29,7 +29,7 @@ trash /tmp/<consumer>-gate-test
 
 ## Why a copy (and not `fix --dry-run`)
 
-`--dry-run` reports what would be attempted but holds every fix back before the gate runs — it cannot distinguish "would apply cleanly" from "the dependency floor forbids this." Only a real `fix` executes the non-mutating `go mod tidy -diff` gate with atomic revert. Running that real fix on the consumer's checkout would leave a mutation window the auto-commit daemon can sweep (it has committed half-written go.mod files before — BuildFlow gotcha #152); the throwaway copy has no daemon and no `.git` to sweep.
+`--dry-run` reports what would be attempted but holds every fix back before the gate runs — it cannot distinguish "would apply cleanly" from "the dependency floor forbids this." Only a real `fix` executes the non-mutating `go mod tidy -diff` gate. Since 2026-11-28 (BuildFlow#124) that gate judges a staged copy of the rewrite, so a real fix on the consumer's checkout no longer opens the mutation window the auto-commit daemon could sweep (it has committed half-written go.mod files before — BuildFlow gotcha #152); the throwaway copy stays the safe default, because an approved fix is still a real write into the checkout.
 
 ## Preconditions
 
