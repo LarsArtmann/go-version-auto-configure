@@ -18,6 +18,16 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+// realObservingGate is the production dependency gate, recording what it
+// saw of the live go.mod and which staged copy it judged when it ran.
+func realObservingGate(goModPath string, seen *gateObservation) SplitRunner {
+	real := ExecSplitRunner()
+
+	return observingGate(goModPath, seen, func(dir string, args []string) (string, string, error) {
+		return real(context.Background(), dir, args...)
+	})
+}
+
 // TestCanonicalizeGoMod_E2E_RealGateJudgesStagedCandidate drives the
 // production dependency gate over a staged candidate for both verdicts.
 func TestCanonicalizeGoMod_E2E_RealGateJudgesStagedCandidate(t *testing.T) {
@@ -37,11 +47,7 @@ func TestCanonicalizeGoMod_E2E_RealGateJudgesStagedCandidate(t *testing.T) {
 		goModPath := filepath.Join(consumer, "go.mod")
 		original := readFile(t, goModPath)
 		seen := gateObservation{}
-		real := ExecSplitRunner()
-
-		gate := observingGate(goModPath, &seen, func(dir string, args []string) (string, string, error) {
-			return real(context.Background(), dir, args...)
-		})
+		gate := realObservingGate(goModPath, &seen)
 
 		res, err := CanonicalizeGoMod(context.Background(), goModPath, CanonicalizeOptions{
 			InstalledToolchain: installed,
@@ -73,11 +79,7 @@ func TestCanonicalizeGoMod_E2E_RealGateJudgesStagedCandidate(t *testing.T) {
 		)
 
 		seen := gateObservation{}
-		real := ExecSplitRunner()
-
-		gate := observingGate(goModPath, &seen, func(dir string, args []string) (string, string, error) {
-			return real(context.Background(), dir, args...)
-		})
+		gate := realObservingGate(goModPath, &seen)
 
 		res, err := CanonicalizeGoMod(context.Background(), goModPath, CanonicalizeOptions{
 			InstalledToolchain: installed,

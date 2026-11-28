@@ -53,7 +53,7 @@ func TestApply_LiveFileUntouchedWhileGateRuns(t *testing.T) {
 	require.Len(t, res.DepForced, 1)
 	assert.Empty(t, res.Applied)
 	assert.Equal(t, original, seen.live, "the gate runs while the live file still holds the original directive")
-	assert.Equal(t, "module example.com/m\n\ngo 1.26\n", readFile(t, seen.modFile), "the gate judged the staged candidate")
+	assert.Equal(t, "module example.com/m\n\ngo 1.26\n", seen.candidate, "the gate judged the staged candidate")
 	assert.Equal(t, original, readFile(t, goModPath), "a rejected fix is withheld, not reverted")
 	assertStagedCopyGone(t, seen.modFile)
 }

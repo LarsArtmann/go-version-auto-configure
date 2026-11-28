@@ -50,10 +50,10 @@ func seedRealGateFixture(t *testing.T, directive string) string {
 }
 
 // TestApply_E2E_RealTidyGateRejectsDepForcedDowngrade drives the full
-// production path: the patch-form strip is written, the real
-// `go mod tidy -diff` gate sees the dependency floor re-raise, the rewrite
-// is reverted, and the classification names the floor and the replace
-// target carrying it.
+// production path: the real `go mod tidy -diff` gate judges the staged
+// strip, sees the dependency floor re-raise, withholds the rewrite from the
+// live file, and the classification names the floor and the replace target
+// carrying it.
 func TestApply_E2E_RealTidyGateRejectsDepForcedDowngrade(t *testing.T) {
 	if testing.Short() {
 		t.Skip("e2e: needs the real go toolchain")
@@ -63,17 +63,20 @@ func TestApply_E2E_RealTidyGateRejectsDepForcedDowngrade(t *testing.T) {
 
 	root := seedRealGateFixture(t, "1.27.1")
 	goModPath := filepath.Join(root, "consumer", "go.mod")
+	original := readFile(t, goModPath)
+	seen := gateObservation{}
 
 	res, err := Apply(
 		context.Background(),
 		root,
 		[]surface.Fix{{File: "consumer/go.mod", Kind: surface.KindGoMod, From: "1.27.1", To: "1.27", Line: 3}},
-		Options{},
+		Options{Gate: realObservingGate(goModPath, &seen)},
 		nil,
 	)
 	require.NoError(t, err)
 
 	require.Len(t, res.DepForced, 1, "the real gate rejects the strip the local floor forces back")
+	assert.Equal(t, original, seen.live, "the real gate ran while the live file held the original directive")
 	assert.Empty(t, res.Applied)
 	assert.Empty(t, res.Failures)
 
@@ -82,7 +85,7 @@ func TestApply_E2E_RealTidyGateRejectsDepForcedDowngrade(t *testing.T) {
 
 	data, readErr := os.ReadFile(goModPath)
 	require.NoError(t, readErr)
-	assert.Contains(t, string(data), "go 1.27.1", "the rejected rewrite is reverted on disk")
+	assert.Contains(t, string(data), "go 1.27.1", "the rejected rewrite never reaches the live file")
 }
 
 // TestApply_E2E_RealTidyGateAcceptsCleanStrip proves the green path against

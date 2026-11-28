@@ -25,6 +25,8 @@ type gateObservation struct {
 	live string
 	// modFile is the -modfile argument; empty when no gate ran.
 	modFile string
+	// candidate is the staged content the gate judged; empty when no gate ran.
+	candidate string
 }
 
 // modFileArg returns the value of the -modfile flag in args, or "".
@@ -54,6 +56,7 @@ func observingGate(
 
 		seen.live = string(content)
 		seen.modFile = modFileArg(args)
+		seen.candidate = readFileForGate(seen.modFile)
 
 		return reply(dir, args)
 	})
@@ -141,7 +144,7 @@ func TestCanonicalizeGoMod_RejectedDowngradeNeverReachesTheLiveFile(t *testing.T
 
 	assert.Equal(t, original, seen.live, "the gate runs while the live file still holds the original directive")
 	assert.NotEqual(t, path, seen.modFile, "the gate judges a staged copy, never the live file")
-	assert.Equal(t, "module example.com/norm\n\ngo 1.26\n", readFile(t, seen.modFile))
+	assert.Equal(t, "module example.com/norm\n\ngo 1.26\n", seen.candidate, "the gate judged the staged candidate")
 
 	assert.True(t, res.HeldBackByDepFloor)
 	assert.False(t, res.Changed)
