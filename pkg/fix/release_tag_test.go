@@ -10,6 +10,11 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+var (
+	errNotAGitRepository      = errors.New("not a git repository")
+	errFatalNotAGitRepository = errors.New("fatal: not a git repository")
+)
+
 func TestNewestReleaseTag(t *testing.T) {
 	t.Parallel()
 
@@ -47,7 +52,7 @@ func TestNewestReleaseTag(t *testing.T) {
 		{
 			name: "git failure is an error",
 			run: func(ctx context.Context, dir string, args ...string) (string, error) {
-				return "", errors.New("not a git repository")
+				return "", errNotAGitRepository
 			},
 			wantErr: true,
 		},
@@ -56,7 +61,7 @@ func TestNewestReleaseTag(t *testing.T) {
 	for _, test := range tests {
 		got, err := NewestReleaseTag(ctx, "/repo", test.run)
 		if test.wantErr {
-			assert.Error(t, err, test.name)
+			require.Error(t, err, test.name)
 
 			continue
 		}
@@ -110,7 +115,7 @@ func TestReleaseAuthorityTagIssues(t *testing.T) {
 			name: "silent: git fails (degrade, not error)",
 			surf: both,
 			run: func(ctx context.Context, dir string, args ...string) (string, error) {
-				return "", errors.New("fatal: not a git repository")
+				return "", errFatalNotAGitRepository
 			},
 			wantFires: false,
 		},

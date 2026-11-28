@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"encoding/json/v2"
 	"os"
 	"path/filepath"
@@ -778,7 +779,7 @@ func BenchmarkAnalyzeAll(b *testing.B) {
 	b.ResetTimer()
 
 	for b.Loop() {
-		analyzeAll(roots, 0)
+		analyzeAll(context.Background(), roots, 0)
 	}
 }
 

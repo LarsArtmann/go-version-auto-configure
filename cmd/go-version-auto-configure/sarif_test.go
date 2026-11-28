@@ -64,10 +64,11 @@ func TestSARIFWireContractGolden(t *testing.T) {
 	props, ok := run["properties"].(map[string]any)
 	require.True(t, ok, "run propertyBag present")
 	assert.Equal(t, []any{"<ROOT>"}, props["scanRoots"], "scanRoots stamped")
-	assert.Equal(
+	assert.InDelta(
 		t,
 		float64(jsonSchemaVersion),
 		props["schemaVersion"],
+		1e-9,
 		"schemaVersion ties the export to the --json contract",
 	)
 	assert.NotContains(t, props, "failedRoots", "no failed roots in a clean scenario")

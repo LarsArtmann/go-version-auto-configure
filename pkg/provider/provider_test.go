@@ -367,7 +367,7 @@ func TestRespectPatchFloorOption_WrongTypeErrors(t *testing.T) {
 
 	_, err := respectPatchFloorOptions(ctx, ".")
 	require.Error(t, err)
-	assert.ErrorIs(t, err, toolsdk.ErrOptionKindMismatch)
+	require.ErrorIs(t, err, toolsdk.ErrOptionKindMismatch)
 	assert.Contains(t, err.Error(), providerOptionRespectPatchFloor,
 		"the error must name the misconfigured option")
 }

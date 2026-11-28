@@ -62,18 +62,7 @@ func Discover(root string) (*Surface, []Issue, error) {
 		}
 
 		if entry.IsDir() {
-			if skippedDirs[entry.Name()] {
-				if entry.Name() == "vendor" {
-					rel, relErr := filepath.Rel(absRoot, path)
-					if relErr == nil {
-						surf.SkippedModules = append(surf.SkippedModules, FilePath(rel))
-					}
-				}
-
-				return filepath.SkipDir
-			}
-
-			return nil
+			return handleDirEntry(absRoot, surf, path, entry.Name())
 		}
 
 		relStr, relErr := filepath.Rel(absRoot, path)
@@ -90,6 +79,23 @@ func Discover(root string) (*Surface, []Issue, error) {
 	}
 
 	return surf, issues, nil
+}
+
+// handleDirEntry decides the walk behavior for one directory entry: skip
+// excluded trees (recording vendor modules) and otherwise descend.
+func handleDirEntry(absRoot string, surf *Surface, path, name string) error {
+	if !skippedDirs[name] {
+		return nil
+	}
+
+	if name == "vendor" {
+		rel, relErr := filepath.Rel(absRoot, path)
+		if relErr == nil {
+			surf.SkippedModules = append(surf.SkippedModules, FilePath(rel))
+		}
+	}
+
+	return filepath.SkipDir
 }
 
 // absorbFile folds one discovered file into the surface and returns any

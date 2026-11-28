@@ -311,7 +311,7 @@ func repairStructured(ctx context.Context) (toolsdk.RepairResult, error) {
 	seen := make(map[string]bool, len(res.Applied))
 
 	for _, fx := range res.Applied {
-		file := string(fx.File)
+		file := fx.File
 		if !seen[file] {
 			seen[file] = true
 			modified = append(modified, file)

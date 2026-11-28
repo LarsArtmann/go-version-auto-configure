@@ -189,25 +189,25 @@ func addCommand[F any](cli *v5.CLI[appConfig], name string, cmd v5.Command[appCo
 
 // runCheck executes the check command body: analyze every root, emit the
 // report, and map findings to the exit contract.
-func runCheck(out io.Writer, ctx context.Context, f *checkFlags) error {
+func runCheck(out io.Writer, ctx context.Context, flags *checkFlags) error {
 	roots := rootsFrom(v5.ArgsFromContext(ctx))
 
-	opts, code := analysisOptions(ctx, out, f.ExpectMinor, f.RespectPatchFloor)
+	opts, code := analysisOptions(ctx, out, flags.ExpectMinor, flags.RespectPatchFloor)
 	if code != exitOK {
 		return codeFrom(code)
 	}
 
-	analyses := analyzeAll(roots, f.Parallel, opts...)
+	analyses := analyzeAll(ctx, roots, flags.Parallel, opts...)
 
-	if f.SARIF {
+	if flags.SARIF {
 		return codeFrom(emitSARIF(ctx, out, analyses))
 	}
 
-	if f.JSON {
+	if flags.JSON {
 		return codeFrom(emitCheckJSON(out, analyses))
 	}
 
-	if !f.Quiet {
+	if !flags.Quiet {
 		printCheckReports(out, analyses)
 	}
 
@@ -224,7 +224,7 @@ func runFix(out io.Writer, ctx context.Context, f *fixFlags) error {
 		return codeFrom(code)
 	}
 
-	analyses := analyzeAll(roots, f.Parallel, opts...)
+	analyses := analyzeAll(ctx, roots, f.Parallel, opts...)
 	outcomes := applyAll(ctx, analyses, fix.Options{DryRun: f.DryRun}, f.Parallel)
 
 	if f.JSON {
@@ -355,31 +355,31 @@ type report struct {
 }
 
 // analyzeAt discovers and analyzes one repository root.
-func analyzeAt(root string, opts ...surface.AnalyzeOption) (*report, error) {
+func analyzeAt(ctx context.Context, root string, opts ...surface.AnalyzeOption) (*report, error) {
 	surf, discovery, err := surface.Discover(root)
 	if err != nil {
 		return nil, fmt.Errorf("analyze %q: %w", root, err)
 	}
 
-	r := &report{discovery: discovery}
+	result := &report{discovery: discovery}
 
 	for _, issue := range surface.Analyze(surf, opts...) {
 		if issue.Fix != nil {
-			r.mechanical = append(r.mechanical, issue)
+			result.mechanical = append(result.mechanical, issue)
 
 			continue
 		}
 
-		r.suggested = append(r.suggested, issue)
+		result.suggested = append(result.suggested, issue)
 	}
 
-	r.scanned = surf.FilesScanned
-	r.skipped = surf.SkippedModules
+	result.scanned = surf.FilesScanned
+	result.skipped = surf.SkippedModules
 
-	r.suggested = append(r.suggested,
-		fix.ReleaseAuthorityTagIssues(context.Background(), root, surf, fix.GitTagRunner())...)
+	result.suggested = append(result.suggested,
+		fix.ReleaseAuthorityTagIssues(ctx, root, surf, fix.GitTagRunner())...)
 
-	return r, nil
+	return result, nil
 }
 
 // all returns every issue in a stable order: discovery, mechanical, then
@@ -427,10 +427,10 @@ func runSorted[I any, R any](items []I, parallel int, key func(R) string, fn fun
 // analyzeAll analyzes every root with a bounded worker pool and returns the
 // results sorted by root for deterministic output. parallel <= 0 selects the
 // automatic worker count.
-func analyzeAll(roots []string, parallel int, opts ...surface.AnalyzeOption) []repoAnalysis {
+func analyzeAll(ctx context.Context, roots []string, parallel int, opts ...surface.AnalyzeOption) []repoAnalysis {
 	return runSorted(roots, parallel, func(a repoAnalysis) string { return a.root },
 		func(root string) repoAnalysis {
-			analyzed, err := analyzeAt(root, opts...)
+			analyzed, err := analyzeAt(ctx, root, opts...)
 
 			return repoAnalysis{root: root, report: analyzed, err: err}
 		})

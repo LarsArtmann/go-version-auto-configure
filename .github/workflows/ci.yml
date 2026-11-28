@@ -38,18 +38,13 @@ jobs:
       - name: Tidy gate (go mod tidy -diff)
         run: go mod tidy -diff
 
-      - name: Error-handling audit (erraudit)
-        run: |
-          go install github.com/larsartmann/erraudit/cmd/erraudit@latest
-          erraudit ./... --type-aware
-
       - name: Test (race)
         run: go test -race -count=1 ./...
 
       - name: Lint
         uses: golangci/golangci-lint-action@ba0d7d2ec06a0ea1cb5fa41b2e4a3ab91d21278a # v9.3.0
         with:
-          version: v2.14.0 # pinned to the devShell's version (reproducible lint)
+          version: v2.15.0 # pinned to the devShell's version (reproducible lint)
           args: --timeout 5m
 
       - name: Dogfood check (this repo must be clean)
@@ -76,3 +71,36 @@ jobs:
             echo "version stamp is not a VCS shortrev (got '$v') - pkg/version stamping is broken"
             exit 1
           }
+
+  # The audit is its own job on purpose: erraudit lives in a private
+  # repository, so this job needs a token the other steps do not. While the
+  # token is missing this job stays red and says why, and the verify job
+  # above still reports build, test, lint, and dogfood (2026-11-28: a single
+  # job hid all four behind the failed `go install` since at least 11-17).
+  erraudit:
+    name: Error-handling audit (erraudit)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-go@d8cbb8045d7f43706b9177cceb36c1f91a6644d5 # v7.1.0
+        with:
+          go-version: "1.27.x"
+          cache: true
+
+      - name: Configure private dependency access
+        env:
+          GH_PRIVATE_TOKEN: ${{ secrets.PRIVATE_REPO_TOKEN }}
+        run: |
+          if [ -z "$GH_PRIVATE_TOKEN" ]; then
+            echo "::error::secrets.PRIVATE_REPO_TOKEN is not configured. erraudit lives in a private repository and cannot be installed on a runner without it."
+            exit 1
+          fi
+          git config --global url."https://x-access-token:${GH_PRIVATE_TOKEN}@github.com/".insteadOf "https://github.com/"
+
+      - name: Error-handling audit
+        run: |
+          go install github.com/larsartmann/erraudit/cmd/erraudit@latest
+          erraudit ./... --type-aware
