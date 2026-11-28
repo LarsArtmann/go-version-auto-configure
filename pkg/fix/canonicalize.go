@@ -4,8 +4,9 @@ package fix
 // counterpart to surface.Fix application. Where Apply rewrites one directive
 // recorded by Analyze, CanonicalizeGoMod derives the changes itself from the
 // file (patch-form go line, toolchain line) and guards the downgrade with a
-// `go mod tidy -diff` dependency-floor gate, reverting atomically when the
-// floor forbids it.
+// `go mod tidy -diff` dependency-floor gate. The verdict is earned on a
+// staged copy of the mod files (stage.go), never on the live file: a
+// rejected downgrade is simply not committed.
 
 import (
 	"context"
@@ -83,23 +84,6 @@ func (r gateResult) Dirty() bool {
 	return r.Err != nil || strings.TrimSpace(r.Stdout) != ""
 }
 
-// runTidyDiffGate runs `go mod tidy -diff` with GOWORK=off in dir. A clean
-// result is exit 0 with empty stdout; a diff on stdout or a non-zero exit
-// (floor conflict, resolve error) means the edit is not dependency-floor
-// safe. Stderr is informational only.
-func runTidyDiffGate(ctx context.Context, dir string, run SplitRunner) gateResult {
-	gateCtx, cancel := context.WithTimeout(ctx, tidyGateTimeout)
-	defer cancel()
-
-	stdout, stderr, err := run(gateCtx, dir, "mod", "tidy", "-diff")
-
-	return gateResult{
-		Stdout: stdout,
-		Detail: strings.TrimSpace(strings.TrimSpace(stdout) + "\n" + strings.TrimSpace(stderr)),
-		Err:    err,
-	}
-}
-
 // goDirectiveLine matches a top-level go directive line, capturing the
 // version token and any trailing content (e.g. a comment). Anchored to line
 // start so module paths like "go-something" inside require blocks cannot
@@ -151,9 +135,10 @@ type CanonicalizeOptions struct {
 	// DryRun reports what would change without touching files.
 	DryRun bool
 	// StripToolchain removes a `toolchain` directive line alongside the go
-	// line rewrite. Stripping needs no gate of its own (toolchain
-	// directives do not participate in module resolution); a
-	// downgrade+strip combination reverts together when the gate fails.
+	// line rewrite. Stripping needs no dependency gate of its own
+	// (toolchain directives do not participate in module resolution); a
+	// downgrade+strip combination is withheld together when a gate rejects
+	// the candidate.
 	StripToolchain bool
 	// InstalledToolchain is the installed Go version, e.g. "1.27.1" (the
 	// "go" prefix is tolerated). Empty resolves it via `go env GOVERSION`.
@@ -164,6 +149,11 @@ type CanonicalizeOptions struct {
 	// policy, not drift. The toolchain-strip path is independent: a strip
 	// requested explicitly still happens.
 	RespectPatchFloor bool
+	// ExtraGate is a caller-supplied check on the candidate go.mod, run
+	// after the dependency-floor gate and before the commit; nil runs none.
+	// Every rewrite pays it, a toolchain-only strip included: a stripped
+	// toolchain line can change which toolchain builds the module.
+	ExtraGate ExtraGate
 }
 
 // CanonicalizeResult summarizes one CanonicalizeGoMod run.
@@ -174,11 +164,18 @@ type CanonicalizeResult struct {
 	Changes []string
 	// HeldBack reports a dry-run: Changes lists what would be applied.
 	HeldBack bool
-	// HeldBackByDepFloor reports that the gate rejected the downgrade and
-	// the original content was restored: a dependency forces the floor.
+	// HeldBackByDepFloor reports that the dependency-floor gate rejected the
+	// downgrade, so the file was never written: a dependency forces the
+	// floor.
 	HeldBackByDepFloor bool
-	// GateDetail carries the `go mod tidy -diff` output for a rejected
-	// downgrade.
+	// HeldBackByExtraGate reports that the caller gate rejected the rewrite,
+	// so the file was never written. Never set together with
+	// HeldBackByDepFloor: the dependency-floor gate runs first and a
+	// rejection there skips the caller gate.
+	HeldBackByExtraGate bool
+	// GateDetail carries the rejecting gate's output: the `go mod tidy
+	// -diff` diff for a dependency-floor rejection, the caller gate's error
+	// text for an extra-gate rejection.
 	GateDetail string
 	// Skipped reports that nothing was attempted; SkipReason says why.
 	Skipped bool
@@ -236,11 +233,14 @@ func planCanonicalization(content []byte, opts CanonicalizeOptions) canonicalize
 //	go 1.26.7          ->  go 1.26
 //	toolchain go1.26.7 ->  (removed, when StripToolchain is set)
 //
-// The go-line downgrade is dependency-floor aware: after the edit, `go mod
-// tidy -diff` (GOWORK=off) must come back clean. A non-clean result means a
-// dependency's go line (or pre-existing untidiness) forbids the downgrade;
-// the original content is restored atomically and HeldBackByDepFloor is
-// reported: dep-forced floors are a legitimate state, not an error.
+// The go-line downgrade is dependency-floor aware: `go mod tidy -diff`
+// (GOWORK=off) must come back clean against the staged candidate. A
+// non-clean result means a dependency's go line (or pre-existing
+// untidiness) forbids the downgrade; HeldBackByDepFloor is reported and the
+// live file stays as it was: dep-forced floors are a legitimate state, not
+// an error. The gate runs while the live go.mod is untouched, so nothing
+// else reading the module ever sees the candidate before it is committed
+// (BuildFlow#124).
 //
 // Unparseable go.mod files are Skipped, not failed: the go-line rewrite is
 // regex-based, but the surrounding passes own the broken file. gate is the
@@ -301,17 +301,29 @@ func CanonicalizeGoMod(
 		updated = stripToolchainDirective(updated)
 	}
 
-	if writeErr := atomicwrite.Write(goModPath, []byte(updated)); writeErr != nil {
-		return CanonicalizeResult{}, fmt.Errorf("canonicalize: write %s: %w", goModPath, writeErr)
+	verdict, gateErr := gateGoModRewrite(ctx, goModPath, content, []byte(updated), rewriteGates{
+		dependencyFloor: plan.patchPinned,
+		extra:           opts.ExtraGate,
+	}, gate)
+	if gateErr != nil {
+		if errors.Is(gateErr, atomicwrite.ErrConcurrentModification) {
+			res.Skipped, res.SkipReason = true,
+				"go.mod changed by another writer while the gates ran; left untouched"
+
+			return res, nil
+		}
+
+		return CanonicalizeResult{}, fmt.Errorf("canonicalize: %w", gateErr)
 	}
 
-	if res.HeldBackByDepFloor = canonicalizeGate(ctx, dir, goModPath, content, plan, gate); res.HeldBackByDepFloor {
-		res.GateDetail = runTidyDiffGate(ctx, dir, gate).Detail
-
-		return res, nil
+	switch {
+	case verdict.tidy.Dirty():
+		res.HeldBackByDepFloor, res.GateDetail = true, verdict.tidy.Detail
+	case verdict.extraErr != nil:
+		res.HeldBackByExtraGate, res.GateDetail = true, verdict.extraErr.Error()
+	default:
+		res.Changed = true
 	}
-
-	res.Changed = true
 
 	return res, nil
 }
@@ -375,33 +387,6 @@ func canonicalizeGuard(
 	}
 
 	return plan, nil
-}
-
-// canonicalizeGate runs the dependency-floor gate for a go-line downgrade
-// and reverts the file when the gate rejects it. Only the go-line downgrade
-// can invalidate module resolution, so only it pays for the gate; a
-// toolchain strip alone needs none. The gate covers the combination: a
-// failure reverts the whole file. Returns whether the floor held the fix.
-func canonicalizeGate(
-	ctx context.Context,
-	dir, goModPath string,
-	original []byte,
-	plan canonicalizePlan,
-	gate SplitRunner,
-) bool {
-	if !plan.patchPinned {
-		return false
-	}
-
-	if g := runTidyDiffGate(ctx, dir, gate); g.Dirty() {
-		if revertErr := atomicwrite.Write(goModPath, original); revertErr != nil {
-			return false
-		}
-
-		return true
-	}
-
-	return false
 }
 
 // resolveInstalledToolchain returns the installed Go version: the explicit

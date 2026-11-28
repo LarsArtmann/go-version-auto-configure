@@ -16,7 +16,6 @@ import (
 	"slices"
 	"strings"
 
-	atomicwrite "github.com/larsartmann/go-atomic-write"
 	"github.com/larsartmann/go-version-auto-configure/pkg/surface"
 )
 
@@ -365,7 +364,8 @@ func applyOne(ctx context.Context, root string, fx surface.Fix, run GoCommandRun
 // go.mod and classifies a dirty dependency gate: the module floor forced by
 // the dependency graph (the highest dependency go line, which is what tidy
 // enforces) above the fix target means dep-forced; anything else is a
-// plain failure. The original content is restored before classifying.
+// plain failure. The gate judges a staged copy of the rewrite (stage.go);
+// the live go.mod is written once, only for an approved fix.
 func applyGoModFix(ctx context.Context, abs string, fx surface.Fix, run GoCommandRunner, gate SplitRunner) error {
 	original, err := os.ReadFile(abs)
 	if err != nil {
@@ -381,24 +381,20 @@ func applyGoModFix(ctx context.Context, abs string, fx surface.Fix, run GoComman
 		return err
 	}
 
-	if err := atomicwrite.Write(abs, []byte(updated)); err != nil {
-		return fmt.Errorf("write %s: %w", abs, err)
+	if err := verifyDirectiveMatches(updated, fx.To); err != nil {
+		return err
 	}
 
-	err = verifyDirectiveMatches(updated, fx.To)
-	if err == nil {
-		if g := runTidyDiffGate(ctx, filepath.Dir(abs), gate); g.Dirty() {
-			err = classifyGateRejection(ctx, abs, fx, run, g)
-		}
-	}
-
+	verdict, err := gateGoModRewrite(ctx, abs, original, []byte(updated), rewriteGates{dependencyFloor: true}, gate)
 	if err != nil {
-		if revertErr := atomicwrite.Write(abs, original); revertErr != nil {
-			return fmt.Errorf("%w (AND revert of %s failed: %w)", err, abs, revertErr)
-		}
+		return err
 	}
 
-	return err
+	if verdict.tidy.Dirty() {
+		return classifyGateRejection(ctx, abs, fx, run, verdict.tidy)
+	}
+
+	return nil
 }
 
 // verifyDriftGuard rejects the fix when the directive on disk no longer
